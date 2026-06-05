@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { signIn, isAuthenticated } from "@/lib/auth";
+import { signIn, isAuthenticated, resetMockAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
