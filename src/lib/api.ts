@@ -706,12 +706,16 @@ function buildExpenses(): Expense[] {
   return raw.map((r, i) => {
     const emp = userByName.get(r.employeeName);
     const id = `EXP-2025-${String(1042 - i).padStart(4, "0")}`;
+    const hasCnpj = r.cnpj !== null;
+    const cnpjValue = r.cnpj === null ? "Não identificado" : r.cnpj ?? "12.345.678/0001-90";
+    const cnpjConfidence = r.cnpj === null ? 0.34 : Math.max(0.6, r.confidence - 0.08);
     const extracted: ExtractedField[] = [
       { label: "Estabelecimento", value: r.merchant, confidence: Math.min(0.99, r.confidence + 0.05) },
       { label: "Valor total", value: formatBRL(r.amount), confidence: Math.min(0.99, r.confidence + 0.03) },
       { label: "Data", value: formatDate(r.date), confidence: Math.min(0.98, r.confidence) },
       { label: "Categoria", value: categoryLabels[r.category], confidence: Math.max(0.55, r.confidence - 0.1) },
-      { label: "CNPJ", value: "12.345.678/0001-90", confidence: Math.max(0.6, r.confidence - 0.08) },
+      { label: "CNPJ", value: cnpjValue, confidence: cnpjConfidence },
+      ...(r.extra ?? []),
     ];
 
     return {
@@ -721,6 +725,7 @@ function buildExpenses(): Expense[] {
       employeeName: r.employeeName,
       category: r.category,
       merchant: r.merchant,
+      cnpj: hasCnpj ? r.cnpj ?? "12.345.678/0001-90" : undefined,
       description: r.description ?? "",
       amount: r.amount,
       date: r.date,
