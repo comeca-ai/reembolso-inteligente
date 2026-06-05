@@ -62,7 +62,7 @@ function OnboardingPage() {
     setEnviando(true);
     try {
       await api.uploadPolicy(file.name, user?.nome ?? "Admin");
-      markPolicyUploaded(file.name);
+      await markPolicyUploaded(file.name);
       toast.success("Política ativada", {
         description: "A IA já pode avaliar despesas com base nas suas regras.",
       });
