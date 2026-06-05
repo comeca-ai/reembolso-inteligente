@@ -198,7 +198,7 @@ function Passo({
   return (
     <li className="flex items-start gap-3">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand/10">
-        <Icon className="h-4.5 w-4.5 text-brand" />
+        <Icon className="h-4 w-4 text-brand" />
       </div>
       <div>
         <p className="text-sm font-semibold text-foreground">{titulo}</p>
