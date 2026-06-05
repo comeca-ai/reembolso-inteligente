@@ -258,15 +258,15 @@ function OverviewPage() {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <p className="truncate text-sm font-medium text-foreground">{item.employeeName}</p>
-                        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        <span className="shrink-0 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
                           {criticalKindLabels[item.kind]}
                         </span>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
                     </div>
-                    <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                    <span className="hidden whitespace-nowrap text-sm font-semibold tabular-nums text-foreground sm:block">
                       {formatBRL(item.amount)}
                     </span>
                     <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
