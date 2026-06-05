@@ -119,6 +119,7 @@ export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
       id: genId("co"),
       razao_social: input.razaoSocial.trim(),
       cnpj: input.cnpj.trim(),
+      politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || undefined,
     },
   };
 
