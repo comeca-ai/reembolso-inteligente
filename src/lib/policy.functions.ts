@@ -12,7 +12,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
@@ -72,10 +72,51 @@ const ruleSchema = z.object({
   text: z.string().describe("Texto da regra extraído da política, resumido."),
 });
 
-const extractionSchema = z.object({
-  pages: z.number().int().nonnegative().describe("Número aproximado de páginas do documento."),
-  rules: z.array(ruleSchema).min(1).describe("Regras-chave estruturadas extraídas da política."),
-});
+function normalizeCategory(value: unknown): PolicyCategory {
+
+  const v = String(value ?? "").toLowerCase().trim();
+  return (CATEGORIES as readonly string[]).includes(v) ? (v as PolicyCategory) : "outros";
+}
+
+/** Faz parse tolerante do JSON devolvido pela IA (pode vir com cercas markdown). */
+function parseExtraction(raw: string): { pages: number; rules: z.infer<typeof ruleSchema>[] } {
+  let txt = (raw ?? "").trim();
+  // Remove cercas ```json ... ``` se existirem.
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) txt = fence[1].trim();
+  // Pega do primeiro { ao último } para descartar texto extra.
+  const first = txt.indexOf("{");
+  const last = txt.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    txt = txt.slice(first, last + 1);
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(txt);
+  } catch {
+    throw new Error("Resposta da IA não estava em JSON válido.");
+  }
+
+  const rawRules = Array.isArray(data?.rules) ? data.rules : [];
+  const rules = rawRules
+    .map((r: any) => ({
+      code: String(r?.code ?? "").trim(),
+      title: String(r?.title ?? "").trim(),
+      category: normalizeCategory(r?.category),
+      limit: String(r?.limit ?? "").trim(),
+      basis: String(r?.basis ?? "").trim(),
+      text: String(r?.text ?? "").trim(),
+    }))
+    .filter((r: z.infer<typeof ruleSchema>) => r.title || r.text);
+
+  const pages =
+    typeof data?.pages === "number" && Number.isFinite(data.pages)
+      ? Math.max(0, Math.round(data.pages))
+      : 0;
+
+  return { pages, rules };
+}
 
 // ---------------------------------------------------------------------------
 // Leitura do estado atual da política
@@ -192,13 +233,12 @@ export const uploadAndExtractPolicy = createServerFn({ method: "POST" })
     });
     if (insErr) throw insErr;
 
-    // Extração via IA — Gemini lê o PDF diretamente.
-    let extracted: z.infer<typeof extractionSchema>;
+    // Extração via IA — Gemini lê o PDF e devolve JSON (parse tolerante).
+    let extracted: { pages: number; rules: z.infer<typeof ruleSchema>[] };
     try {
       const gateway = createLovableAiGatewayProvider(getLovableApiKey());
-      const result = await generateObject({
+      const { text } = await generateText({
         model: gateway("google/gemini-3-flash-preview"),
-        schema: extractionSchema,
         messages: [
           {
             role: "user",
@@ -208,18 +248,25 @@ export const uploadAndExtractPolicy = createServerFn({ method: "POST" })
                 text:
                   "Você é um analista de políticas de reembolso corporativo. " +
                   "Leia o PDF da política em anexo e extraia as regras-chave que " +
-                  "serão usadas para avaliar despesas. Para cada regra identifique: " +
-                  "código/numeração da cláusula, um título curto, a categoria de " +
-                  "despesa, o limite (valor ou condição), a base do limite e o texto " +
-                  "resumido da regra. Use as categorias disponíveis. Responda em " +
-                  "português do Brasil. Se um campo não existir, deixe vazio.",
+                  "serão usadas para avaliar despesas.\n\n" +
+                  "Responda APENAS com um objeto JSON válido (sem markdown, sem ```), " +
+                  "no formato:\n" +
+                  '{ "pages": number, "rules": [ { "code": string, "title": string, ' +
+                  '"category": string, "limit": string, "basis": string, "text": string } ] }\n\n' +
+                  "Para cada regra: code = numeração da cláusula (ex.: '4.1'); title = título curto; " +
+                  `category = uma de [${CATEGORIES.join(", ")}]; limit = valor/condição (ex.: 'R$ 350,00'); ` +
+                  "basis = base do limite (ex.: 'por abastecimento'); text = texto resumido da regra. " +
+                  "Se um campo não existir, use string vazia. Responda em português do Brasil.",
               },
               { type: "file", data: bytes, mediaType: "application/pdf" },
             ],
           },
         ],
       });
-      extracted = result.object;
+      extracted = parseExtraction(text);
+      if (extracted.rules.length === 0) {
+        throw new Error("Nenhuma regra identificada no documento.");
+      }
     } catch (err) {
       await supabaseAdmin
         .from("policies")
@@ -227,9 +274,10 @@ export const uploadAndExtractPolicy = createServerFn({ method: "POST" })
         .eq("id", policyId);
       console.error("[policy] falha na extração da IA:", err);
       throw new Error(
-        "Não foi possível ler a política com a IA. Tente novamente em instantes.",
+        "Não foi possível ler a política com a IA. Verifique se o PDF contém texto legível e tente novamente.",
       );
     }
+
 
     if (extracted.rules.length > 0) {
       const { error: rulesErr } = await supabaseAdmin.from("policy_rules").insert(
