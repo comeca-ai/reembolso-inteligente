@@ -5,7 +5,7 @@ import { api, formatDate, formatDateTime, categoryLabels, type PolicyVersion, ty
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CategoryBadge } from "@/components/shared/CategoryBadge";
+
 import {
   UploadCloud,
   FileText,
