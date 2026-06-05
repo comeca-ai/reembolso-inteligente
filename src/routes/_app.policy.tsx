@@ -102,6 +102,12 @@ const emptyDraft: RuleDraft = {
 
 export const Route = createFileRoute("/_app/policy")({
   head: () => ({ meta: [{ title: "Política · reembolsa.aí" }] }),
+  beforeLoad: () => {
+    const role = getCurrentUser()?.role;
+    if (!canAccess("/policy", role)) {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   component: PolicyPage,
 });
 
