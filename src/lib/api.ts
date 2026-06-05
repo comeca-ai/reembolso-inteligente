@@ -106,7 +106,21 @@ export interface PolicyVersion {
   active: boolean;
   pages: number;
   sizeKb: number;
+  company: string;
 }
+
+export interface PolicyRule {
+  code: string; // ex.: "4.1"
+  title: string;
+  category: ExpenseCategory | "documentos";
+  limit: string; // limite legível (ex.: "R$ 350,00 / abastecimento")
+  basis: string; // base do limite (por abastecimento, por diária, etc.)
+  text: string; // texto da regra extraído da política
+}
+
+export const POLICY_COMPANY = "Construtora Horizonte S.A.";
+
+
 
 // ---------------------------------------------------------------------------
 // Rótulos legíveis (pt-BR)
@@ -151,21 +165,18 @@ export function formatBRL(value: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  // Parse the date parts directly to avoid timezone-dependent rendering
+  // (which causes SSR/client hydration mismatches).
+  const [datePart] = iso.split("T");
+  const [y, m, d] = datePart.split("-");
+  return `${d}/${m}/${y}`;
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const [datePart, timePart = "00:00"] = iso.split("T");
+  const [y, m, d] = datePart.split("-");
+  const [hh, mm] = timePart.split(":");
+  return `${d}/${m}/${y}, ${hh}:${mm}`;
 }
 
 const delay = (ms = 320) => new Promise((r) => setTimeout(r, ms));
@@ -759,9 +770,52 @@ let expenses: Expense[] = buildExpenses();
 // ---------------------------------------------------------------------------
 
 let policyVersions: PolicyVersion[] = [
-  { id: "pol-3", version: "v3.2", fileName: "politica-reembolso-2025.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2025-05-15T10:00:00", active: true, pages: 12, sizeKb: 348 },
-  { id: "pol-2", version: "v3.1", fileName: "politica-reembolso-2024-rev.pdf", uploadedBy: "Roberto Tavares", uploadedAt: "2024-11-02T09:30:00", active: false, pages: 11, sizeKb: 331 },
-  { id: "pol-1", version: "v3.0", fileName: "politica-reembolso-2024.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2024-01-10T14:20:00", active: false, pages: 10, sizeKb: 298 },
+  { id: "pol-3", version: "v3.2", fileName: "politica-reembolso-2025.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2025-05-15T10:00:00", active: true, pages: 12, sizeKb: 348, company: POLICY_COMPANY },
+  { id: "pol-2", version: "v3.1", fileName: "politica-reembolso-2024-rev.pdf", uploadedBy: "Roberto Tavares", uploadedAt: "2024-11-02T09:30:00", active: false, pages: 11, sizeKb: 331, company: POLICY_COMPANY },
+  { id: "pol-1", version: "v3.0", fileName: "politica-reembolso-2024.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2024-01-10T14:20:00", active: false, pages: 10, sizeKb: 298, company: POLICY_COMPANY },
+];
+
+const policyRules: PolicyRule[] = [
+  {
+    code: "4.1",
+    title: "Combustível",
+    category: "combustivel",
+    limit: "R$ 350,00",
+    basis: "por abastecimento",
+    text: "Combustível é reembolsável até R$ 350,00 por abastecimento, mediante cupom fiscal com CNPJ. Veículo deve estar vinculado ao colaborador ou possuir termo de uso de veículo próprio vigente.",
+  },
+  {
+    code: "4.2",
+    title: "Alimentação",
+    category: "refeicao",
+    limit: "R$ 60,00",
+    basis: "por refeição individual",
+    text: "Refeições individuais são reembolsáveis até R$ 60,00 por evento em deslocamento. Despesas coletivas exigem autorização prévia do gestor responsável.",
+  },
+  {
+    code: "4.3",
+    title: "Hospedagem",
+    category: "hospedagem",
+    limit: "R$ 350,00",
+    basis: "por diária",
+    text: "Hospedagem é reembolsável até R$ 350,00 por diária em deslocamentos autorizados acima de 100 km. Valores acima do teto podem ser aprovados com ressalva mediante justificativa do gestor.",
+  },
+  {
+    code: "4.4",
+    title: "KM rodado",
+    category: "transporte",
+    limit: "R$ 1,00 / km",
+    basis: "por quilômetro em veículo próprio",
+    text: "Reembolso por quilometragem a R$ 1,00 por km rodado em veículo próprio autorizado. Exige hodômetro inicial e final informados no momento do envio do comprovante.",
+  },
+  {
+    code: "4.5",
+    title: "Documentos fiscais",
+    category: "documentos",
+    limit: "Obrigatório",
+    basis: "todas as despesas",
+    text: "Somente cupom ou nota fiscal eletrônica com CNPJ identificável são aceitos como comprovante. Recibos sem CNPJ são automaticamente recusados.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -857,6 +911,11 @@ export const api = {
     return [...policyVersions].sort((a, b) => +new Date(b.uploadedAt) - +new Date(a.uploadedAt));
   },
 
+  async listPolicyRules(): Promise<PolicyRule[]> {
+    await delay();
+    return [...policyRules];
+  },
+
   async uploadPolicy(fileName: string, uploadedBy = "Carla Menezes"): Promise<PolicyVersion> {
     await delay(600);
     const nextNum = policyVersions.length + 1;
@@ -869,10 +928,12 @@ export const api = {
       active: true,
       pages: 12,
       sizeKb: 352,
+      company: POLICY_COMPANY,
     };
     policyVersions = [created, ...policyVersions.map((p) => ({ ...p, active: false }))];
     return created;
   },
+
 
   async exportReportCsv(): Promise<{ fileName: string; content: string; rows: number }> {
     await delay(700);
