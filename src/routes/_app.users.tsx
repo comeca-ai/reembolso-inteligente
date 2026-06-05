@@ -497,7 +497,7 @@ function ApproverDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground">
