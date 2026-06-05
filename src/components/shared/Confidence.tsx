@@ -18,11 +18,11 @@ export function ConfidenceBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground",
         className,
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", t.bar)} />
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", t.bar)} />
       <span className="tabular-nums">{pct}%</span>
       <span className="text-muted-foreground">· {t.label}</span>
     </span>
