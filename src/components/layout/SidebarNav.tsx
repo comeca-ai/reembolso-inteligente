@@ -26,6 +26,7 @@ const nav = [
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const role = getCurrentUser()?.role;
   const visibleNav = nav.filter((item) => canAccess(item.to, role));
 
