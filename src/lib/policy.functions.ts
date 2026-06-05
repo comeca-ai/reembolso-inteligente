@@ -311,6 +311,7 @@ export const evaluateExpense = createServerFn({ method: "POST" })
         .eq("policy_id", active.id)
         .order("code");
       rules = (r ?? []).map((row) => ({
+        id: row.id,
         code: row.code,
         title: row.title,
         category: (row.category as PolicyCategory) ?? "outros",
