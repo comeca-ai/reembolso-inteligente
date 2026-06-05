@@ -104,12 +104,14 @@ function ExpensesPage() {
       <PageHeader
         title="Despesas"
         description="Comprovantes enviados pela equipe de campo, analisados pela IA e prontos para decisão."
-      >
-        <Button onClick={handleExport} disabled={exporting} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          {exporting ? "Exportando…" : "Exportar CSV"}
-        </Button>
-      </PageHeader>
+        actions={
+          <Button onClick={handleExport} disabled={exporting} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            {exporting ? "Exportando…" : "Exportar CSV"}
+          </Button>
+        }
+      />
+
 
       <Card className="shadow-sm">
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
