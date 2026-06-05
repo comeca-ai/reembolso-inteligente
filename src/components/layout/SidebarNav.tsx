@@ -12,6 +12,7 @@ import {
   Sparkles,
   ShieldCheck,
   LogOut,
+  Inbox,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 const nav = [
   { to: "/overview", label: "Visão geral", icon: LayoutDashboard },
   { to: "/expenses", label: "Despesas", icon: ReceiptText },
+  { to: "/reimbursements", label: "Reembolsos recebidos", icon: Inbox },
   { to: "/policy", label: "Política", icon: FileCheck2 },
   { to: "/users", label: "Cadastros", icon: Users },
   { to: "/reports", label: "Relatórios", icon: BarChart3 },
