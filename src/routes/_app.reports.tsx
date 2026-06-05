@@ -33,7 +33,9 @@ function ReportsPage() {
       a.click();
       URL.revokeObjectURL(url);
       setLastExport(fileName);
-      toast.success(`Relatório exportado · ${rows} linhas`);
+      toast.success("Relatório exportado", {
+        description: `${rows} lançamentos em ${fileName}, com vereditos da IA e decisões humanas.`,
+      });
     } finally {
       setExporting(false);
     }
