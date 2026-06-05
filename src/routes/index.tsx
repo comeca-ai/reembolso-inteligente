@@ -96,11 +96,7 @@ function Hero() {
       />
       <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
         <div className="animate-fade-rise">
-          <span className="inline-flex items-center gap-2 rounded-full border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-1 text-xs font-semibold text-sidebar-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            Programa Piloto · IA explicável com decisão humana
-          </span>
-          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-sidebar-foreground sm:text-5xl">
+          <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight text-sidebar-foreground sm:text-5xl">
             Reembolsos da sua equipe de campo,{" "}
             <span className="text-sidebar-primary">resolvidos no automático.</span>
           </h1>
