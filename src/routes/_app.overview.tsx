@@ -1,19 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { api, formatBRL, formatDateTime } from "@/lib/api";
+import { api, formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, ChannelBadge } from "@/components/shared/StatusBadge";
 import { VerdictBadge } from "@/components/shared/VerdictBadge";
 import { CategoryBadge } from "@/components/shared/CategoryBadge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Clock,
-  TrendingUp,
-  Sparkles,
   Wallet,
+  Handshake,
+  Timer,
+  ShieldX,
   ArrowUpRight,
   ArrowRight,
+  AlertTriangle,
+  Gauge,
+  FileX,
+  Copy,
+  type LucideIcon,
 } from "lucide-react";
 import {
   Bar,
@@ -23,7 +30,6 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Cell,
 } from "recharts";
 
 const overviewQuery = queryOptions({
@@ -39,17 +45,25 @@ export const Route = createFileRoute("/_app/overview")({
   component: OverviewPage,
 });
 
+const statusColors: Record<string, string> = {
+  extraindo: "bg-muted-foreground/40",
+  em_analise: "bg-warning",
+  aprovado: "bg-success",
+  aprovado_ressalva: "bg-brand",
+  recusado: "bg-destructive",
+};
+
+const criticalMeta: Record<CriticalKind, { icon: LucideIcon; tint: string }> = {
+  limite: { icon: AlertTriangle, tint: "text-warning bg-warning/15" },
+  confianca: { icon: Gauge, tint: "text-warning bg-warning/15" },
+  sem_cnpj: { icon: FileX, tint: "text-destructive bg-destructive/15" },
+  duplicidade: { icon: Copy, tint: "text-brand bg-brand/15" },
+};
+
 function OverviewPage() {
   const { data } = useSuspenseQuery(overviewQuery);
 
   const metrics = [
-    {
-      label: "Aguardando aprovação",
-      value: String(data.pending),
-      hint: "comprovantes na fila",
-      icon: Clock,
-      tint: "text-warning-foreground bg-warning/15",
-    },
     {
       label: "Reembolsado no mês",
       value: formatBRL(data.totalReimbursedMonth),
@@ -58,28 +72,43 @@ function OverviewPage() {
       tint: "text-primary bg-primary/10",
     },
     {
-      label: "Aprovação automática",
-      value: `${data.autoApprovalRate}%`,
-      hint: "recomendadas pela IA",
-      icon: Sparkles,
+      label: "Despesas em análise",
+      value: String(data.inAnalysis),
+      hint: "aguardando decisão",
+      icon: Clock,
+      tint: "text-warning bg-warning/15",
+    },
+    {
+      label: "Tempo médio de aprovação",
+      value: `${data.avgDecisionHours.toLocaleString("pt-BR")}h`,
+      hint: "do envio à decisão",
+      icon: Timer,
+      tint: "text-brand bg-brand/10",
+    },
+    {
+      label: "Concordância com a IA",
+      value: `${data.agreementRate}%`,
+      hint: "decisões alinhadas",
+      icon: Handshake,
       tint: "text-success bg-success/12",
     },
     {
-      label: "Tempo médio de decisão",
-      value: `${data.avgDecisionHours.toLocaleString("pt-BR")}h`,
-      hint: "do envio à aprovação",
-      icon: TrendingUp,
-      tint: "text-brand bg-brand/10",
+      label: "Recusado por política",
+      value: formatBRL(data.rejectedByPolicyAmount),
+      hint: "economia bloqueada",
+      icon: ShieldX,
+      tint: "text-destructive bg-destructive/12",
     },
   ];
 
   const maxCat = Math.max(...data.byCategory.map((c) => c.total));
+  const maxStatus = Math.max(...data.byStatus.map((s) => s.count));
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Visão geral"
-        description="Acompanhe a fila de aprovação e o desempenho dos reembolsos da equipe de campo."
+        description="Painel executivo dos reembolsos da equipe de campo e da fila de aprovação."
         actions={
           <Button asChild>
             <Link to="/expenses">
@@ -90,16 +119,15 @@ function OverviewPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {metrics.map((m) => {
           const Icon = m.icon;
           return (
             <Card key={m.label} className="shadow-sm">
               <CardContent className="p-5">
-                <div className="flex items-start justify-between">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.tint}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.tint}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
                 <p className="mt-4 text-2xl font-semibold tracking-tight text-foreground tabular-nums">
                   {m.value}
@@ -112,14 +140,15 @@ function OverviewPage() {
         })}
       </div>
 
+      {/* Evolução semanal + Status das despesas */}
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="shadow-sm lg:col-span-2">
           <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="text-base">Decisões por semana</CardTitle>
+            <CardTitle className="text-base">Evolução semanal</CardTitle>
             <span className="text-xs text-muted-foreground">Últimas 4 semanas</span>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={240}>
               <BarChart data={data.weekly} barGap={6}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="week" tickLine={false} axisLine={false} fontSize={12} stroke="var(--muted-foreground)" />
@@ -142,7 +171,32 @@ function OverviewPage() {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">Gasto por categoria</CardTitle>
+            <CardTitle className="text-base">Status das despesas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {data.byStatus.map((s) => (
+              <div key={s.status} className="space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{s.label}</span>
+                  <span className="font-medium tabular-nums text-foreground">{s.count}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className={cn("h-full rounded-full", statusColors[s.status] ?? "bg-primary")}
+                    style={{ width: `${Math.max(6, (s.count / maxStatus) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Gastos por categoria + Pendências críticas */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Gastos por categoria</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {data.byCategory.slice(0, 6).map((c) => (
@@ -161,11 +215,62 @@ function OverviewPage() {
             ))}
           </CardContent>
         </Card>
+
+        <Card className="shadow-sm lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Pendências críticas</CardTitle>
+              <span className="rounded-full bg-destructive/12 px-2 py-0.5 text-xs font-medium tabular-nums text-destructive">
+                {data.critical.length}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">Requerem atenção do aprovador</span>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <div className="divide-y divide-border border-t border-border">
+              {data.critical.map((item) => {
+                const meta = criticalMeta[item.kind];
+                const Icon = meta.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    to="/expenses/$id"
+                    params={{ id: item.id }}
+                    className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-secondary/50"
+                  >
+                    <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", meta.tint)}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">{item.employeeName}</p>
+                        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {criticalKindLabels[item.kind]}
+                        </span>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
+                    </div>
+                    <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                      {formatBRL(item.amount)}
+                    </span>
+                    <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Link>
+                );
+              })}
+              {data.critical.length === 0 && (
+                <p className="px-6 py-10 text-center text-sm text-muted-foreground">
+                  Nenhuma pendência crítica no momento.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* Atividade recente */}
       <Card className="shadow-sm">
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="text-base">Recebidos recentemente</CardTitle>
+          <CardTitle className="text-base">Atividade recente</CardTitle>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/expenses">
               Ver todas
