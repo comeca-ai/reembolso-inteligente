@@ -212,7 +212,7 @@ const users: AppUser[] = [
 // ---------------------------------------------------------------------------
 
 function buildExpenses(): Expense[] {
-  const raw: Array<Partial<Expense> & {
+  const raw: Array<Omit<Partial<Expense>, "cnpj"> & {
     employeeName: string;
     category: ExpenseCategory;
     merchant: string;
