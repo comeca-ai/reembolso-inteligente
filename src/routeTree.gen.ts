@@ -18,6 +18,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsersRouteImport } from './routes/_app.users'
 import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppReimbursementsRouteImport } from './routes/_app.reimbursements'
 import { Route as AppPolicyRouteImport } from './routes/_app.policy'
 import { Route as AppOverviewRouteImport } from './routes/_app.overview'
 import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
@@ -68,6 +69,11 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppReimbursementsRoute = AppReimbursementsRouteImport.update({
+  id: '/reimbursements',
+  path: '/reimbursements',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPolicyRoute = AppPolicyRouteImport.update({
   id: '/policy',
   path: '/policy',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
+  '/reimbursements': typeof AppReimbursementsRoute
   '/reports': typeof AppReportsRoute
   '/users': typeof AppUsersRoute
   '/expenses/$id': typeof AppExpensesIdRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
+  '/reimbursements': typeof AppReimbursementsRoute
   '/reports': typeof AppReportsRoute
   '/users': typeof AppUsersRoute
   '/expenses/$id': typeof AppExpensesIdRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/policy': typeof AppPolicyRoute
+  '/_app/reimbursements': typeof AppReimbursementsRoute
   '/_app/reports': typeof AppReportsRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/expenses/$id': typeof AppExpensesIdRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/overview'
     | '/policy'
+    | '/reimbursements'
     | '/reports'
     | '/users'
     | '/expenses/$id'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/overview'
     | '/policy'
+    | '/reimbursements'
     | '/reports'
     | '/users'
     | '/expenses/$id'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_app/overview'
     | '/_app/policy'
+    | '/_app/reimbursements'
     | '/_app/reports'
     | '/_app/users'
     | '/_app/expenses/$id'
@@ -266,6 +278,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/reimbursements': {
+      id: '/_app/reimbursements'
+      path: '/reimbursements'
+      fullPath: '/reimbursements'
+      preLoaderRoute: typeof AppReimbursementsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/policy': {
       id: '/_app/policy'
       path: '/policy'
@@ -307,6 +326,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppOverviewRoute: typeof AppOverviewRoute
   AppPolicyRoute: typeof AppPolicyRoute
+  AppReimbursementsRoute: typeof AppReimbursementsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppUsersRoute: typeof AppUsersRoute
   AppExpensesIdRoute: typeof AppExpensesIdRoute
@@ -316,6 +336,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppOverviewRoute: AppOverviewRoute,
   AppPolicyRoute: AppPolicyRoute,
+  AppReimbursementsRoute: AppReimbursementsRoute,
   AppReportsRoute: AppReportsRoute,
   AppUsersRoute: AppUsersRoute,
   AppExpensesIdRoute: AppExpensesIdRoute,
