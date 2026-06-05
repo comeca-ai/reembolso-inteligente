@@ -20,7 +20,7 @@ export function AuthLayout({
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2">
       {/* Painel de marca */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 text-sidebar-foreground lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-8 text-sidebar-foreground lg:flex lg:sticky lg:top-0 lg:h-screen xl:p-10">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"
           style={{
