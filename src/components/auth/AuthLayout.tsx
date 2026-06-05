@@ -20,7 +20,7 @@ export function AuthLayout({
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-2">
       {/* Painel de marca */}
-      <aside className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-10 text-sidebar-foreground lg:flex">
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-8 text-sidebar-foreground lg:flex lg:sticky lg:top-0 lg:h-screen xl:p-10">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"
           style={{
@@ -61,9 +61,9 @@ export function AuthLayout({
       </aside>
 
       {/* Formulário */}
-      <main className="flex items-center justify-center px-5 py-10 sm:px-8">
-        <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden">
+      <main className="flex min-h-screen items-start justify-center px-5 py-8 sm:px-8 sm:py-10 lg:items-center">
+        <div className="w-full max-w-md py-2">
+          <div className="mb-6 lg:hidden">
             <Logo />
           </div>
           <p className="text-xs font-semibold uppercase tracking-wider text-brand">{eyebrow}</p>
@@ -71,7 +71,7 @@ export function AuthLayout({
             {title}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
-          <div className="mt-8">{children}</div>
+          <div className="mt-6 sm:mt-8">{children}</div>
         </div>
       </main>
     </div>
