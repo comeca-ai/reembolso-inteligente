@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
 import { DemoDataBadge } from "@/components/shared/DemoDataBadge";
@@ -16,9 +18,34 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, Search, Bell, ChevronDown, LogOut, UserCog, LifeBuoy } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { getCurrentUser, signOut } from "@/lib/auth";
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join("");
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const user = getCurrentUser();
+
+  const userName = user?.nome ?? "Usuário";
+  const userEmail = user?.email ?? "";
+  const companyName = user?.company.razao_social ?? "Sua Empresa";
+  const companyCnpj = user?.company.cnpj ?? "";
+
+  async function handleSignOut() {
+    await signOut();
+    toast.success("Você saiu da sua conta", {
+      description: "Até a próxima!",
+    });
+    navigate({ to: "/login" });
+  }
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -50,15 +77,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Empresa + ambiente */}
           <div className="hidden items-center gap-2.5 lg:flex">
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-foreground">Transtech Logística</p>
-              <p className="text-xs text-muted-foreground">CNPJ 12.345.678/0001-90</p>
+              <p className="text-sm font-semibold text-foreground">{companyName}</p>
+              {companyCnpj && (
+                <p className="text-xs text-muted-foreground">CNPJ {companyCnpj}</p>
+              )}
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
               </span>
-              Ambiente Piloto
+              Piloto
             </span>
           </div>
 
@@ -82,20 +111,25 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <button className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-secondary">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-brand text-brand-foreground text-xs font-semibold">
-                      CM
+                      {initials(userName)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden text-left leading-tight sm:block">
-                    <p className="text-sm font-medium text-foreground">Carla Menezes</p>
-                    <p className="text-xs text-muted-foreground">Aprovadora · Ops Sul</p>
+                    <p className="text-sm font-medium text-foreground">{userName}</p>
+                    <p className="text-xs text-muted-foreground">Admin · {companyName}</p>
                   </div>
                   <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="font-normal">
-                  <p className="text-sm font-medium text-foreground">Carla Menezes</p>
-                  <p className="text-xs text-muted-foreground">carla.menezes@transtech.com.br</p>
+                  <p className="text-sm font-medium text-foreground">{userName}</p>
+                  {userEmail && (
+                    <p className="text-xs text-muted-foreground">{userEmail}</p>
+                  )}
+                  <span className="mt-1.5 inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground">
+                    Admin
+                  </span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
@@ -107,7 +141,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   Ajuda e suporte
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleSignOut} className="text-destructive focus:text-destructive">
                   <LogOut className="h-4 w-4" />
                   Sair
                 </DropdownMenuItem>
