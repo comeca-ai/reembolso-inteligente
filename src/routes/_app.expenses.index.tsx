@@ -17,7 +17,9 @@ import { StatusBadge, ChannelBadge } from "@/components/shared/StatusBadge";
 import { VerdictBadge } from "@/components/shared/VerdictBadge";
 import { CategoryBadge } from "@/components/shared/CategoryBadge";
 import { ConfidenceBadge } from "@/components/shared/Confidence";
-import { Search, ChevronRight, Download } from "lucide-react";
+import { Search, ChevronRight, Download, ReceiptText } from "lucide-react";
+import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "sonner";
 
 const expensesQuery = queryOptions({
