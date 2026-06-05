@@ -48,10 +48,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
+            <DemoDataBadge />
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
             </Button>
+
             <div className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3 hover:bg-secondary">
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-brand text-brand-foreground text-xs font-semibold">
