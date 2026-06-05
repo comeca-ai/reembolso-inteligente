@@ -11,8 +11,8 @@ import { signUpCompany, isAuthenticated } from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
-  beforeLoad: () => {
-    if (isAuthenticated()) {
+  beforeLoad: async () => {
+    if (await isAuthenticated()) {
       throw redirect({ to: "/overview" });
     }
   },
