@@ -52,6 +52,8 @@ export interface SignUpInput {
   email: string;
   whatsapp: string;
   senha: string;
+  /** Nome do arquivo da política de reembolso (opcional). */
+  politicaReembolsoArquivo?: string;
 }
 
 export interface SignInInput {
