@@ -1,11 +1,13 @@
 import { useState, type ReactNode } from "react";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
+import { DemoDataBadge } from "@/components/shared/DemoDataBadge";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Menu, Search, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
+
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
