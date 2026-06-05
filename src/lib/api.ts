@@ -171,12 +171,15 @@ export function formatDateTime(iso: string): string {
 const delay = (ms = 320) => new Promise((r) => setTimeout(r, ms));
 
 // Placeholder de comprovante (SVG data-uri "nota fiscal")
-function receipt(merchant: string, amount: number, date: string): string {
+function receipt(merchant: string, amount: number, date: string, cnpj?: string | null): string {
+  const cnpjLine = cnpj
+    ? `<text x='52' y='104' font-family='monospace' font-size='12' fill='#64807f'>CNPJ ${cnpj}</text>`
+    : `<text x='52' y='104' font-family='monospace' font-size='12' fill='#c0392b'>** SEM CNPJ — RECIBO SIMPLES **</text>`;
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='560' viewBox='0 0 420 560'>
     <rect width='420' height='560' fill='#f8fafa'/>
     <rect x='28' y='28' width='364' height='504' rx='10' fill='#ffffff' stroke='#e2e8e8'/>
     <text x='52' y='78' font-family='monospace' font-size='17' fill='#0f2e2e' font-weight='bold'>${merchant}</text>
-    <text x='52' y='104' font-family='monospace' font-size='12' fill='#64807f'>CNPJ 12.345.678/0001-90</text>
+    ${cnpjLine}
     <line x1='52' y1='126' x2='368' y2='126' stroke='#e2e8e8' stroke-dasharray='4 4'/>
     <text x='52' y='160' font-family='monospace' font-size='12' fill='#64807f'>CUPOM FISCAL ELETRÔNICO</text>
     <text x='52' y='196' font-family='monospace' font-size='12' fill='#334e4e'>Data: ${formatDate(date)}</text>
