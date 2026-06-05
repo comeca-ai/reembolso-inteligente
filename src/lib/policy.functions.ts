@@ -192,13 +192,12 @@ export const uploadAndExtractPolicy = createServerFn({ method: "POST" })
     });
     if (insErr) throw insErr;
 
-    // Extração via IA — Gemini lê o PDF diretamente.
-    let extracted: z.infer<typeof extractionSchema>;
+    // Extração via IA — Gemini lê o PDF e devolve JSON (parse tolerante).
+    let extracted: { pages: number; rules: z.infer<typeof ruleSchema>[] };
     try {
       const gateway = createLovableAiGatewayProvider(getLovableApiKey());
-      const result = await generateObject({
+      const { text } = await generateText({
         model: gateway("google/gemini-3-flash-preview"),
-        schema: extractionSchema,
         messages: [
           {
             role: "user",
@@ -208,18 +207,25 @@ export const uploadAndExtractPolicy = createServerFn({ method: "POST" })
                 text:
                   "Você é um analista de políticas de reembolso corporativo. " +
                   "Leia o PDF da política em anexo e extraia as regras-chave que " +
-                  "serão usadas para avaliar despesas. Para cada regra identifique: " +
-                  "código/numeração da cláusula, um título curto, a categoria de " +
-                  "despesa, o limite (valor ou condição), a base do limite e o texto " +
-                  "resumido da regra. Use as categorias disponíveis. Responda em " +
-                  "português do Brasil. Se um campo não existir, deixe vazio.",
+                  "serão usadas para avaliar despesas.\n\n" +
+                  "Responda APENAS com um objeto JSON válido (sem markdown, sem ```), " +
+                  "no formato:\n" +
+                  '{ "pages": number, "rules": [ { "code": string, "title": string, ' +
+                  '"category": string, "limit": string, "basis": string, "text": string } ] }\n\n' +
+                  "Para cada regra: code = numeração da cláusula (ex.: '4.1'); title = título curto; " +
+                  `category = uma de [${CATEGORIES.join(", ")}]; limit = valor/condição (ex.: 'R$ 350,00'); ` +
+                  "basis = base do limite (ex.: 'por abastecimento'); text = texto resumido da regra. " +
+                  "Se um campo não existir, use string vazia. Responda em português do Brasil.",
               },
               { type: "file", data: bytes, mediaType: "application/pdf" },
             ],
           },
         ],
       });
-      extracted = result.object;
+      extracted = parseExtraction(text);
+      if (extracted.rules.length === 0) {
+        throw new Error("Nenhuma regra identificada no documento.");
+      }
     } catch (err) {
       await supabaseAdmin
         .from("policies")
@@ -227,9 +233,10 @@ export const uploadAndExtractPolicy = createServerFn({ method: "POST" })
         .eq("id", policyId);
       console.error("[policy] falha na extração da IA:", err);
       throw new Error(
-        "Não foi possível ler a política com a IA. Tente novamente em instantes.",
+        "Não foi possível ler a política com a IA. Verifique se o PDF contém texto legível e tente novamente.",
       );
     }
+
 
     if (extracted.rules.length > 0) {
       const { error: rulesErr } = await supabaseAdmin.from("policy_rules").insert(
