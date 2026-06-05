@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, formatDate, formatDateTime, categoryLabels, type PolicyVersion, type PolicyRule } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  getPolicyState,
+  uploadAndExtractPolicy,
+  type PolicyRuleDTO,
+  type PolicyVersionDTO,
+} from "@/lib/policy.functions";
+import { categoryLabels } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,31 +27,18 @@ import {
   Route as RouteIcon,
   ReceiptText,
   ListChecks,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const policyQuery = queryOptions({
-  queryKey: ["policies"],
-  queryFn: () => api.listPolicyVersions(),
-});
-
-const rulesQuery = queryOptions({
-  queryKey: ["policy-rules"],
-  queryFn: () => api.listPolicyRules(),
-});
-
 export const Route = createFileRoute("/_app/policy")({
   head: () => ({ meta: [{ title: "Política · reembolsa.aí" }] }),
-  loader: ({ context }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(policyQuery),
-      context.queryClient.ensureQueryData(rulesQuery),
-    ]),
   component: PolicyPage,
 });
 
-const ruleIcons: Record<PolicyRule["category"], typeof Fuel> = {
+const ruleIcons: Record<PolicyRuleDTO["category"], typeof Fuel> = {
   combustivel: Fuel,
   refeicao: UtensilsCrossed,
   hospedagem: BedDouble,
@@ -55,42 +49,106 @@ const ruleIcons: Record<PolicyRule["category"], typeof Fuel> = {
   documentos: ReceiptText,
 };
 
-function categoryLabel(category: PolicyRule["category"]) {
+function categoryLabel(category: PolicyRuleDTO["category"]) {
   return category === "documentos" ? "Documentos" : categoryLabels[category];
 }
 
+function formatDate(value: string) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("pt-BR");
+}
+
+function formatDateTime(value: string) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.includes(",") ? result.split(",")[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 function PolicyPage() {
-  const { data } = useSuspenseQuery(policyQuery);
-  const { data: rules } = useSuspenseQuery(rulesQuery);
+  const fetchState = useServerFn(getPolicyState);
+  const uploadFn = useServerFn(uploadAndExtractPolicy);
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const active = data.find((p) => p.active);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["policy-state"],
+    queryFn: () => fetchState(),
+  });
+
+  const versions: PolicyVersionDTO[] = data?.versions ?? [];
+  const rules: PolicyRuleDTO[] = data?.rules ?? [];
+  const active = versions.find((p) => p.active);
 
   const mutation = useMutation({
-    mutationFn: (fileName: string) => api.uploadPolicy(fileName),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["policies"] });
+    mutationFn: async (file: File) => {
+      const fileBase64 = await fileToBase64(file);
+      return uploadFn({ data: { fileName: file.name, fileBase64 } });
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["policy-state"] });
       toast.success("Nova versão publicada", {
-        description: "A política passou a valer para todas as próximas análises da IA.",
+        description: `A IA leu o PDF e extraiu ${res.rulesCount} regra(s). A política passou a valer para as próximas análises.`,
       });
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Falha ao publicar a política.";
+      toast.error("Não foi possível publicar", { description: message });
     },
   });
 
-  const handleUpload = () => {
-    const stamp = new Date().toISOString().slice(0, 10);
-    mutation.mutate(`politica-reembolso-${stamp}.pdf`);
+  const handleFile = (file: File | null | undefined) => {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      toast.error("Envie um arquivo PDF.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("O arquivo deve ter no máximo 10 MB.");
+      return;
+    }
+    mutation.mutate(file);
   };
+
+  const openPicker = () => fileInputRef.current?.click();
+  const busy = mutation.isPending;
 
   return (
     <div className="animate-fade-rise space-y-8">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => {
+          handleFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+
       <PageHeader
         eyebrow="Governança"
         title="Política de reembolso"
         description="A política é o combustível da IA: cada recomendação cita a cláusula e a versão vigente que a justifica."
         actions={
-          <Button onClick={handleUpload} disabled={mutation.isPending} className="gap-2">
-            <UploadCloud className="h-4 w-4" />
-            {mutation.isPending ? "Publicando…" : "Publicar nova versão"}
+          <Button onClick={openPicker} disabled={busy} className="gap-2">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+            {busy ? "Processando…" : "Publicar nova versão"}
           </Button>
         }
       />
@@ -102,11 +160,11 @@ function PolicyPage() {
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">
-            A IA usa esta política para justificar cada recomendação.
+            A IA lê o PDF da política e extrai as regras automaticamente.
           </p>
           <p className="text-sm text-muted-foreground">
-            As cláusulas abaixo entram no contexto da análise de cada comprovante. Sem RAG nem embeddings — a
-            política ativa é enviada junto à chamada de visão que lê o comprovante.
+            Ao publicar, o arquivo é guardado com segurança e a IA estrutura as cláusulas abaixo. Essas
+            regras entram no contexto de cada análise de comprovante.
           </p>
         </div>
       </div>
@@ -118,7 +176,11 @@ function PolicyPage() {
             <CardTitle className="text-base">Política ativa</CardTitle>
           </CardHeader>
           <CardContent>
-            {active && (
+            {isLoading ? (
+              <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+              </div>
+            ) : active ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-brand/10">
@@ -132,14 +194,20 @@ function PolicyPage() {
                   </div>
                 </div>
                 <div className="space-y-2.5 border-t border-border pt-3 text-sm">
-                  <Info icon={Building2} label="Empresa" value={active.company} />
                   <Info icon={Calendar} label="Publicada em" value={formatDate(active.uploadedAt)} />
                   <Info icon={FileText} label="Arquivo" value={active.fileName} />
-                  <Info icon={Clock} label="Publicada por" value={active.uploadedBy} />
+                  <Info icon={Clock} label="Publicada por" value={active.uploadedBy || "—"} />
                 </div>
                 <div className="rounded-lg bg-secondary/50 p-3 text-xs text-muted-foreground">
                   {active.pages} páginas · {rules.length} regras estruturadas extraídas
                 </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <Building2 className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma política publicada ainda. Envie o PDF para a IA extrair as regras.
+                </p>
               </div>
             )}
           </CardContent>
@@ -160,7 +228,7 @@ function PolicyPage() {
               onDrop={(e) => {
                 e.preventDefault();
                 setDragging(false);
-                handleUpload();
+                if (!busy) handleFile(e.dataTransfer.files?.[0]);
               }}
               className={cn(
                 "flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-14 text-center transition-colors",
@@ -168,23 +236,25 @@ function PolicyPage() {
               )}
             >
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand/10">
-                <UploadCloud className="h-7 w-7 text-brand" />
+                {busy ? (
+                  <Loader2 className="h-7 w-7 animate-spin text-brand" />
+                ) : (
+                  <UploadCloud className="h-7 w-7 text-brand" />
+                )}
               </div>
               <p className="mt-4 text-sm font-medium text-foreground">
-                Arraste o PDF da política ou clique para selecionar
+                {busy ? "A IA está lendo a política…" : "Arraste o PDF da política ou clique para selecionar"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 PDF até 10 MB · a nova versão é ativada automaticamente
               </p>
-              <Button onClick={handleUpload} disabled={mutation.isPending} variant="outline" className="mt-5">
-                {mutation.isPending ? "Processando…" : "Selecionar arquivo"}
+              <Button onClick={openPicker} disabled={busy} variant="outline" className="mt-5">
+                {busy ? "Processando…" : "Selecionar arquivo"}
               </Button>
             </div>
             <div className="mt-4 flex items-start gap-2 rounded-lg bg-accent/40 p-3 text-sm text-accent-foreground">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-              <p>
-                Ao publicar, a IA relê as cláusulas e passa a citá-las nas próximas análises de despesas.
-              </p>
+              <p>Ao publicar, a IA relê as cláusulas e passa a citá-las nas próximas análises de despesas.</p>
             </div>
           </CardContent>
         </Card>
@@ -202,48 +272,58 @@ function PolicyPage() {
           </p>
         </CardHeader>
         <CardContent className="px-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-y border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <th className="px-6 py-2.5 font-medium">Código</th>
-                  <th className="px-4 py-2.5 font-medium">Título</th>
-                  <th className="px-4 py-2.5 font-medium">Categoria</th>
-                  <th className="px-4 py-2.5 font-medium">Limite</th>
-                  <th className="px-4 py-2.5 font-medium">Base do limite</th>
-                  <th className="px-4 py-2.5 font-medium">Texto da regra</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {rules.map((r) => {
-                  const Icon = ruleIcons[r.category];
-                  return (
-                    <tr key={r.code} className="align-top transition-colors hover:bg-secondary/40">
-                      <td className="px-6 py-3">
-                        <span className="font-semibold tabular-nums text-brand">{r.code}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2 font-medium text-foreground">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-accent-foreground">
-                            <Icon className="h-3.5 w-3.5" />
+          {isError ? (
+            <div className="flex items-center gap-2 px-6 py-8 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4" /> Não foi possível carregar as regras.
+            </div>
+          ) : rules.length === 0 ? (
+            <div className="px-6 py-8 text-sm text-muted-foreground">
+              {isLoading ? "Carregando regras…" : "Publique uma política em PDF para a IA extrair as regras."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-y border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <th className="px-6 py-2.5 font-medium">Código</th>
+                    <th className="px-4 py-2.5 font-medium">Título</th>
+                    <th className="px-4 py-2.5 font-medium">Categoria</th>
+                    <th className="px-4 py-2.5 font-medium">Limite</th>
+                    <th className="px-4 py-2.5 font-medium">Base do limite</th>
+                    <th className="px-4 py-2.5 font-medium">Texto da regra</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {rules.map((r, i) => {
+                    const Icon = ruleIcons[r.category] ?? ReceiptText;
+                    return (
+                      <tr key={`${r.code}-${i}`} className="align-top transition-colors hover:bg-secondary/40">
+                        <td className="px-6 py-3">
+                          <span className="font-semibold tabular-nums text-brand">{r.code}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2 font-medium text-foreground">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-accent text-accent-foreground">
+                              <Icon className="h-3.5 w-3.5" />
+                            </span>
+                            {r.title}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                            {categoryLabel(r.category)}
                           </span>
-                          {r.title}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-                          {categoryLabel(r.category)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-semibold tabular-nums text-foreground">{r.limit}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{r.basis}</td>
-                      <td className="max-w-md px-4 py-3 text-muted-foreground">{r.text}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="px-4 py-3 font-semibold tabular-nums text-foreground">{r.limit || "—"}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{r.basis || "—"}</td>
+                        <td className="max-w-md px-4 py-3 text-muted-foreground">{r.text}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -253,34 +333,46 @@ function PolicyPage() {
           <CardTitle className="text-base">Histórico de versões</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="divide-y divide-border border-t border-border">
-            {data.map((p: PolicyVersion) => (
-              <div key={p.id} className="flex items-center gap-4 px-6 py-3.5">
-                <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold tabular-nums text-foreground">{p.version}</p>
-                    {p.active ? (
-                      <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
-                        Ativa
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Clock className="h-3 w-3" /> Arquivada
-                      </span>
-                    )}
+          {versions.length === 0 ? (
+            <div className="px-6 py-8 text-sm text-muted-foreground">Nenhuma versão publicada ainda.</div>
+          ) : (
+            <div className="divide-y divide-border border-t border-border">
+              {versions.map((p) => (
+                <div key={p.id} className="flex items-center gap-4 px-6 py-3.5">
+                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold tabular-nums text-foreground">{p.version}</p>
+                      {p.active ? (
+                        <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
+                          Ativa
+                        </span>
+                      ) : p.status === "erro" ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                          <AlertTriangle className="h-3 w-3" /> Erro
+                        </span>
+                      ) : p.status === "processando" ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Processando
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <Clock className="h-3 w-3" /> Arquivada
+                        </span>
+                      )}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {p.fileName} · {p.pages} págs · {p.sizeKb} KB
+                    </p>
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {p.fileName} · {p.pages} págs · {p.sizeKb} KB
-                  </p>
+                  <div className="hidden text-right text-xs text-muted-foreground sm:block">
+                    <p>{p.uploadedBy || "—"}</p>
+                    <p className="tabular-nums">{formatDateTime(p.uploadedAt)}</p>
+                  </div>
                 </div>
-                <div className="hidden text-right text-xs text-muted-foreground sm:block">
-                  <p>{p.uploadedBy}</p>
-                  <p className="tabular-nums">{formatDateTime(p.uploadedAt)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
