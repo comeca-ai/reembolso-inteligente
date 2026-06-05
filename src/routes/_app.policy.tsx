@@ -70,7 +70,9 @@ function PolicyPage() {
     mutationFn: (fileName: string) => api.uploadPolicy(fileName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      toast.success("Nova versão da política publicada e ativada.");
+      toast.success("Nova versão publicada", {
+        description: "A política passou a valer para todas as próximas análises da IA.",
+      });
     },
   });
 
