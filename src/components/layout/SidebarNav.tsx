@@ -38,7 +38,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
           Operação
         </p>
-        {nav.map((item) => {
+        {visibleNav.map((item) => {
           const active =
             pathname === item.to || (item.to !== "/overview" && pathname.startsWith(item.to));
           const Icon = item.icon;
