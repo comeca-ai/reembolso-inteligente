@@ -41,6 +41,113 @@ export type Database = {
         }
         Relationships: []
       }
+      policies: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          file_name: string
+          file_path: string | null
+          id: string
+          pages: number
+          size_kb: number
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+          version: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          file_name: string
+          file_path?: string | null
+          id?: string
+          pages?: number
+          size_kb?: number
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string | null
+          id?: string
+          pages?: number
+          size_kb?: number
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_rules: {
+        Row: {
+          category: string
+          code: string
+          company_id: string
+          created_at: string
+          id: string
+          policy_id: string
+          rule_basis: string | null
+          rule_limit: string | null
+          rule_text: string | null
+          title: string
+        }
+        Insert: {
+          category?: string
+          code: string
+          company_id: string
+          created_at?: string
+          id?: string
+          policy_id: string
+          rule_basis?: string | null
+          rule_limit?: string | null
+          rule_text?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          code?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          policy_id?: string
+          rule_basis?: string | null
+          rule_limit?: string | null
+          rule_text?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_rules_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company_id: string | null
