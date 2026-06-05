@@ -292,33 +292,44 @@ function OverviewPage() {
           </Button>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="divide-y divide-border border-t border-border">
-            {data.recent.map((e) => (
-              <Link
-                key={e.id}
-                to="/expenses/$id"
-                params={{ id: e.id }}
-                className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-secondary/50"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">{e.employeeName}</p>
-                    <ChannelBadge channel={e.channel} />
+          {data.recent.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="Nada por aqui ainda"
+              description="Assim que sua equipe enviar comprovantes por WhatsApp ou e-mail, eles aparecem aqui em segundos."
+            />
+          ) : (
+            <div className="divide-y divide-border border-t border-border">
+              {data.recent.map((e) => (
+                <Link
+                  key={e.id}
+                  to="/expenses/$id"
+                  params={{ id: e.id }}
+                  className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-secondary/50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">{e.employeeName}</p>
+                      <ChannelBadge channel={e.channel} />
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {e.merchant} · {formatDateTime(e.submittedAt)}
+                    </p>
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {e.merchant} · {formatDateTime(e.submittedAt)}
-                  </p>
-                </div>
-                <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
-                  {formatBRL(e.amount)}
-                </span>
-                <VerdictBadge verdict={e.ai.verdict} size="sm" className="hidden md:inline-flex" />
-                <StatusBadge status={e.status} />
-              </Link>
-            ))}
-          </div>
+                  <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                    {formatBRL(e.amount)}
+                  </span>
+                  <VerdictBadge verdict={e.ai.verdict} size="sm" className="hidden md:inline-flex" />
+                  <StatusBadge status={e.status} />
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Sinais de confiança */}
+      <TrustStrip />
     </div>
   );
 }
