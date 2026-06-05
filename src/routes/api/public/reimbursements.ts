@@ -167,6 +167,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
             status: "recebido",
             raw_payload: {
               ...(raw as Record<string, unknown>),
+              image_base64: "[omitido]", // já salvo em attachment_url
               ai: { amount, category, description: aiDescription },
             } as never,
           })
