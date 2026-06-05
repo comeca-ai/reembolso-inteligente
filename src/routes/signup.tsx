@@ -68,6 +68,32 @@ function SignupPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [politica, setPolitica] = useState<File | null>(null);
+  const [politicaErro, setPoliticaErro] = useState<string | undefined>(undefined);
+
+  const MAX_POLITICA_MB = 10;
+  const TIPOS_ACEITOS = [".pdf", ".doc", ".docx"];
+
+  function handlePoliticaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setPoliticaErro(undefined);
+    if (!file) {
+      setPolitica(null);
+      return;
+    }
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!TIPOS_ACEITOS.includes(ext)) {
+      setPoliticaErro("Envie um arquivo PDF, DOC ou DOCX.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_POLITICA_MB * 1024 * 1024) {
+      setPoliticaErro(`Arquivo muito grande (máx. ${MAX_POLITICA_MB} MB).`);
+      e.target.value = "";
+      return;
+    }
+    setPolitica(file);
+  }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
