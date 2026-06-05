@@ -170,6 +170,108 @@ export interface PolicyRule {
 
 export const POLICY_COMPANY = "Construtora Horizonte S.A.";
 
+// ---------------------------------------------------------------------------
+// Tipos alinhados ao schema do Supabase
+// ---------------------------------------------------------------------------
+//
+// Estes tipos espelham as tabelas previstas no banco. A camada de abstração
+// faz o mapeamento entre as linhas do Supabase e os modelos ricos usados pela
+// UI (Expense, etc.). Mantidos aqui para servir de contrato único.
+
+/** Empresa-cliente (tenant). Tabela: `companies`. */
+export interface Company {
+  id: string;
+  name: string;
+  cnpj: string;
+  createdAt: string; // ISO
+}
+
+/** Conta com login web — aprovadores e admins. Tabela: `user_accounts`. */
+export interface UserAccount {
+  id: string;
+  companyId: string;
+  name: string;
+  email: string;
+  role: "admin" | "aprovador";
+  jobTitle?: string;
+  whatsapp?: string;
+  active: boolean;
+  createdAt: string; // ISO
+}
+
+/** Documento de política versionado. Tabela: `policies`. */
+export interface Policy {
+  id: string;
+  companyId: string;
+  version: string;
+  fileName: string;
+  storagePath?: string;
+  uploadedBy: string;
+  uploadedAt: string; // ISO
+  active: boolean;
+  pages: number;
+  sizeKb: number;
+}
+
+/** Extração bruta da IA a partir do comprovante. Tabela: `ai_extractions`. */
+export interface AiExtraction {
+  id: string;
+  expenseId: string;
+  fields: ExtractedField[];
+  rawText?: string;
+  model?: string;
+  createdAt: string; // ISO
+}
+
+/** Recomendação explicável da IA. Tabela: `ai_recommendations`. */
+export interface AiRecommendation {
+  id: string;
+  expenseId: string;
+  verdict: Verdict;
+  confidence: number; // 0..1
+  summary: string;
+  rules: RuleCheckResult[];
+  citations: PolicyCitation[];
+  policyId?: string;
+  createdAt: string; // ISO
+}
+
+/** Decisão humana sobre a despesa. Tabela: `decisions`. */
+export interface Decision {
+  id: string;
+  expenseId: string;
+  decidedBy: string;
+  decision: Extract<ExpenseStatus, "aprovado" | "aprovado_ressalva" | "recusado">;
+  note?: string;
+  decidedAt: string; // ISO
+}
+
+/** Mensagem recebida/enviada (WhatsApp ou e-mail). Tabela: `messages`. */
+export interface Message {
+  id: string;
+  expenseId?: string;
+  fieldUserId?: string;
+  channel: Channel;
+  direction: "inbound" | "outbound";
+  content: string;
+  attachmentUrl?: string;
+  createdAt: string; // ISO
+}
+
+/** Trilha de auditoria de eventos sensíveis. Tabela: `audit_logs`. */
+export interface AuditLog {
+  id: string;
+  companyId?: string;
+  actor: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string; // ISO
+}
+
+
+
 
 
 // ---------------------------------------------------------------------------
