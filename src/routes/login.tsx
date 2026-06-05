@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { signIn, isAuthenticated } from "@/lib/auth";
+import { signIn, isAuthenticated, resetMockAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -126,6 +126,21 @@ function LoginPage() {
           Criar conta piloto
         </Link>
       </p>
+
+      <div className="mt-4 text-center">
+        <button
+          type="button"
+          onClick={() => {
+            resetMockAuth();
+            toast.info("Dados de demonstração apagados", {
+              description: "Você pode criar um novo cadastro agora.",
+            });
+          }}
+          className="text-xs text-muted-foreground hover:text-destructive underline"
+        >
+          Apagar dados de demonstração
+        </button>
+      </div>
     </AuthLayout>
   );
 }

@@ -90,6 +90,15 @@ function clearSession() {
   window.localStorage.removeItem(STORAGE_KEY);
 }
 
+/** Remove todos os dados de demonstração (mock) para recomeçar o fluxo. */
+export function resetMockAuth() {
+  clearSession();
+  if (isBrowser()) {
+    window.localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+
 /** Pequena espera para simular latência de rede (loading states). */
 function delay(ms = 700) {
   return new Promise((resolve) => setTimeout(resolve, ms));
