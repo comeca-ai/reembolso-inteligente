@@ -65,12 +65,22 @@ function ExpenseDetailPage() {
       queryClient.setQueryData(expenseQuery(id).queryKey, updated);
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["overview"] });
-      const msg: Record<Decision, string> = {
-        aprovado: "Despesa aprovada e enviada para pagamento.",
-        aprovado_ressalva: "Despesa aprovada com ressalva registrada.",
-        recusado: "Despesa recusada. O colaborador será notificado.",
+      const msg: Record<Decision, { title: string; description: string }> = {
+        aprovado: {
+          title: "Despesa aprovada",
+          description: "Enviada para pagamento. A decisão ficou registrada na trilha de auditoria.",
+        },
+        aprovado_ressalva: {
+          title: "Aprovada com ressalva",
+          description: "Sua observação foi registrada junto à decisão para auditoria.",
+        },
+        recusado: {
+          title: "Despesa recusada",
+          description: "O colaborador será notificado com o motivo informado.",
+        },
       };
-      toast.success(msg[updated.status as Decision]);
+      const m = msg[updated.status as Decision];
+      toast.success(m.title, { description: m.description });
       router.invalidate();
     },
     onError: () => toast.error("Não foi possível registrar a decisão. Tente novamente."),
