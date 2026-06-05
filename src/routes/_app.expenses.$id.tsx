@@ -43,9 +43,19 @@ const expenseQuery = (id: string) =>
     },
   });
 
+const fieldUsersQuery = queryOptions({
+  queryKey: ["fieldUsers"],
+  queryFn: () => api.listFieldUsers(),
+});
+
 export const Route = createFileRoute("/_app/expenses/$id")({
   head: ({ params }) => ({ meta: [{ title: `${params.id} · reembolsa.aí` }] }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(expenseQuery(params.id)),
+  loader: async ({ context, params }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(expenseQuery(params.id)),
+      context.queryClient.ensureQueryData(fieldUsersQuery),
+    ]);
+  },
   component: ExpenseDetailPage,
   notFoundComponent: () => (
     <div className="py-20 text-center">
