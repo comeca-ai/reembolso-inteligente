@@ -391,14 +391,20 @@ function PolicyPage() {
 
       {/* Preview de regras estruturadas */}
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="h-4 w-4 text-brand" />
-            Regras estruturadas extraídas da política
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Versão legível para humanos do que a IA enxerga ao avaliar um comprovante.
-          </p>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ListChecks className="h-4 w-4 text-brand" />
+              Regras estruturadas extraídas da política
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Versão legível para humanos do que a IA enxerga ao avaliar um comprovante. Você pode editar
+              ou inserir regras manualmente.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={openNewRule}>
+            <Plus className="h-4 w-4" /> Nova regra
+          </Button>
         </CardHeader>
         <CardContent className="px-0">
           {isError ? (
@@ -406,8 +412,17 @@ function PolicyPage() {
               <AlertTriangle className="h-4 w-4" /> Não foi possível carregar as regras.
             </div>
           ) : rules.length === 0 ? (
-            <div className="px-6 py-8 text-sm text-muted-foreground">
-              {isLoading ? "Carregando regras…" : "Publique uma política em PDF para a IA extrair as regras."}
+            <div className="flex flex-col items-start gap-3 px-6 py-8 text-sm text-muted-foreground">
+              <span>
+                {isLoading
+                  ? "Carregando regras…"
+                  : "Nenhuma regra ainda. Publique um PDF para a IA extrair, ou adicione manualmente."}
+              </span>
+              {!isLoading && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={openNewRule}>
+                  <Plus className="h-4 w-4" /> Adicionar regra manualmente
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -420,13 +435,14 @@ function PolicyPage() {
                     <th className="px-4 py-2.5 font-medium">Limite</th>
                     <th className="px-4 py-2.5 font-medium">Base do limite</th>
                     <th className="px-4 py-2.5 font-medium">Texto da regra</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {rules.map((r, i) => {
                     const Icon = ruleIcons[r.category] ?? ReceiptText;
                     return (
-                      <tr key={`${r.code}-${i}`} className="align-top transition-colors hover:bg-secondary/40">
+                      <tr key={r.id ?? `${r.code}-${i}`} className="align-top transition-colors hover:bg-secondary/40">
                         <td className="px-6 py-3">
                           <span className="font-semibold tabular-nums text-brand">{r.code}</span>
                         </td>
@@ -446,6 +462,28 @@ function PolicyPage() {
                         <td className="px-4 py-3 font-semibold tabular-nums text-foreground">{r.limit || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{r.basis || "—"}</td>
                         <td className="max-w-md px-4 py-3 text-muted-foreground">{r.text}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => openEditRule(r)}
+                              aria-label="Editar regra"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget(r)}
+                              aria-label="Remover regra"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -455,6 +493,7 @@ function PolicyPage() {
           )}
         </CardContent>
       </Card>
+
 
       {/* Histórico */}
       <Card className="shadow-sm">
