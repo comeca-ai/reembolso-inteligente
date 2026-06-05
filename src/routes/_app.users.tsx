@@ -117,19 +117,21 @@ function UsersPage() {
       <PageHeader
         title="Cadastros"
         description="Equipe de campo que envia comprovantes e aprovadores que decidem na plataforma."
-      >
-        {tab === "campo" ? (
-          <Button onClick={() => setDrawer("campo")} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Novo usuário de campo
-          </Button>
-        ) : (
-          <Button onClick={() => setDrawer("aprovador")} className="gap-2">
-            <ShieldCheck className="h-4 w-4" />
-            Novo aprovador
-          </Button>
-        )}
-      </PageHeader>
+        actions={
+          tab === "campo" ? (
+            <Button onClick={() => setDrawer("campo")} className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              Novo usuário de campo
+            </Button>
+          ) : (
+            <Button onClick={() => setDrawer("aprovador")} className="gap-2">
+              <ShieldCheck className="h-4 w-4" />
+              Novo aprovador
+            </Button>
+          )
+        }
+      />
+
 
       {/* Microcopy — roteamento por telefone/e-mail */}
       <div className="flex items-start gap-3 rounded-lg border border-border bg-accent/40 px-4 py-3 text-sm">
