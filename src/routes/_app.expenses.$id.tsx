@@ -107,6 +107,7 @@ function ExpenseDetailPage() {
   });
 
   if (!expense) return null;
+  if (!canView) return <Navigate to="/expenses" />;
 
   const decided = ["aprovado", "aprovado_ressalva", "recusado"].includes(expense.status);
 
