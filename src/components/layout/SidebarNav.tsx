@@ -1,6 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/Logo";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess } from "@/lib/permissions";
 import {
   LayoutDashboard,
   ReceiptText,
@@ -21,6 +23,8 @@ const nav = [
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const role = getCurrentUser()?.role;
+  const visibleNav = nav.filter((item) => canAccess(item.to, role));
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
