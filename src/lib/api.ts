@@ -911,6 +911,11 @@ export const api = {
     return [...policyVersions].sort((a, b) => +new Date(b.uploadedAt) - +new Date(a.uploadedAt));
   },
 
+  async listPolicyRules(): Promise<PolicyRule[]> {
+    await delay();
+    return [...policyRules];
+  },
+
   async uploadPolicy(fileName: string, uploadedBy = "Carla Menezes"): Promise<PolicyVersion> {
     await delay(600);
     const nextNum = policyVersions.length + 1;
@@ -923,10 +928,12 @@ export const api = {
       active: true,
       pages: 12,
       sizeKb: 352,
+      company: POLICY_COMPANY,
     };
     policyVersions = [created, ...policyVersions.map((p) => ({ ...p, active: false }))];
     return created;
   },
+
 
   async exportReportCsv(): Promise<{ fileName: string; content: string; rows: number }> {
     await delay(700);
