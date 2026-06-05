@@ -735,7 +735,7 @@ function buildExpenses(): Expense[] {
       submittedAt: r.submittedAt,
       channel: r.channel,
       status: r.status,
-      receiptUrl: receipt(r.merchant, r.amount, r.date),
+      receiptUrl: receipt(r.merchant, r.amount, r.date, r.cnpj),
       extracted,
       costCenter: r.costCenter ?? emp?.costCenter ?? "—",
       decidedBy: r.decidedBy,
