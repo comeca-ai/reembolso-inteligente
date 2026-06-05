@@ -109,10 +109,11 @@ function ExpensesPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Fila de aprovação"
         title="Despesas"
-        description="Comprovantes enviados pela equipe de campo, analisados pela IA e prontos para decisão."
+        description="Comprovantes enviados pela equipe de campo, lidos e conferidos pela IA contra a política — prontos para a sua decisão."
         actions={
           <Button onClick={handleExport} disabled={exporting} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
@@ -121,8 +122,7 @@ function ExpensesPage() {
         }
       />
 
-
-      <Card className="shadow-sm">
+      <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
             <TabsList>
