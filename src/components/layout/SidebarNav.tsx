@@ -25,7 +25,9 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center border-b border-sidebar-border/60 px-5">
-        <Logo variant="light" />
+        <Link to="/overview" aria-label="reembolsa aí — Visão geral">
+          <Logo variant="light" className="h-7" />
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">

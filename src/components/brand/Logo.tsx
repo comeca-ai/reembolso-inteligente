@@ -1,67 +1,75 @@
 import { cn } from "@/lib/utils";
+import logoCompact from "@/assets/reembolsa-logo-compact.png.asset.json";
+import logoCompactWhite from "@/assets/reembolsa-logo-compact-white.png.asset.json";
+import logoFull from "@/assets/reembolsa-logo.png.asset.json";
+import logoFullWhite from "@/assets/reembolsa-logo-white.png.asset.json";
+import iconColor from "@/assets/reembolsa-icon.png.asset.json";
+import iconWhite from "@/assets/reembolsa-icon-white.png.asset.json";
 
 interface LogoProps {
   className?: string;
+  /** Mostra o wordmark "reembolsa aí". Quando false, exibe só o ícone. */
   withWordmark?: boolean;
-  /** "light" for dark backgrounds (sidebar), "dark" for light backgrounds */
+  /** Inclui o slogan "Reembolso rápido, sem complicação". */
+  withTagline?: boolean;
+  /** "light" para fundos escuros (sidebar), "dark" para fundos claros. */
   variant?: "light" | "dark";
 }
 
 /**
- * reembolsa.aí — circular teal mark + wordmark.
- * The mark is a circular loop with an embedded check/return arrow,
- * evoking "reembolso" (the money coming back).
+ * Logotipo oficial reembolsa.aí (arte do cliente).
+ * Renderiza o PNG da marca em diferentes formatos/variantes.
  */
-export function Logo({ className, withWordmark = true, variant = "dark" }: LogoProps) {
-  const wordTone = variant === "light" ? "text-sidebar-foreground" : "text-foreground";
-  const accentTone = variant === "light" ? "text-sidebar-primary" : "text-brand";
+export function Logo({
+  className,
+  withWordmark = true,
+  withTagline = false,
+  variant = "dark",
+}: LogoProps) {
+  const light = variant === "light";
+
+  if (!withWordmark) {
+    return (
+      <img
+        src={(light ? iconWhite : iconColor).url}
+        alt="reembolsa aí"
+        className={cn("h-8 w-auto", className)}
+        loading="eager"
+        decoding="async"
+      />
+    );
+  }
+
+  const src = withTagline
+    ? (light ? logoFullWhite : logoFull).url
+    : (light ? logoCompactWhite : logoCompact).url;
 
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <LogoMark className="h-8 w-8 shrink-0" />
-      {withWordmark && (
-        <span className={cn("text-[17px] font-semibold tracking-tight", wordTone)}>
-          reembolsa<span className={accentTone}>.aí</span>
-        </span>
-      )}
-    </div>
+    <img
+      src={src}
+      alt="reembolsa aí — Reembolso rápido, sem complicação"
+      className={cn("h-8 w-auto", className)}
+      loading="eager"
+      decoding="async"
+    />
   );
 }
 
-export function LogoMark({ className }: { className?: string }) {
+/** Apenas o ícone circular da marca. */
+export function LogoMark({
+  className,
+  variant = "dark",
+}: {
+  className?: string;
+  variant?: "light" | "dark";
+}) {
   return (
-    <svg
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-label="reembolsa.aí"
-      role="img"
-    >
-      <circle cx="20" cy="20" r="20" fill="var(--brand)" />
-      <path
-        d="M27.5 14.2a9 9 0 1 0 1.9 5.2"
-        stroke="var(--brand-foreground)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M22.4 11.2l5.4 1.1-1.6 5.2"
-        stroke="var(--brand-foreground)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <path
-        d="M15.5 20.4l3.1 3.1 6.2-6.5"
-        stroke="var(--brand-foreground)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    <img
+      src={(variant === "light" ? iconWhite : iconColor).url}
+      alt="reembolsa aí"
+      className={cn("h-8 w-8", className)}
+      loading="eager"
+      decoding="async"
+    />
   );
 }
