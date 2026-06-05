@@ -245,6 +245,10 @@ function ExpenseDetailPage() {
           <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="text-base">Decisão do aprovador</CardTitle>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-brand" />
+                A IA recomenda; a aprovação final é sempre humana e fica registrada.
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               {decided ? (
