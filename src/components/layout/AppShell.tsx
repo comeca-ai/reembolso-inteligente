@@ -82,13 +82,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <p className="text-xs text-muted-foreground">CNPJ {companyCnpj}</p>
               )}
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
-              </span>
-              Piloto
-            </span>
           </div>
 
           <div className="relative ml-auto hidden max-w-md flex-1 md:block lg:ml-6">
