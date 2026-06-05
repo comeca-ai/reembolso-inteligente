@@ -137,16 +137,19 @@ function OverviewPage() {
         {metrics.map((m) => {
           const Icon = m.icon;
           return (
-            <Card key={m.label} className="shadow-sm">
-              <CardContent className="p-5">
+            <Card
+              key={m.label}
+              className="shadow-sm transition-shadow hover:shadow-[var(--shadow-card)]"
+            >
+              <CardContent className="flex h-full flex-col p-5">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.tint}`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <p className="mt-4 text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+                <p className="mt-4 truncate text-2xl font-semibold tracking-tight text-foreground tabular-nums">
                   {m.value}
                 </p>
-                <p className="mt-1 text-sm font-medium text-foreground">{m.label}</p>
-                <p className="text-xs text-muted-foreground">{m.hint}</p>
+                <p className="mt-1 text-sm font-medium leading-snug text-foreground">{m.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{m.hint}</p>
               </CardContent>
             </Card>
           );
