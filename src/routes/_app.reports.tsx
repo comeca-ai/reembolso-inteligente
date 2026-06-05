@@ -43,10 +43,11 @@ function ReportsPage() {
   const totalGeral = cats.reduce((s, c) => s + c.total, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Fechamento"
         title="Relatórios"
-        description="Consolide os reembolsos e exporte para a contabilidade."
+        description="Consolide os reembolsos do período e exporte para a contabilidade em poucos cliques."
         actions={
           <Button onClick={handleExport} disabled={exporting}>
             <Download className="h-4 w-4" />
