@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
 import { DemoDataBadge } from "@/components/shared/DemoDataBadge";
@@ -16,9 +18,34 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, Search, Bell, ChevronDown, LogOut, UserCog, LifeBuoy } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { getCurrentUser, signOut } from "@/lib/auth";
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join("");
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const user = getCurrentUser();
+
+  const userName = user?.nome ?? "Usuário";
+  const userEmail = user?.email ?? "";
+  const companyName = user?.company.razao_social ?? "Sua Empresa";
+  const companyCnpj = user?.company.cnpj ?? "";
+
+  async function handleSignOut() {
+    await signOut();
+    toast.success("Você saiu da sua conta", {
+      description: "Até a próxima!",
+    });
+    navigate({ to: "/login" });
+  }
 
   return (
     <div className="min-h-screen w-full bg-background">
