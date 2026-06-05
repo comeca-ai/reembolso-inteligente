@@ -126,6 +126,21 @@ function LoginPage() {
           Criar conta piloto
         </Link>
       </p>
+
+      <div className="mt-4 text-center">
+        <button
+          type="button"
+          onClick={() => {
+            resetMockAuth();
+            toast.info("Dados de demonstração apagados", {
+              description: "Você pode criar um novo cadastro agora.",
+            });
+          }}
+          className="text-xs text-muted-foreground hover:text-destructive underline"
+        >
+          Apagar dados de demonstração
+        </button>
+      </div>
     </AuthLayout>
   );
 }
