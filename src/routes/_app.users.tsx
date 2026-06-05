@@ -443,18 +443,37 @@ function FieldUserDrawer({
 
 function ApproverDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
+  const invite = useServerFn(inviteApprover);
   const [form, setForm] = useState({ name: "", email: "", jobTitle: "", whatsapp: "" });
   const reset = () => setForm({ name: "", email: "", jobTitle: "", whatsapp: "" });
 
   const mutation = useMutation({
-    mutationFn: () => api.createApprover(form),
+    mutationFn: async () => {
+      // Cadastro local (lista) + convite real por e-mail via Resend.
+      const created = await api.createApprover(form);
+      await invite({
+        data: {
+          email: form.email.trim(),
+          nome: form.name.trim(),
+          jobTitle: form.jobTitle.trim() || undefined,
+          whatsapp: form.whatsapp.trim() || undefined,
+          origin: window.location.origin,
+        },
+      });
+      return created;
+    },
     onSuccess: (a) => {
       qc.invalidateQueries({ queryKey: ["approvers"] });
-      toast.success("Aprovador cadastrado", {
-        description: `${a.name} receberá um convite de acesso à plataforma.`,
+      toast.success("Convite enviado", {
+        description: `${a.name} recebeu um e-mail com o link de acesso à plataforma.`,
       });
       reset();
       onOpenChange(false);
+    },
+    onError: (err) => {
+      toast.error("Não foi possível enviar o convite", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
     },
   });
 
