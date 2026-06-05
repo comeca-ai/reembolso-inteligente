@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/Logo";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, signOut } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
 import {
   LayoutDashboard,
@@ -11,7 +11,10 @@ import {
   BarChart3,
   Sparkles,
   ShieldCheck,
+  LogOut,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 const nav = [
   { to: "/overview", label: "Visão geral", icon: LayoutDashboard },
