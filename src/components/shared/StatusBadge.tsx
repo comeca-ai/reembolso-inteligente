@@ -12,6 +12,7 @@ const statusConfig: Record<
   { className: string; icon: typeof CheckCircle2 }
 > = {
   pendente: { className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30", icon: Clock },
+  extraindo: { className: "bg-muted text-muted-foreground ring-1 ring-border", icon: Loader2 },
   em_analise: { className: "bg-primary/10 text-primary ring-1 ring-primary/25", icon: Loader2 },
   aprovado: { className: "bg-success/15 text-success ring-1 ring-success/30", icon: CheckCircle2 },
   aprovado_ressalva: { className: "bg-success/10 text-success ring-1 ring-success/25", icon: ShieldCheck },
