@@ -2,12 +2,20 @@ import { useState, type ReactNode } from "react";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
 import { DemoDataBadge } from "@/components/shared/DemoDataBadge";
+import { TrustChips } from "@/components/shared/TrustStrip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Menu, Search, Bell } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Menu, Search, Bell, ChevronDown, LogOut, UserCog, LifeBuoy } from "lucide-react";
 import { Input } from "@/components/ui/input";
-
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -19,9 +27,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarNav />
       </aside>
 
-      <div className="lg:pl-64">
+      <div className="flex min-h-screen flex-col lg:pl-64">
         {/* Header */}
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/80 px-4 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-card/85 px-4 backdrop-blur-md sm:px-6">
           {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -39,36 +47,88 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Logo withWordmark={false} />
           </div>
 
-          <div className="relative hidden flex-1 sm:block">
+          {/* Empresa + ambiente */}
+          <div className="hidden items-center gap-2.5 lg:flex">
+            <div className="leading-tight">
+              <p className="text-sm font-semibold text-foreground">Transtech Logística</p>
+              <p className="text-xs text-muted-foreground">CNPJ 12.345.678/0001-90</p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
+              </span>
+              Ambiente Piloto
+            </span>
+          </div>
+
+          <div className="relative ml-auto hidden max-w-md flex-1 md:block lg:ml-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por protocolo, colaborador ou estabelecimento…"
-              className="h-9 max-w-md pl-9"
+              className="h-9 pl-9"
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-1.5 sm:gap-3">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3 md:ml-0">
             <DemoDataBadge />
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
             </Button>
 
-            <div className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-3 hover:bg-secondary">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-brand text-brand-foreground text-xs font-semibold">
-                  CM
-                </AvatarFallback>
-              </Avatar>
-              <div className="hidden text-left leading-tight sm:block">
-                <p className="text-sm font-medium text-foreground">Carla Menezes</p>
-                <p className="text-xs text-muted-foreground">Aprovadora · Ops Sul</p>
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2.5 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-secondary">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-brand text-brand-foreground text-xs font-semibold">
+                      CM
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden text-left leading-tight sm:block">
+                    <p className="text-sm font-medium text-foreground">Carla Menezes</p>
+                    <p className="text-xs text-muted-foreground">Aprovadora · Ops Sul</p>
+                  </div>
+                  <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <p className="text-sm font-medium text-foreground">Carla Menezes</p>
+                  <p className="text-xs text-muted-foreground">carla.menezes@transtech.com.br</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <UserCog className="h-4 w-4" />
+                  Perfil e permissões
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <LifeBuoy className="h-4 w-4" />
+                  Ajuda e suporte
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <LogOut className="h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
+          {children}
+        </main>
+
+        {/* Rodapé de confiança */}
+        <footer className="border-t border-border bg-card/40">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <TrustChips />
+            <p className="text-xs text-muted-foreground">
+              reembolsa.aí · IA explicável com decisão humana
+            </p>
+          </div>
+        </footer>
       </div>
     </div>
   );
