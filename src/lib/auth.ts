@@ -99,6 +99,28 @@ export function resetMockAuth() {
 }
 
 
+/**
+ * Indica se a empresa já enviou a política de reembolso.
+ * É a peça-chave do sistema: sem política a IA não consegue avaliar despesas,
+ * por isso o admin fica travado no onboarding até concluir esta etapa.
+ */
+export function hasPolicyUploaded(): boolean {
+  const user = readSession();
+  return !!user?.company.politica_reembolso_arquivo;
+}
+
+/** Marca a política como enviada (mock), atualizando a sessão. */
+export function markPolicyUploaded(fileName: string): AuthUser | null {
+  const user = readSession();
+  if (!user) return null;
+  const updated: AuthUser = {
+    ...user,
+    company: { ...user.company, politica_reembolso_arquivo: fileName.trim() },
+  };
+  writeSession(updated);
+  return updated;
+}
+
 /** Pequena espera para simular latência de rede (loading states). */
 function delay(ms = 700) {
   return new Promise((resolve) => setTimeout(resolve, ms));
