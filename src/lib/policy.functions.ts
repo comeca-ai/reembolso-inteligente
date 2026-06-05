@@ -72,12 +72,8 @@ const ruleSchema = z.object({
   text: z.string().describe("Texto da regra extraído da política, resumido."),
 });
 
-const extractionSchema = z.object({
-  pages: z.number().int().nonnegative().describe("Número aproximado de páginas do documento."),
-  rules: z.array(ruleSchema).min(1).describe("Regras-chave estruturadas extraídas da política."),
-});
-
 function normalizeCategory(value: unknown): PolicyCategory {
+
   const v = String(value ?? "").toLowerCase().trim();
   return (CATEGORIES as readonly string[]).includes(v) ? (v as PolicyCategory) : "outros";
 }
