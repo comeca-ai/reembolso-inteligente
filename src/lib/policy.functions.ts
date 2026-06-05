@@ -114,6 +114,7 @@ export const getPolicyState = createServerFn({ method: "GET" })
         .order("code");
       if (rErr) throw rErr;
       rules = (r ?? []).map((row) => ({
+        id: row.id,
         code: row.code,
         title: row.title,
         category: (row.category as PolicyCategory) ?? "outros",
