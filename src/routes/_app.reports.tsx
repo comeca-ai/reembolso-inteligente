@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { api, formatBRL, type OverviewMetrics } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
