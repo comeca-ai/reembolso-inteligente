@@ -93,9 +93,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "reembolsa.aí — Reembolsos de equipes de campo no automático" },
-      { name: "description", content: "Reembolsa.ai automates field team expense reimbursements using AI." },
-      { property: "og:description", content: "Reembolsa.ai automates field team expense reimbursements using AI." },
-      { name: "twitter:description", content: "Reembolsa.ai automates field team expense reimbursements using AI." },
+      {
+        name: "twitter:description",
+        content: "Automatize os reembolsos da sua equipe de campo com IA explicável.",
+      },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/dac6b145-d7fc-4ce8-acfb-e850d3db3065/id-preview-f7691a37--95e4f1ba-e730-46d6-951e-3c12435fb6b9.lovable.app-1780641237602.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/dac6b145-d7fc-4ce8-acfb-e850d3db3065/id-preview-f7691a37--95e4f1ba-e730-46d6-951e-3c12435fb6b9.lovable.app-1780641237602.png" },
     ],
