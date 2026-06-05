@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, notFound, Navigate } from "@tanstack/react-router";
 import {
   useSuspenseQuery,
   queryOptions,
@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-query";
 
 import { api, formatBRL, formatDate, formatDateTime, type ExpenseStatus } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
+import { canViewExpense } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
