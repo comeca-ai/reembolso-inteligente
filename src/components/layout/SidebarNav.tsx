@@ -77,7 +77,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 ring-1 ring-sidebar-border/60">
           <ShieldCheck className="h-4 w-4 shrink-0 text-sidebar-primary" />
           <div className="leading-tight">
-            <p className="text-xs font-semibold text-sidebar-foreground">Política v3 · vigente</p>
+            <p className="text-xs font-semibold text-sidebar-foreground">Política v3.2 · vigente</p>
             <p className="text-[11px] text-sidebar-foreground/60">Auditoria e LGPD ativas</p>
           </div>
         </div>
