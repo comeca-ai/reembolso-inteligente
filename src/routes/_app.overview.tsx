@@ -137,16 +137,19 @@ function OverviewPage() {
         {metrics.map((m) => {
           const Icon = m.icon;
           return (
-            <Card key={m.label} className="shadow-sm">
-              <CardContent className="p-5">
+            <Card
+              key={m.label}
+              className="shadow-sm transition-shadow hover:shadow-[var(--shadow-card)]"
+            >
+              <CardContent className="flex h-full flex-col p-5">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.tint}`}>
                   <Icon className="h-5 w-5" />
                 </div>
-                <p className="mt-4 text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+                <p className="mt-4 truncate text-2xl font-semibold tracking-tight text-foreground tabular-nums">
                   {m.value}
                 </p>
-                <p className="mt-1 text-sm font-medium text-foreground">{m.label}</p>
-                <p className="text-xs text-muted-foreground">{m.hint}</p>
+                <p className="mt-1 text-sm font-medium leading-snug text-foreground">{m.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{m.hint}</p>
               </CardContent>
             </Card>
           );
@@ -255,15 +258,15 @@ function OverviewPage() {
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <p className="truncate text-sm font-medium text-foreground">{item.employeeName}</p>
-                        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                        <span className="shrink-0 whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
                           {criticalKindLabels[item.kind]}
                         </span>
                       </div>
                       <p className="truncate text-xs text-muted-foreground">{item.detail}</p>
                     </div>
-                    <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                    <span className="hidden whitespace-nowrap text-sm font-semibold tabular-nums text-foreground sm:block">
                       {formatBRL(item.amount)}
                     </span>
                     <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -308,7 +311,7 @@ function OverviewPage() {
                   className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-secondary/50"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <p className="truncate text-sm font-medium text-foreground">{e.employeeName}</p>
                       <ChannelBadge channel={e.channel} />
                     </div>
@@ -316,7 +319,7 @@ function OverviewPage() {
                       {e.merchant} · {formatDateTime(e.submittedAt)}
                     </p>
                   </div>
-                  <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                  <span className="hidden whitespace-nowrap text-sm font-semibold tabular-nums text-foreground sm:block">
                     {formatBRL(e.amount)}
                   </span>
                   <VerdictBadge verdict={e.ai.verdict} size="sm" className="hidden md:inline-flex" />
