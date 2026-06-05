@@ -51,6 +51,12 @@ const approversQuery = queryOptions({ queryKey: ["approvers"], queryFn: () => ap
 
 export const Route = createFileRoute("/_app/users")({
   head: () => ({ meta: [{ title: "Cadastros · reembolsa.aí" }] }),
+  beforeLoad: () => {
+    const role = getCurrentUser()?.role;
+    if (!canAccess("/users", role)) {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(fieldUsersQuery),
