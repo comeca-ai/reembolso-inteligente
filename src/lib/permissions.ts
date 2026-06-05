@@ -68,3 +68,12 @@ export function filterExpensesForUser(
     (e) => norm(e.employeeName) === myName || approvedNames.has(norm(e.employeeName)),
   );
 }
+
+/** Verifica se o usuário atual pode visualizar uma despesa específica. */
+export function canViewExpense(
+  expense: Expense,
+  user: AuthUser | null,
+  fieldUsers: FieldUser[],
+): boolean {
+  return filterExpensesForUser([expense], user, fieldUsers).length > 0;
+}
