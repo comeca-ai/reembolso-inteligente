@@ -955,6 +955,62 @@ export const api = {
     return [...users];
   },
 
+  async listFieldUsers(): Promise<FieldUser[]> {
+    await delay();
+    return [...fieldUsers];
+  },
+
+  async listApprovers(): Promise<Approver[]> {
+    await delay();
+    return [...approvers];
+  },
+
+  async createFieldUser(input: {
+    name: string;
+    cpfMasked?: string;
+    whatsapp?: string;
+    email?: string;
+    approverName: string;
+    team: string;
+    costCenter: string;
+  }): Promise<FieldUser> {
+    await delay(450);
+    const created: FieldUser = {
+      id: `f-${100 + fieldUsers.length + 1}`,
+      name: input.name,
+      cpfMasked: input.cpfMasked?.trim() || "***.***.***-**",
+      whatsapp: input.whatsapp?.trim() || undefined,
+      email: input.email?.trim() || undefined,
+      approverName: input.approverName,
+      team: input.team,
+      costCenter: input.costCenter,
+      status: "pendente",
+    };
+    fieldUsers = [created, ...fieldUsers];
+    return created;
+  },
+
+  async createApprover(input: {
+    name: string;
+    email: string;
+    jobTitle: string;
+    whatsapp?: string;
+  }): Promise<Approver> {
+    await delay(450);
+    const created: Approver = {
+      id: `a-${100 + approvers.length + 1}`,
+      name: input.name,
+      email: input.email,
+      jobTitle: input.jobTitle,
+      whatsapp: input.whatsapp?.trim() || undefined,
+      pendingCount: 0,
+    };
+    approvers = [...approvers, created];
+    return created;
+  },
+
+
+
   async listPolicyVersions(): Promise<PolicyVersion[]> {
     await delay();
     return [...policyVersions].sort((a, b) => +new Date(b.uploadedAt) - +new Date(a.uploadedAt));
