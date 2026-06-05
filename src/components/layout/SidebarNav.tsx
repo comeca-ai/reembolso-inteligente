@@ -80,7 +80,8 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             toast.success("Você saiu da sua conta", {
               description: "Até a próxima!",
             });
-            window.location.href = "/login";
+            navigate({ to: "/login" });
+            onNavigate?.();
           }}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
         >
