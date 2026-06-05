@@ -226,7 +226,177 @@ function buildExpenses(): Expense[] {
     rules: RuleCheckResult[];
     summary: string;
     citations: PolicyCitation[];
+    cnpj?: string | null;
+    extra?: ExtractedField[];
   }> = [
+    // --- Cenário: comprovante recém-recebido, IA ainda extraindo ---
+    {
+      employeeName: "Fernanda Lima",
+      category: "combustivel",
+      merchant: "Posto BR Contorno",
+      description: "Comprovante recém-recebido por WhatsApp — em extração pela IA",
+      amount: 175.3,
+      date: "2025-06-05",
+      submittedAt: "2025-06-05T09:12:00",
+      channel: "whatsapp",
+      status: "extraindo",
+      costCenter: "FLD-SP",
+      cnpj: "29.553.110/0001-04",
+      verdict: "revisar",
+      confidence: 0.41,
+      summary:
+        "Comprovante em processamento. A IA está extraindo os dados do cupom enviado pelo colaborador; a análise de política será concluída em instantes.",
+      rules: [
+        { id: "r1", label: "Extração de dados", status: "alerta", detail: "Processamento em andamento; análise de política ainda pendente." },
+      ],
+      citations: [],
+    },
+    // --- Cenário: alimentação acima do limite ---
+    {
+      employeeName: "Diego Albuquerque",
+      category: "refeicao",
+      merchant: "Churrascaria Boi na Brasa",
+      description: "Almoço durante força-tarefa em Campinas",
+      amount: 96.5,
+      date: "2025-06-04",
+      submittedAt: "2025-06-04T13:20:00",
+      channel: "whatsapp",
+      status: "em_analise",
+      costCenter: "FLD-SP",
+      cnpj: "18.422.901/0001-55",
+      verdict: "revisar",
+      confidence: 0.73,
+      summary:
+        "Valor de refeição acima do teto individual de R$ 60,00. Comprovante legível, mas o montante sugere mais de uma pessoa. Recomenda-se revisão antes de aprovar.",
+      rules: [
+        { id: "r1", label: "Dentro do limite por refeição (R$ 60)", status: "violado", detail: "R$ 96,50 excede o teto individual em R$ 36,50.", policyClause: "3.1" },
+        { id: "r2", label: "Refeição individual", status: "alerta", detail: "Valor compatível com mais de uma pessoa; pode exigir autorização prévia.", policyClause: "3.4" },
+        { id: "r3", label: "Comprovante legível", status: "ok", detail: "Cupom fiscal com CNPJ, itens e total identificados." },
+      ],
+      citations: [
+        { clause: "3.1", text: "Refeições individuais são reembolsáveis até R$ 60,00 por evento em deslocamento." },
+        { clause: "3.4", text: "Despesas coletivas exigem autorização prévia do gestor responsável." },
+      ],
+    },
+    // --- Cenário: combustível aprovado ---
+    {
+      employeeName: "Fernanda Lima",
+      category: "combustivel",
+      merchant: "Posto Ipiranga BR-116",
+      description: "Abastecimento do veículo da frota — placa FLT-2231",
+      amount: 268.0,
+      date: "2025-06-03",
+      submittedAt: "2025-06-03T18:05:00",
+      channel: "email",
+      status: "aprovado",
+      costCenter: "FLD-SP",
+      cnpj: "33.014.556/0001-96",
+      verdict: "aprovar",
+      confidence: 0.95,
+      decidedBy: "Carla Menezes",
+      decidedAt: "2025-06-03T19:10:00",
+      summary:
+        "Abastecimento dentro do limite, veículo vinculado à equipe e cupom fiscal íntegro. Aprovação recomendada.",
+      rules: [
+        { id: "r1", label: "Dentro do limite de combustível (R$ 350)", status: "ok", detail: "R$ 268,00 abaixo do teto por abastecimento.", policyClause: "4.2" },
+        { id: "r2", label: "Veículo vinculado ao colaborador", status: "ok", detail: "Placa FLT-2231 consta na frota da equipe FLD-SP." },
+        { id: "r3", label: "Comprovante legível", status: "ok", detail: "Cupom fiscal com CNPJ, data e total." },
+      ],
+      citations: [
+        { clause: "4.2", text: "Combustível é reembolsável até R$ 350,00 por abastecimento mediante cupom fiscal." },
+      ],
+    },
+    // --- Cenário: hospedagem com alerta ---
+    {
+      employeeName: "Marcos Vinícius Souza",
+      category: "hospedagem",
+      merchant: "Hotel Executivo Centro",
+      description: "Diária de hospedagem — instalação em Caxias do Sul",
+      amount: 389.0,
+      date: "2025-06-02",
+      submittedAt: "2025-06-02T08:05:00",
+      channel: "whatsapp",
+      status: "em_analise",
+      costCenter: "FLD-RS",
+      cnpj: "07.918.234/0001-10",
+      verdict: "revisar",
+      confidence: 0.68,
+      summary:
+        "Diária acima do teto da política em R$ 39,00. Deslocamento legítimo e comprovante válido. Pode ser aprovada com ressalva mediante justificativa do aprovador.",
+      rules: [
+        { id: "r1", label: "Dentro do limite de diária (R$ 350)", status: "violado", detail: "R$ 389,00 excede o teto de R$ 350,00 em R$ 39,00.", policyClause: "5.1" },
+        { id: "r2", label: "Comprovante legível", status: "ok", detail: "Nota com CNPJ e data da diária." },
+        { id: "r3", label: "Deslocamento autorizado", status: "ok", detail: "Ordem de serviço aberta para Caxias do Sul." },
+        { id: "r4", label: "Categoria reembolsável", status: "ok", detail: "Hospedagem elegível em deslocamentos acima de 100 km.", policyClause: "2.2" },
+      ],
+      citations: [
+        { clause: "5.1", text: "Hospedagem reembolsável até R$ 350,00 por diária em deslocamentos autorizados." },
+        { clause: "5.3", text: "Valores acima do teto podem ser aprovados com ressalva mediante justificativa do gestor." },
+      ],
+    },
+    // --- Cenário: recibo sem CNPJ recusado ---
+    {
+      employeeName: "Patrícia Gomes",
+      category: "refeicao",
+      merchant: "Lanche Rápido (sem identificação)",
+      description: "Refeição em estabelecimento sem nota fiscal",
+      amount: 54.0,
+      date: "2025-06-01",
+      submittedAt: "2025-06-01T12:48:00",
+      channel: "whatsapp",
+      status: "recusado",
+      costCenter: "FLD-RS",
+      cnpj: null,
+      verdict: "recusar",
+      confidence: 0.82,
+      decidedBy: "Roberto Tavares",
+      decidedAt: "2025-06-01T15:00:00",
+      decisionNote: "Comprovante sem CNPJ não atende à política fiscal. Solicitar cupom fiscal válido.",
+      summary:
+        "O comprovante enviado é um recibo simples, sem CNPJ identificável. A política exige cupom ou nota fiscal com CNPJ. Recomenda-se recusa.",
+      rules: [
+        { id: "r1", label: "Comprovante com CNPJ", status: "violado", detail: "Não foi possível identificar CNPJ no comprovante.", policyClause: "1.2" },
+        { id: "r2", label: "Documento fiscal válido", status: "violado", detail: "Recibo manual não substitui cupom ou nota fiscal eletrônica.", policyClause: "1.1" },
+        { id: "r3", label: "Dentro do limite por refeição (R$ 60)", status: "ok", detail: "R$ 54,00 dentro do teto, porém sem documento fiscal válido.", policyClause: "3.1" },
+      ],
+      citations: [
+        { clause: "1.1", text: "Somente cupom ou nota fiscal eletrônica com CNPJ são aceitos como comprovante." },
+        { clause: "1.2", text: "Comprovantes sem CNPJ identificável serão automaticamente recusados." },
+      ],
+    },
+    // --- Cenário: reembolso por quilometragem (KM) aprovado ---
+    {
+      employeeName: "Anderson Ribeiro",
+      category: "transporte",
+      merchant: "Reembolso por KM — veículo próprio",
+      description: "Deslocamento de 84 km (ida e volta) — atendimento em cidade vizinha",
+      amount: 84.0,
+      date: "2025-05-31",
+      submittedAt: "2025-05-31T17:30:00",
+      channel: "whatsapp",
+      status: "aprovado",
+      costCenter: "FLD-MG",
+      cnpj: null,
+      verdict: "aprovar",
+      confidence: 0.92,
+      decidedBy: "Roberto Tavares",
+      decidedAt: "2025-05-31T18:15:00",
+      summary:
+        "Reembolso por quilometragem com hodômetro inicial e final informados. 84 km × R$ 1,00/km, dentro da regra de uso de veículo próprio autorizado. Aprovação recomendada.",
+      rules: [
+        { id: "r1", label: "Quilometragem informada", status: "ok", detail: "Hodômetro inicial 45.210 e final 45.294 registrados (84 km).", policyClause: "4.4" },
+        { id: "r2", label: "Uso de veículo próprio autorizado", status: "ok", detail: "Termo de uso de veículo próprio vigente.", policyClause: "4.3" },
+        { id: "r3", label: "Valor por KM dentro da tabela (R$ 1,00/km)", status: "ok", detail: "R$ 84,00 = 84 km × R$ 1,00.", policyClause: "4.5" },
+      ],
+      citations: [
+        { clause: "4.4", text: "Reembolso por quilometragem exige hodômetro inicial e final." },
+        { clause: "4.5", text: "Valor de R$ 1,00 por quilômetro rodado em veículo próprio autorizado." },
+      ],
+      extra: [
+        { label: "KM percorridos", value: "84 km", confidence: 0.9 },
+        { label: "Hodômetro (ini/fim)", value: "45.210 / 45.294", confidence: 0.88 },
+      ],
+    },
     {
       employeeName: "Diego Albuquerque",
       category: "refeicao",
