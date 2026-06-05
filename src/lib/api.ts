@@ -168,7 +168,7 @@ export interface PolicyRule {
   text: string; // texto da regra extraído da política
 }
 
-export const POLICY_COMPANY = "Construtora Horizonte S.A.";
+export const POLICY_COMPANY = "Transtech Logística S.A.";
 
 // ---------------------------------------------------------------------------
 // Tipos alinhados ao schema do Supabase
