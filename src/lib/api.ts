@@ -106,7 +106,21 @@ export interface PolicyVersion {
   active: boolean;
   pages: number;
   sizeKb: number;
+  company: string;
 }
+
+export interface PolicyRule {
+  code: string; // ex.: "4.1"
+  title: string;
+  category: ExpenseCategory | "documentos";
+  limit: string; // limite legível (ex.: "R$ 350,00 / abastecimento")
+  basis: string; // base do limite (por abastecimento, por diária, etc.)
+  text: string; // texto da regra extraído da política
+}
+
+export const POLICY_COMPANY = "Construtora Horizonte S.A.";
+
+
 
 // ---------------------------------------------------------------------------
 // Rótulos legíveis (pt-BR)
