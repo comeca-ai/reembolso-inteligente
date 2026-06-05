@@ -1,47 +1,38 @@
 /**
  * Camada de autenticação — reembolsa.aí
  *
- * Implementação MOCK baseada em `localStorage`, organizada para ser
- * substituída por Supabase Auth no futuro sem mexer na UI.
+ * Implementação real com Lovable Cloud (Supabase Auth + Postgres).
  *
- * Princípios já preparados para o backend real:
- *   - A SENHA nunca é persistida em tabela própria. Aqui ela é apenas
- *     comparada em memória (mock) e descartada. Em produção, a senha vai
- *     exclusivamente para o Supabase Auth (auth.users).
- *   - `UserAccount` guarda apenas dados do usuário + `auth_user_id`.
- *   - `Company` guarda apenas dados da empresa.
+ * Modelo de dados:
+ *   - auth.users        → credenciais (e-mail/senha) gerenciadas pelo Auth.
+ *   - public.companies  → dados da empresa.
+ *   - public.profiles   → dados do usuário, ligado à empresa.
+ *   - public.user_roles → papéis (admin/approver/member).
  *
- * Para migrar para Supabase:
- *   - signUpCompany → supabase.auth.signUp + insert em company/user_account
- *     (idealmente via edge function para criar a empresa e o primeiro admin).
- *   - signIn        → supabase.auth.signInWithPassword
- *   - signOut       → supabase.auth.signOut
- *   - getCurrentUser→ supabase.auth.getUser + join em user_account/company
- *   - isAuthenticated → !!(await supabase.auth.getSession()).data.session
+ * No signup, um gatilho no banco cria automaticamente a empresa, o perfil e
+ * o papel de admin a partir dos metadados enviados em `auth.signUp`.
+ *
+ * Para evitar reescrever toda a UI (que lê o usuário de forma síncrona),
+ * mantemos um cache em memória populado nos `beforeLoad` das rotas.
  */
 
-const STORAGE_KEY = "reembolsa.auth.session.v1";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface AuthCompany {
   id: string;
   razao_social: string;
   cnpj: string;
-  /**
-   * Nome do arquivo da política/plano de reembolso enviado no pré-cadastro.
-   * Apenas metadado (mock). Em produção o arquivo vai para o Supabase Storage
-   * e aqui guardamos a referência (path/URL) — nunca o binário.
-   */
   politica_reembolso_arquivo?: string;
 }
 
 export interface AuthUser {
   id: string;
-  /** Em produção, este é o id de auth.users (Supabase Auth). */
+  /** id de auth.users (Supabase Auth). */
   auth_user_id: string;
   nome: string;
   email: string;
   whatsapp?: string;
-  role: "admin";
+  role: "admin" | "approver" | "member";
   company: AuthCompany;
 }
 
@@ -61,155 +52,166 @@ export interface SignInInput {
   senha: string;
 }
 
-function isBrowser() {
-  return typeof window !== "undefined";
-}
+/** Cache em memória do usuário autenticado (populado em loadSession). */
+let cachedUser: AuthUser | null = null;
+let sessionLoaded = false;
 
-function genId(prefix: string) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function readSession(): AuthUser | null {
-  if (!isBrowser()) return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AuthUser;
-  } catch {
+/**
+ * Carrega a sessão atual a partir do Auth + perfil + empresa + papel.
+ * Atualiza o cache em memória. Deve ser chamado nos `beforeLoad`.
+ */
+export async function loadSession(): Promise<AuthUser | null> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) {
+    cachedUser = null;
+    sessionLoaded = true;
     return null;
   }
-}
 
-function writeSession(user: AuthUser) {
-  if (!isBrowser()) return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-}
+  const authUser = userData.user;
 
-function clearSession() {
-  if (!isBrowser()) return;
-  window.localStorage.removeItem(STORAGE_KEY);
-}
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, nome, email, whatsapp, company_id")
+    .eq("id", authUser.id)
+    .maybeSingle();
 
-/** Remove todos os dados de demonstração (mock) para recomeçar o fluxo. */
-export function resetMockAuth() {
-  clearSession();
-  if (isBrowser()) {
-    window.localStorage.removeItem(STORAGE_KEY);
+  let company: AuthCompany = {
+    id: "",
+    razao_social: "Sua Empresa",
+    cnpj: "",
+  };
+
+  if (profile?.company_id) {
+    const { data: companyRow } = await supabase
+      .from("companies")
+      .select("id, razao_social, cnpj, politica_reembolso_arquivo")
+      .eq("id", profile.company_id)
+      .maybeSingle();
+    if (companyRow) {
+      company = {
+        id: companyRow.id,
+        razao_social: companyRow.razao_social,
+        cnpj: companyRow.cnpj,
+        politica_reembolso_arquivo: companyRow.politica_reembolso_arquivo ?? undefined,
+      };
+    }
   }
+
+  const { data: roleRows } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", authUser.id);
+
+  const role =
+    (roleRows?.find((r) => r.role === "admin")?.role as AuthUser["role"]) ??
+    (roleRows?.[0]?.role as AuthUser["role"]) ??
+    "admin";
+
+  cachedUser = {
+    id: profile?.id ?? authUser.id,
+    auth_user_id: authUser.id,
+    nome: profile?.nome ?? authUser.email ?? "Usuário",
+    email: profile?.email ?? authUser.email ?? "",
+    whatsapp: profile?.whatsapp ?? undefined,
+    role,
+    company,
+  };
+  sessionLoaded = true;
+  return cachedUser;
 }
 
+/** Leitura síncrona do usuário em cache (use após loadSession). */
+export function getCurrentUser(): AuthUser | null {
+  return cachedUser;
+}
+
+/** Versão assíncrona — garante que a sessão foi carregada ao menos uma vez. */
+export async function getCurrentUserAsync(): Promise<AuthUser | null> {
+  if (!sessionLoaded) return loadSession();
+  return cachedUser;
+}
+
+/** Verifica autenticação (assíncrono — consulta o Auth). */
+export async function isAuthenticated(): Promise<boolean> {
+  const user = await loadSession();
+  return user !== null;
+}
 
 /**
  * Indica se a empresa já enviou a política de reembolso.
- * É a peça-chave do sistema: sem política a IA não consegue avaliar despesas,
- * por isso o admin fica travado no onboarding até concluir esta etapa.
+ * Sem política a IA não consegue avaliar despesas, por isso o admin fica
+ * travado no onboarding até concluir esta etapa.
  */
-export function hasPolicyUploaded(): boolean {
-  const user = readSession();
+export async function hasPolicyUploaded(): Promise<boolean> {
+  const user = await getCurrentUserAsync();
   return !!user?.company.politica_reembolso_arquivo;
 }
 
-/** Marca a política como enviada (mock), atualizando a sessão. */
-export function markPolicyUploaded(fileName: string): AuthUser | null {
-  const user = readSession();
-  if (!user) return null;
-  const updated: AuthUser = {
-    ...user,
-    company: { ...user.company, politica_reembolso_arquivo: fileName.trim() },
-  };
-  writeSession(updated);
-  return updated;
+/** Versão síncrona (lê do cache). */
+export function hasPolicyUploadedSync(): boolean {
+  return !!cachedUser?.company.politica_reembolso_arquivo;
 }
 
-/** Pequena espera para simular latência de rede (loading states). */
-function delay(ms = 700) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Marca a política como enviada, atualizando a empresa no banco. */
+export async function markPolicyUploaded(fileName: string): Promise<AuthUser | null> {
+  const user = cachedUser ?? (await loadSession());
+  if (!user?.company.id) return null;
+
+  const { error } = await supabase
+    .from("companies")
+    .update({ politica_reembolso_arquivo: fileName.trim() })
+    .eq("id", user.company.id);
+
+  if (error) throw error;
+
+  return loadSession();
 }
 
 /**
- * Cria a empresa e o primeiro admin (mock).
- *
- * Em produção este fluxo deve:
- *   1. Criar o usuário no Supabase Auth (senha vai só pra lá).
- *   2. Criar a `company`.
- *   3. Criar o `user_account` com `auth_user_id` e role admin.
- * Idealmente tudo numa edge function transacional.
+ * Cria a empresa e o primeiro admin via Supabase Auth.
+ * O gatilho `handle_new_user` no banco cria empresa + perfil + papel admin
+ * a partir dos metadados abaixo.
  */
 export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
-  await delay();
-
-  const authUserId = genId("authusr");
-  const user: AuthUser = {
-    id: genId("usr"),
-    auth_user_id: authUserId,
-    nome: input.nomeResponsavel.trim(),
+  const { error } = await supabase.auth.signUp({
     email: input.email.trim().toLowerCase(),
-    whatsapp: input.whatsapp.trim(),
-    role: "admin",
-    company: {
-      id: genId("co"),
-      razao_social: input.razaoSocial.trim(),
-      cnpj: input.cnpj.trim(),
-      politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || undefined,
+    password: input.senha,
+    options: {
+      emailRedirectTo: `${window.location.origin}/overview`,
+      data: {
+        razao_social: input.razaoSocial.trim(),
+        cnpj: input.cnpj.trim(),
+        nome: input.nomeResponsavel.trim(),
+        whatsapp: input.whatsapp.trim(),
+        politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || "",
+      },
     },
-  };
+  });
 
-  // A senha (input.senha) é deliberadamente descartada aqui.
-  writeSession(user);
+  if (error) throw error;
+
+  const user = await loadSession();
+  if (!user) throw new Error("Falha ao carregar a sessão após o cadastro.");
   return user;
 }
 
-/**
- * Valida credenciais (mock). Aceita qualquer e-mail/senha válidos para a demo,
- * ou reutiliza a sessão previamente cadastrada se o e-mail bater.
- */
+/** Valida credenciais via Supabase Auth. */
 export async function signIn(input: SignInInput): Promise<AuthUser> {
-  await delay();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: input.email.trim().toLowerCase(),
+    password: input.senha,
+  });
 
-  const email = input.email.trim().toLowerCase();
+  if (error) throw error;
 
-  // Se já existe uma conta cadastrada com este e-mail, reutiliza os dados.
-  const existing = readSession();
-  if (existing && existing.email === email) {
-    return existing;
-  }
-
-  // Caso demo: cria uma sessão padrão para o e-mail informado.
-  const user: AuthUser = {
-    id: genId("usr"),
-    auth_user_id: genId("authusr"),
-    nome: emailToName(email),
-    email,
-    role: "admin",
-    company: {
-      id: genId("co"),
-      razao_social: "Transtech Logística",
-      cnpj: "12.345.678/0001-90",
-    },
-  };
-
-  writeSession(user);
+  const user = await loadSession();
+  if (!user) throw new Error("Falha ao carregar a sessão após o login.");
   return user;
 }
 
 export async function signOut(): Promise<void> {
-  await delay(300);
-  clearSession();
-}
-
-export function getCurrentUser(): AuthUser | null {
-  return readSession();
-}
-
-export function isAuthenticated(): boolean {
-  return readSession() !== null;
-}
-
-function emailToName(email: string): string {
-  const local = email.split("@")[0] ?? "Usuário";
-  return local
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(" ");
+  await supabase.auth.signOut();
+  cachedUser = null;
+  sessionLoaded = true;
 }
