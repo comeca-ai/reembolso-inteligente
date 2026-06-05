@@ -5,28 +5,20 @@ import {
   api,
   formatBRL,
   formatDate,
-  categoryLabels,
-  statusLabels,
   type ExpenseStatus,
-  type ExpenseCategory,
+  type Expense,
 } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge, ChannelBadge } from "@/components/shared/StatusBadge";
 import { VerdictBadge } from "@/components/shared/VerdictBadge";
 import { CategoryBadge } from "@/components/shared/CategoryBadge";
-import { RuleTrafficLight } from "@/components/shared/RuleCheck";
 import { ConfidenceBadge } from "@/components/shared/Confidence";
-import { Search, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Search, ChevronRight, Download } from "lucide-react";
+import { toast } from "sonner";
 
 const expensesQuery = queryOptions({
   queryKey: ["expenses"],
@@ -39,11 +31,34 @@ export const Route = createFileRoute("/_app/expenses/")({
   component: ExpensesPage,
 });
 
+type TabKey = "analise" | "aprovadas" | "recusadas" | "todas";
+
+const tabMatch: Record<Exclude<TabKey, "todas">, ExpenseStatus[]> = {
+  analise: ["pendente", "extraindo", "em_analise"],
+  aprovadas: ["aprovado", "aprovado_ressalva"],
+  recusadas: ["recusado"],
+};
+
+function inTab(e: Expense, tab: TabKey) {
+  if (tab === "todas") return true;
+  return tabMatch[tab].includes(e.status);
+}
+
 function ExpensesPage() {
   const { data } = useSuspenseQuery(expensesQuery);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<ExpenseStatus | "todos">("todos");
-  const [category, setCategory] = useState<ExpenseCategory | "todas">("todas");
+  const [tab, setTab] = useState<TabKey>("analise");
+  const [exporting, setExporting] = useState(false);
+
+  const counts = useMemo(
+    () => ({
+      analise: data.filter((e) => inTab(e, "analise")).length,
+      aprovadas: data.filter((e) => inTab(e, "aprovadas")).length,
+      recusadas: data.filter((e) => inTab(e, "recusadas")).length,
+      todas: data.length,
+    }),
+    [data],
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -52,59 +67,76 @@ function ExpensesPage() {
         !q ||
         e.employeeName.toLowerCase().includes(q) ||
         e.merchant.toLowerCase().includes(q) ||
-        e.protocol.toLowerCase().includes(q);
-      const matchStatus = status === "todos" || e.status === status;
-      const matchCat = category === "todas" || e.category === category;
-      return matchSearch && matchStatus && matchCat;
+        e.protocol.toLowerCase().includes(q) ||
+        (e.cnpj ?? "").toLowerCase().includes(q);
+      return inTab(e, tab) && matchSearch;
     });
-  }, [data, search, status, category]);
+  }, [data, search, tab]);
 
   const total = filtered.reduce((s, e) => s + e.amount, 0);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const { fileName, content, rows } = await api.exportReportCsv();
+      const blob = new Blob(["\ufeff" + content], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`CSV exportado · ${rows} despesas`);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const tabs: Array<{ key: TabKey; label: string }> = [
+    { key: "analise", label: "Em análise" },
+    { key: "aprovadas", label: "Aprovadas" },
+    { key: "recusadas", label: "Recusadas" },
+    { key: "todas", label: "Todas" },
+  ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Despesas"
         description="Comprovantes enviados pela equipe de campo, analisados pela IA e prontos para decisão."
+        actions={
+          <Button onClick={handleExport} disabled={exporting} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            {exporting ? "Exportando…" : "Exportar CSV"}
+          </Button>
+        }
       />
 
+
       <Card className="shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+        <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
+            <TabsList>
+              {tabs.map((t) => (
+                <TabsTrigger key={t.key} value={t.key} className="gap-1.5">
+                  {t.label}
+                  <span className="rounded-full bg-secondary px-1.5 text-[11px] font-semibold tabular-nums text-secondary-foreground">
+                    {counts[t.key]}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <div className="relative w-full lg:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por colaborador, estabelecimento ou protocolo…"
+              placeholder="Buscar por colaborador, CNPJ, fornecedor ou código…"
               className="h-9 pl-9"
             />
           </div>
-          <Select value={status} onValueChange={(v) => setStatus(v as ExpenseStatus | "todos")}>
-            <SelectTrigger className="h-9 w-full sm:w-44">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {(Object.keys(statusLabels) as ExpenseStatus[]).map((s) => (
-                <SelectItem key={s} value={s}>
-                  {statusLabels[s]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory | "todas")}>
-            <SelectTrigger className="h-9 w-full sm:w-44">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as categorias</SelectItem>
-              {(Object.keys(categoryLabels) as ExpenseCategory[]).map((c) => (
-                <SelectItem key={c} value={c}>
-                  {categoryLabels[c]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Tabela densa */}
@@ -112,15 +144,14 @@ function ExpensesPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-2.5 font-medium">Protocolo</th>
+                <th className="px-4 py-2.5 font-medium">Código</th>
                 <th className="px-4 py-2.5 font-medium">Colaborador</th>
                 <th className="px-4 py-2.5 font-medium">Categoria</th>
-                <th className="px-4 py-2.5 font-medium">Estabelecimento</th>
                 <th className="px-4 py-2.5 text-right font-medium">Valor</th>
-                <th className="px-4 py-2.5 font-medium">Data</th>
-                <th className="px-4 py-2.5 font-medium">IA</th>
-                <th className="px-4 py-2.5 font-medium">Regras</th>
                 <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">Recomendação IA</th>
+                <th className="px-4 py-2.5 font-medium">Confiança</th>
+                <th className="px-4 py-2.5 font-medium">Data</th>
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
@@ -141,28 +172,26 @@ function ExpensesPage() {
                       <span className="font-medium text-foreground">{e.employeeName}</span>
                       <ChannelBadge channel={e.channel} />
                     </div>
-                    <span className="text-xs text-muted-foreground">{e.costCenter}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {e.costCenter} · {e.merchant}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <CategoryBadge category={e.category} />
                   </td>
-                  <td className="max-w-[180px] truncate px-4 py-3 text-muted-foreground">{e.merchant}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
                     {formatBRL(e.amount)}
-                  </td>
-                  <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatDate(e.date)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col items-start gap-1">
-                      <VerdictBadge verdict={e.ai.verdict} size="sm" />
-                      <ConfidenceBadge confidence={e.ai.confidence} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <RuleTrafficLight rules={e.ai.rules} />
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={e.status} />
                   </td>
+                  <td className="px-4 py-3">
+                    <VerdictBadge verdict={e.ai.verdict} size="sm" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ConfidenceBadge confidence={e.ai.confidence} />
+                  </td>
+                  <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatDate(e.date)}</td>
                   <td className="px-4 py-3 text-right">
                     <Link
                       to="/expenses/$id"
@@ -184,7 +213,7 @@ function ExpensesPage() {
           </div>
         )}
 
-        <div className={cn("flex items-center justify-between border-t border-border px-4 py-3 text-sm")}>
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
           <span className="text-muted-foreground">
             {filtered.length} {filtered.length === 1 ? "despesa" : "despesas"}
           </span>

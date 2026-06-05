@@ -26,6 +26,7 @@ import {
   ThumbsDown,
   CheckCircle2,
   FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,8 @@ export const Route = createFileRoute("/_app/expenses/$id")({
 });
 
 type Decision = Extract<ExpenseStatus, "aprovado" | "aprovado_ressalva" | "recusado">;
+
+const LOW_CONFIDENCE = 0.8;
 
 function ExpenseDetailPage() {
   const { id } = Route.useParams();
@@ -104,8 +107,72 @@ function ExpenseDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        {/* Coluna principal */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        {/* Coluna esquerda — comprovante e dados extraídos */}
+        <div className="space-y-6">
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Comprovante</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-hidden rounded-lg border border-border bg-secondary/40">
+                <img src={expense.receiptUrl} alt={`Comprovante ${expense.protocol}`} className="w-full" />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{expense.merchant}</span>
+                <span className="tabular-nums">{formatDate(expense.date)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base">Dados extraídos do comprovante</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Campos com confiança abaixo de {Math.round(LOW_CONFIDENCE * 100)}% são destacados para revisão.
+              </p>
+            </CardHeader>
+            <CardContent className="px-0">
+              <div className="divide-y divide-border border-t border-border">
+                {expense.extracted.map((f) => {
+                  const low = f.confidence < LOW_CONFIDENCE;
+                  return (
+                    <div
+                      key={f.label}
+                      className={cn(
+                        "flex items-center justify-between gap-3 px-6 py-3",
+                        low && "bg-warning/10",
+                      )}
+                    >
+                      <span className="text-sm text-muted-foreground">{f.label}</span>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={cn(
+                            "text-sm font-medium tabular-nums",
+                            low ? "text-warning-foreground" : "text-foreground",
+                          )}
+                        >
+                          {f.value}
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex w-16 items-center justify-end gap-1 text-xs tabular-nums",
+                            low ? "font-semibold text-warning-foreground" : "text-muted-foreground",
+                          )}
+                        >
+                          {low && <AlertTriangle className="h-3 w-3" />}
+                          {Math.round(f.confidence * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Coluna direita — análise da IA, regras e decisão */}
         <div className="space-y-6">
           {/* Recomendação da IA */}
           <Card className="overflow-hidden border-brand/20 shadow-sm">
@@ -115,7 +182,12 @@ function ExpenseDetailPage() {
               <VerdictBadge verdict={expense.ai.verdict} size="sm" className="ml-auto" />
             </div>
             <CardContent className="space-y-5 p-6">
-              <p className="text-sm leading-relaxed text-foreground">{expense.ai.summary}</p>
+              <div>
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Justificativa
+                </h3>
+                <p className="text-sm leading-relaxed text-foreground">{expense.ai.summary}</p>
+              </div>
               <ConfidenceMeter confidence={expense.ai.confidence} />
               <Separator />
               <div>
@@ -133,10 +205,15 @@ function ExpenseDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <Quote className="h-4 w-4 text-brand" />
-                Citações da política
+                Regras citadas da política
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {expense.ai.citations.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma cláusula citada — análise ainda em processamento.
+                </p>
+              )}
               {expense.ai.citations.map((c) => (
                 <div key={c.clause} className="rounded-lg border border-border bg-secondary/40 p-4">
                   <span className="mb-1 inline-block rounded bg-brand/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-brand">
@@ -151,47 +228,6 @@ function ExpenseDetailPage() {
                   Ver política completa (v3.2)
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* Dados extraídos */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Dados extraídos do comprovante</CardTitle>
-            </CardHeader>
-            <CardContent className="px-0">
-              <div className="divide-y divide-border border-t border-border">
-                {expense.extracted.map((f) => (
-                  <div key={f.label} className="flex items-center justify-between px-6 py-3">
-                    <span className="text-sm text-muted-foreground">{f.label}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium tabular-nums text-foreground">{f.value}</span>
-                      <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
-                        {Math.round(f.confidence * 100)}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Coluna lateral */}
-        <div className="space-y-6">
-          {/* Comprovante */}
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base">Comprovante</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-hidden rounded-lg border border-border bg-secondary/40">
-                <img src={expense.receiptUrl} alt={`Comprovante ${expense.protocol}`} className="w-full" />
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{expense.merchant}</span>
-                <span className="tabular-nums">{formatDate(expense.date)}</span>
-              </div>
             </CardContent>
           </Card>
 
@@ -225,47 +261,48 @@ function ExpenseDetailPage() {
                     rows={3}
                     className="resize-none text-sm"
                   />
-                  <Button
-                    onClick={() => mutation.mutate("aprovado")}
-                    disabled={mutation.isPending}
-                    className="w-full bg-success text-success-foreground hover:bg-success/90"
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                    Aprovar
-                  </Button>
-                  <Button
-                    onClick={() => mutation.mutate("aprovado_ressalva")}
-                    disabled={mutation.isPending}
-                    variant="outline"
-                    className="w-full border-warning/40 text-warning-foreground hover:bg-warning/10"
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    Aprovar com ressalva
-                  </Button>
-                  <Button
-                    onClick={() => mutation.mutate("recusado")}
-                    disabled={mutation.isPending}
-                    variant="outline"
-                    className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
-                  >
-                    <ThumbsDown className="h-4 w-4" />
-                    Recusar
-                  </Button>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <Button
+                      onClick={() => mutation.mutate("aprovado")}
+                      disabled={mutation.isPending}
+                      className="w-full bg-success text-success-foreground hover:bg-success/90"
+                    >
+                      <ThumbsUp className="h-4 w-4" />
+                      Aprovar
+                    </Button>
+                    <Button
+                      onClick={() => mutation.mutate("aprovado_ressalva")}
+                      disabled={mutation.isPending}
+                      variant="outline"
+                      className="w-full border-warning/40 text-warning-foreground hover:bg-warning/10"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Aprovar com ressalva
+                    </Button>
+                    <Button
+                      onClick={() => mutation.mutate("recusado")}
+                      disabled={mutation.isPending}
+                      variant="outline"
+                      className="w-full border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      <ThumbsDown className="h-4 w-4" />
+                      Recusar
+                    </Button>
+                  </div>
                   <p className="pt-1 text-center text-xs text-muted-foreground">
                     A decisão notifica o colaborador automaticamente.
                   </p>
                 </>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Resumo */}
-          <Card className={cn("shadow-sm")}>
-            <CardContent className="space-y-2.5 p-5 text-sm">
-              <Row label="Colaborador" value={expense.employeeName} />
-              <Row label="Centro de custo" value={expense.costCenter} />
-              <Row label="Categoria" value={<CategoryBadge category={expense.category} />} />
-              <Row label="Descrição" value={expense.description} />
+              <Separator className="my-2" />
+              <div className="space-y-2.5 text-sm">
+                <Row label="Colaborador" value={expense.employeeName} />
+                <Row label="Centro de custo" value={expense.costCenter} />
+                <Row label="Categoria" value={<CategoryBadge category={expense.category} />} />
+                <Row label="CNPJ" value={expense.cnpj ?? "Não identificado"} />
+                <Row label="Descrição" value={expense.description} />
+              </div>
             </CardContent>
           </Card>
         </div>
