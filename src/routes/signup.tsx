@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, Paperclip, FileText, X } from "lucide-react";
 import { signUpCompany, isAuthenticated } from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
@@ -68,6 +68,32 @@ function SignupPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [politica, setPolitica] = useState<File | null>(null);
+  const [politicaErro, setPoliticaErro] = useState<string | undefined>(undefined);
+
+  const MAX_POLITICA_MB = 10;
+  const TIPOS_ACEITOS = [".pdf", ".doc", ".docx"];
+
+  function handlePoliticaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setPoliticaErro(undefined);
+    if (!file) {
+      setPolitica(null);
+      return;
+    }
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!TIPOS_ACEITOS.includes(ext)) {
+      setPoliticaErro("Envie um arquivo PDF, DOC ou DOCX.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_POLITICA_MB * 1024 * 1024) {
+      setPoliticaErro(`Arquivo muito grande (máx. ${MAX_POLITICA_MB} MB).`);
+      e.target.value = "";
+      return;
+    }
+    setPolitica(file);
+  }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -105,6 +131,7 @@ function SignupPage() {
         email: form.email,
         whatsapp: form.whatsapp,
         senha: form.senha,
+        politicaReembolsoArquivo: politica?.name,
       });
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
@@ -205,6 +232,56 @@ function SignupPage() {
             aria-invalid={!!errors.confirmarSenha}
           />
         </Field>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="politica">Política de reembolso</Label>
+            <span className="text-xs text-muted-foreground">Opcional</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Envie o seu plano/política de reembolso (PDF, DOC ou DOCX). É o
+            documento que a IA usa para avaliar as despesas. Você também pode
+            enviar depois, na tela de Política.
+          </p>
+
+          {politica ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <FileText className="h-4 w-4 shrink-0 text-brand" />
+                <span className="truncate">{politica.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPolitica(null);
+                  setPoliticaErro(undefined);
+                }}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Remover arquivo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="politica"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
+            >
+              <Paperclip className="h-4 w-4" />
+              Selecionar arquivo (até {MAX_POLITICA_MB} MB)
+            </label>
+          )}
+          <input
+            id="politica"
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="sr-only"
+            onChange={handlePoliticaChange}
+          />
+          {politicaErro && <p className="text-xs text-destructive">{politicaErro}</p>}
+        </div>
+
+
 
         <div className="space-y-1.5">
           <div className="flex items-start gap-2.5">

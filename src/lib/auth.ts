@@ -26,6 +26,12 @@ export interface AuthCompany {
   id: string;
   razao_social: string;
   cnpj: string;
+  /**
+   * Nome do arquivo da política/plano de reembolso enviado no pré-cadastro.
+   * Apenas metadado (mock). Em produção o arquivo vai para o Supabase Storage
+   * e aqui guardamos a referência (path/URL) — nunca o binário.
+   */
+  politica_reembolso_arquivo?: string;
 }
 
 export interface AuthUser {
@@ -46,6 +52,8 @@ export interface SignUpInput {
   email: string;
   whatsapp: string;
   senha: string;
+  /** Nome do arquivo da política de reembolso (opcional). */
+  politicaReembolsoArquivo?: string;
 }
 
 export interface SignInInput {
@@ -111,6 +119,7 @@ export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
       id: genId("co"),
       razao_social: input.razaoSocial.trim(),
       cnpj: input.cnpj.trim(),
+      politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || undefined,
     },
   };
 
