@@ -233,6 +233,56 @@ function SignupPage() {
           />
         </Field>
 
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="politica">Política de reembolso</Label>
+            <span className="text-xs text-muted-foreground">Opcional</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Envie o seu plano/política de reembolso (PDF, DOC ou DOCX). É o
+            documento que a IA usa para avaliar as despesas. Você também pode
+            enviar depois, na tela de Política.
+          </p>
+
+          {politica ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <FileText className="h-4 w-4 shrink-0 text-brand" />
+                <span className="truncate">{politica.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setPolitica(null);
+                  setPoliticaErro(undefined);
+                }}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Remover arquivo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="politica"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
+            >
+              <Paperclip className="h-4 w-4" />
+              Selecionar arquivo (até {MAX_POLITICA_MB} MB)
+            </label>
+          )}
+          <input
+            id="politica"
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="sr-only"
+            onChange={handlePoliticaChange}
+          />
+          {politicaErro && <p className="text-xs text-destructive">{politicaErro}</p>}
+        </div>
+
+
+
         <div className="space-y-1.5">
           <div className="flex items-start gap-2.5">
             <Checkbox
