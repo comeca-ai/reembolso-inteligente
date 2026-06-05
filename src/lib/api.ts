@@ -871,26 +871,65 @@ const policyRules: PolicyRule[] = [
 // API
 // ---------------------------------------------------------------------------
 
+export type CriticalKind = "limite" | "confianca" | "sem_cnpj" | "duplicidade";
+
+export interface CriticalItem {
+  id: string;
+  protocol: string;
+  employeeName: string;
+  amount: number;
+  kind: CriticalKind;
+  detail: string;
+}
+
+export const criticalKindLabels: Record<CriticalKind, string> = {
+  limite: "Acima do limite",
+  confianca: "Baixa confiança",
+  sem_cnpj: "Recibo sem CNPJ",
+  duplicidade: "Possível duplicidade",
+};
+
 export interface OverviewMetrics {
   pending: number;
+  inAnalysis: number;
   approvedThisMonth: number;
   totalReimbursedMonth: number;
   avgDecisionHours: number;
   autoApprovalRate: number;
+  agreementRate: number;
+  rejectedByPolicyAmount: number;
   flaggedForReview: number;
   byCategory: Array<{ category: ExpenseCategory; label: string; total: number; count: number }>;
+  byStatus: Array<{ status: ExpenseStatus; label: string; count: number }>;
   weekly: Array<{ week: string; aprovados: number; recusados: number }>;
   recent: Expense[];
+  critical: CriticalItem[];
 }
 
 export const api = {
   async getOverview(): Promise<OverviewMetrics> {
     await delay();
     const pending = expenses.filter((e) => e.status === "pendente" || e.status === "em_analise").length;
+    const inAnalysis = expenses.filter((e) => e.status === "em_analise").length;
     const approved = expenses.filter((e) => e.status === "aprovado" || e.status === "aprovado_ressalva");
+    const rejected = expenses.filter((e) => e.status === "recusado");
     const totalReimbursedMonth = approved.reduce((s, e) => s + e.amount, 0);
+    const rejectedByPolicyAmount = rejected.reduce((s, e) => s + e.amount, 0);
     const autoApprovable = expenses.filter((e) => e.ai.verdict === "aprovar").length;
     const flaggedForReview = expenses.filter((e) => e.ai.verdict === "revisar").length;
+
+    // Concordância: entre as despesas já decididas, quantas a decisão humana
+    // coincidiu com a recomendação da IA.
+    const decided = expenses.filter((e) =>
+      ["aprovado", "aprovado_ressalva", "recusado"].includes(e.status),
+    );
+    const verdictToStatus: Record<Verdict, ExpenseStatus[]> = {
+      aprovar: ["aprovado"],
+      revisar: ["aprovado_ressalva"],
+      recusar: ["recusado"],
+    };
+    const agreed = decided.filter((e) => verdictToStatus[e.ai.verdict].includes(e.status)).length;
+    const agreementRate = decided.length ? Math.round((agreed / decided.length) * 100) : 0;
 
     const catMap = new Map<ExpenseCategory, { total: number; count: number }>();
     for (const e of expenses) {
@@ -903,14 +942,79 @@ export const api = {
       .map(([category, v]) => ({ category, label: categoryLabels[category], ...v }))
       .sort((a, b) => b.total - a.total);
 
+    const statusOrder: ExpenseStatus[] = [
+      "extraindo",
+      "em_analise",
+      "aprovado",
+      "aprovado_ressalva",
+      "recusado",
+    ];
+    const byStatus = statusOrder
+      .map((status) => ({
+        status,
+        label: statusLabels[status],
+        count: expenses.filter((e) => e.status === status).length,
+      }))
+      .filter((s) => s.count > 0);
+
+    // Pendências críticas — despesas que ainda não foram decididas
+    const open = expenses.filter((e) => e.status === "em_analise" || e.status === "extraindo");
+    const critical: CriticalItem[] = [];
+    const amountSeen = new Map<string, number>();
+    for (const e of expenses) {
+      const key = `${e.employeeName}|${e.amount}|${e.category}`;
+      amountSeen.set(key, (amountSeen.get(key) ?? 0) + 1);
+    }
+    for (const e of open) {
+      const overLimit = e.ai.rules.some(
+        (r) => r.status === "violado" && /limite|teto|diária|diaria/i.test(r.label),
+      );
+      const lowConfidence =
+        e.ai.confidence < 0.6 || e.extracted.some((f) => f.confidence < 0.8);
+      const noCnpj = !e.cnpj;
+      const dupKey = `${e.employeeName}|${e.amount}|${e.category}`;
+      const duplicate = (amountSeen.get(dupKey) ?? 0) > 1;
+
+      let kind: CriticalKind | null = null;
+      let detail = "";
+      if (overLimit) {
+        kind = "limite";
+        const rule = e.ai.rules.find((r) => r.status === "violado");
+        detail = rule?.detail ?? "Valor acima do teto da política.";
+      } else if (noCnpj) {
+        kind = "sem_cnpj";
+        detail = "Comprovante sem CNPJ identificável.";
+      } else if (duplicate) {
+        kind = "duplicidade";
+        detail = "Mesmo colaborador, valor e categoria em outra despesa.";
+      } else if (lowConfidence) {
+        kind = "confianca";
+        detail = `Confiança de extração em ${Math.round(e.ai.confidence * 100)}%.`;
+      }
+      if (kind) {
+        critical.push({
+          id: e.id,
+          protocol: e.protocol,
+          employeeName: e.employeeName,
+          amount: e.amount,
+          kind,
+          detail,
+        });
+      }
+    }
+
     return {
       pending,
+      inAnalysis,
       approvedThisMonth: approved.length,
       totalReimbursedMonth,
       avgDecisionHours: 3.4,
       autoApprovalRate: Math.round((autoApprovable / expenses.length) * 100),
+      agreementRate,
+      rejectedByPolicyAmount,
       flaggedForReview,
       byCategory,
+      byStatus,
       weekly: [
         { week: "Sem 1", aprovados: 18, recusados: 2 },
         { week: "Sem 2", aprovados: 24, recusados: 3 },
@@ -920,8 +1024,10 @@ export const api = {
       recent: [...expenses]
         .sort((a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt))
         .slice(0, 5),
+      critical,
     };
   },
+
 
   async listExpenses(): Promise<Expense[]> {
     await delay();
