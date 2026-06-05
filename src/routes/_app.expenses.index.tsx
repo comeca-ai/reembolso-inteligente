@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_app/expenses/")({
   loader: ({ context }) => context.queryClient.ensureQueryData(expensesQuery),
   pendingComponent: () => (
     <PageSkeleton>
-      <TableSkeleton rows={8} cols={7} />
+      <TableSkeleton rows={8} cols={8} />
     </PageSkeleton>
   ),
   component: ExpensesPage,
