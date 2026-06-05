@@ -2,6 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { api, formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { PageSkeleton, KpiSkeleton } from "@/components/shared/Skeletons";
+import { TrustStrip } from "@/components/shared/TrustStrip";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, ChannelBadge } from "@/components/shared/StatusBadge";
 import { VerdictBadge } from "@/components/shared/VerdictBadge";
@@ -42,6 +45,15 @@ export const Route = createFileRoute("/_app/overview")({
     meta: [{ title: "Visão geral · reembolsa.aí" }],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(overviewQuery),
+  pendingComponent: () => (
+    <PageSkeleton>
+      <KpiSkeleton />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="h-72 rounded-xl border bg-card shadow-[var(--shadow-card)] lg:col-span-2" />
+        <div className="h-72 rounded-xl border bg-card shadow-[var(--shadow-card)]" />
+      </div>
+    </PageSkeleton>
+  ),
   component: OverviewPage,
 });
 
@@ -105,10 +117,11 @@ function OverviewPage() {
   const maxStatus = Math.max(...data.byStatus.map((s) => s.count));
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Painel executivo"
         title="Visão geral"
-        description="Painel executivo dos reembolsos da equipe de campo e da fila de aprovação."
+        description="Acompanhe o que a IA já resolveu, o que precisa da sua decisão e a economia gerada pela política — tudo em um só lugar."
         actions={
           <Button asChild>
             <Link to="/expenses">
@@ -279,33 +292,44 @@ function OverviewPage() {
           </Button>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <div className="divide-y divide-border border-t border-border">
-            {data.recent.map((e) => (
-              <Link
-                key={e.id}
-                to="/expenses/$id"
-                params={{ id: e.id }}
-                className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-secondary/50"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-foreground">{e.employeeName}</p>
-                    <ChannelBadge channel={e.channel} />
+          {data.recent.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="Nada por aqui ainda"
+              description="Assim que sua equipe enviar comprovantes por WhatsApp ou e-mail, eles aparecem aqui em segundos."
+            />
+          ) : (
+            <div className="divide-y divide-border border-t border-border">
+              {data.recent.map((e) => (
+                <Link
+                  key={e.id}
+                  to="/expenses/$id"
+                  params={{ id: e.id }}
+                  className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-secondary/50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">{e.employeeName}</p>
+                      <ChannelBadge channel={e.channel} />
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {e.merchant} · {formatDateTime(e.submittedAt)}
+                    </p>
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {e.merchant} · {formatDateTime(e.submittedAt)}
-                  </p>
-                </div>
-                <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
-                  {formatBRL(e.amount)}
-                </span>
-                <VerdictBadge verdict={e.ai.verdict} size="sm" className="hidden md:inline-flex" />
-                <StatusBadge status={e.status} />
-              </Link>
-            ))}
-          </div>
+                  <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                    {formatBRL(e.amount)}
+                  </span>
+                  <VerdictBadge verdict={e.ai.verdict} size="sm" className="hidden md:inline-flex" />
+                  <StatusBadge status={e.status} />
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Sinais de confiança */}
+      <TrustStrip />
     </div>
   );
 }

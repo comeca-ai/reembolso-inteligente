@@ -17,7 +17,9 @@ import { StatusBadge, ChannelBadge } from "@/components/shared/StatusBadge";
 import { VerdictBadge } from "@/components/shared/VerdictBadge";
 import { CategoryBadge } from "@/components/shared/CategoryBadge";
 import { ConfidenceBadge } from "@/components/shared/Confidence";
-import { Search, ChevronRight, Download } from "lucide-react";
+import { Search, ChevronRight, Download, ReceiptText } from "lucide-react";
+import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "sonner";
 
 const expensesQuery = queryOptions({
@@ -28,6 +30,11 @@ const expensesQuery = queryOptions({
 export const Route = createFileRoute("/_app/expenses/")({
   head: () => ({ meta: [{ title: "Despesas · reembolsa.aí" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(expensesQuery),
+  pendingComponent: () => (
+    <PageSkeleton>
+      <TableSkeleton rows={8} cols={7} />
+    </PageSkeleton>
+  ),
   component: ExpensesPage,
 });
 
@@ -86,7 +93,9 @@ function ExpensesPage() {
       a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`CSV exportado · ${rows} despesas`);
+      toast.success("Relatório exportado", {
+        description: `${rows} despesas em ${fileName}. Pronto para o seu ERP ou financeiro.`,
+      });
     } finally {
       setExporting(false);
     }
@@ -100,10 +109,11 @@ function ExpensesPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Fila de aprovação"
         title="Despesas"
-        description="Comprovantes enviados pela equipe de campo, analisados pela IA e prontos para decisão."
+        description="Comprovantes enviados pela equipe de campo, lidos e conferidos pela IA contra a política — prontos para a sua decisão."
         actions={
           <Button onClick={handleExport} disabled={exporting} variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
@@ -112,8 +122,7 @@ function ExpensesPage() {
         }
       />
 
-
-      <Card className="shadow-sm">
+      <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
           <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
             <TabsList>
@@ -208,9 +217,22 @@ function ExpensesPage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-            Nenhuma despesa encontrada com os filtros atuais.
-          </div>
+          <EmptyState
+            icon={ReceiptText}
+            title="Nenhuma despesa por aqui"
+            description={
+              search
+                ? "Não encontramos nada com esses filtros. Tente outro termo ou limpe a busca."
+                : "Quando a equipe enviar comprovantes neste status, eles aparecem aqui automaticamente."
+            }
+            action={
+              search ? (
+                <Button variant="outline" onClick={() => setSearch("")}>
+                  Limpar busca
+                </Button>
+              ) : undefined
+            }
+          />
         )}
 
         <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">

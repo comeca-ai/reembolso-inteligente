@@ -70,7 +70,9 @@ function PolicyPage() {
     mutationFn: (fileName: string) => api.uploadPolicy(fileName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["policies"] });
-      toast.success("Nova versão da política publicada e ativada.");
+      toast.success("Nova versão publicada", {
+        description: "A política passou a valer para todas as próximas análises da IA.",
+      });
     },
   });
 
@@ -80,10 +82,11 @@ function PolicyPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Governança"
         title="Política de reembolso"
-        description="A política é o combustível da IA: é a partir dela que cada recomendação é justificada."
+        description="A política é o combustível da IA: cada recomendação cita a cláusula e a versão vigente que a justifica."
         actions={
           <Button onClick={handleUpload} disabled={mutation.isPending} className="gap-2">
             <UploadCloud className="h-4 w-4" />
