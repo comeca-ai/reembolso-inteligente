@@ -1,46 +1,62 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { generateObject } from "ai";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  createLovableAiGatewayProvider,
+  getLovableApiKey,
+} from "@/lib/ai-gateway.server";
 
 /**
- * Webhook público e simples para receber mensagens de reembolso.
+ * Webhook público e simples para receber comprovantes de reembolso.
  *
- * Sem autenticação: qualquer integrador pode chamar e o backend (Lovable
- * Cloud / Supabase) grava a mensagem na tabela inbound_reimbursements.
+ * Sem autenticação: o integrador (WhatsApp, e-mail, etc.) envia a imagem do
+ * comprovante em base64 e a IA (Lovable AI) extrai valor, categoria e uma
+ * descrição automaticamente antes de gravar em inbound_reimbursements.
  *
  *   POST /api/public/reimbursements
  *   Body (JSON):
  *     {
- *       "sender": "+5511999999999",      // obrigatório (telefone ou e-mail)
- *       "sender_name": "João Silva",     // opcional
- *       "channel": "whatsapp",           // whatsapp | email (default whatsapp)
- *       "message": "Almoço com cliente", // opcional
- *       "attachment_url": "https://...", // opcional (comprovante)
- *       "amount": 89.90,                 // opcional
- *       "category": "refeicao",          // opcional
- *       "company_id": "uuid"             // opcional (usa a 1ª empresa se ausente)
+ *       "image_base64": "data:image/jpeg;base64,...", // obrigatório
+ *       "sender": "+5511999999999",  // opcional (telefone ou e-mail)
+ *       "sender_name": "João Silva", // opcional
+ *       "channel": "whatsapp",       // whatsapp | email (default whatsapp)
+ *       "message": "Almoço",         // opcional (legenda enviada)
+ *       "company_id": "uuid"         // opcional (usa a 1ª empresa se ausente)
  *     }
  */
 
 const PayloadSchema = z.object({
-  sender: z.string().min(1).max(320),
+  image_base64: z.string().min(16).max(15_000_000),
+  sender: z.string().min(1).max(320).optional(),
   sender_name: z.string().min(1).max(255).optional(),
   channel: z.enum(["whatsapp", "email"]).default("whatsapp"),
   message: z.string().max(5000).optional(),
-  attachment_url: z.string().url().max(2048).optional(),
-  amount: z.number().min(0).max(1_000_000).optional(),
-  category: z
-    .enum([
-      "combustivel",
-      "refeicao",
-      "hospedagem",
-      "transporte",
-      "pedagio",
-      "material",
-      "outros",
-    ])
-    .optional(),
   company_id: z.string().uuid().optional(),
+});
+
+const CATEGORIES = [
+  "combustivel",
+  "refeicao",
+  "hospedagem",
+  "transporte",
+  "pedagio",
+  "material",
+  "outros",
+] as const;
+
+const ExtractionSchema = z.object({
+  amount: z
+    .number()
+    .nullable()
+    .describe("Valor total do comprovante em reais, ou null se ilegível."),
+  category: z
+    .enum(CATEGORIES)
+    .describe("Categoria da despesa mais provável."),
+  description: z
+    .string()
+    .max(280)
+    .describe("Resumo curto do que foi a despesa (ex.: estabelecimento)."),
 });
 
 const corsHeaders = {
@@ -54,6 +70,12 @@ function json(body: unknown, status: number) {
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
+}
+
+/** Garante que a string seja um data URL de imagem. */
+function toDataUrl(input: string): string {
+  if (input.startsWith("data:")) return input;
+  return `data:image/jpeg;base64,${input}`;
 }
 
 export const Route = createFileRoute("/api/public/reimbursements")({
@@ -78,7 +100,6 @@ export const Route = createFileRoute("/api/public/reimbursements")({
             400,
           );
         }
-
         const data = parsed.data;
 
         // 2. Resolve a empresa: usa o company_id informado ou a primeira empresa.
@@ -95,25 +116,60 @@ export const Route = createFileRoute("/api/public/reimbursements")({
           }
           companyId = company?.id ?? null;
         }
-
         if (!companyId) {
           return json({ error: "Nenhuma empresa encontrada." }, 400);
         }
 
-        // 3. Grava a mensagem recebida
+        // 3. IA analisa o comprovante (valor, categoria, descrição)
+        const imageUrl = toDataUrl(data.image_base64);
+        let amount: number | null = null;
+        let category: string | null = null;
+        let aiDescription: string | null = null;
+
+        try {
+          const provider = createLovableAiGatewayProvider(getLovableApiKey());
+          const { object } = await generateObject({
+            model: provider("google/gemini-3-flash-preview"),
+            schema: ExtractionSchema,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: "Analise este comprovante de despesa e extraia o valor total, a categoria e uma descrição curta. Responda em português.",
+                  },
+                  { type: "image", image: imageUrl },
+                ],
+              },
+            ],
+          });
+          amount = object.amount;
+          category = object.category;
+          aiDescription = object.description;
+        } catch (e) {
+          // Se a IA falhar, ainda gravamos a mensagem para análise manual.
+          console.error("[reimbursements webhook] IA falhou:", e);
+        }
+
+        // 4. Grava a mensagem recebida
         const { data: inserted, error: insertError } = await supabaseAdmin
           .from("inbound_reimbursements")
           .insert({
             company_id: companyId,
             channel: data.channel,
-            sender: data.sender,
+            sender: data.sender ?? "desconhecido",
             sender_name: data.sender_name ?? null,
-            message: data.message ?? null,
-            attachment_url: data.attachment_url ?? null,
-            amount: data.amount ?? null,
-            category: data.category ?? null,
+            message: data.message ?? aiDescription,
+            attachment_url: imageUrl,
+            amount,
+            category,
             status: "recebido",
-            raw_payload: raw as never,
+            raw_payload: {
+              ...(raw as Record<string, unknown>),
+              image_base64: "[omitido]", // já salvo em attachment_url
+              ai: { amount, category, description: aiDescription },
+            } as never,
           })
           .select("id, created_at")
           .single();
@@ -123,7 +179,12 @@ export const Route = createFileRoute("/api/public/reimbursements")({
         }
 
         return json(
-          { ok: true, id: inserted.id, received_at: inserted.created_at },
+          {
+            ok: true,
+            id: inserted.id,
+            received_at: inserted.created_at,
+            ai: { amount, category, description: aiDescription },
+          },
           201,
         );
       },
