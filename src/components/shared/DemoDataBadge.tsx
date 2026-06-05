@@ -3,9 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Database } from "lucide-react";
+
 
 /**
  * Badge sutil indicando que a aplicação está usando dados de demonstração
