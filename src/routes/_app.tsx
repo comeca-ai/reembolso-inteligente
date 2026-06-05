@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, hasPolicyUploaded } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app")({
   // Auth mockada vive em localStorage (client-side), então desligamos SSR
@@ -9,6 +9,11 @@ export const Route = createFileRoute("/_app")({
   beforeLoad: () => {
     if (!isAuthenticated()) {
       throw redirect({ to: "/login" });
+    }
+    // Trava obrigatória: enquanto a política de reembolso não for enviada,
+    // o admin fica preso no onboarding (peça-chave do sistema).
+    if (!hasPolicyUploaded()) {
+      throw redirect({ to: "/onboarding" });
     }
   },
   component: AppLayout,
