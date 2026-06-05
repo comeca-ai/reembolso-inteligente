@@ -30,6 +30,11 @@ const expensesQuery = queryOptions({
 export const Route = createFileRoute("/_app/expenses/")({
   head: () => ({ meta: [{ title: "Despesas · reembolsa.aí" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(expensesQuery),
+  pendingComponent: () => (
+    <PageSkeleton>
+      <TableSkeleton rows={8} cols={7} />
+    </PageSkeleton>
+  ),
   component: ExpensesPage,
 });
 
