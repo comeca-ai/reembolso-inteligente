@@ -217,9 +217,22 @@ function ExpensesPage() {
         </div>
 
         {filtered.length === 0 && (
-          <div className="px-4 py-16 text-center text-sm text-muted-foreground">
-            Nenhuma despesa encontrada com os filtros atuais.
-          </div>
+          <EmptyState
+            icon={ReceiptText}
+            title="Nenhuma despesa por aqui"
+            description={
+              search
+                ? "Não encontramos nada com esses filtros. Tente outro termo ou limpe a busca."
+                : "Quando a equipe enviar comprovantes neste status, eles aparecem aqui automaticamente."
+            }
+            action={
+              search ? (
+                <Button variant="outline" onClick={() => setSearch("")}>
+                  Limpar busca
+                </Button>
+              ) : undefined
+            }
+          />
         )}
 
         <div className="flex items-center justify-between border-t border-border px-4 py-3 text-sm">
