@@ -93,7 +93,9 @@ function ExpensesPage() {
       a.download = fileName;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`CSV exportado · ${rows} despesas`);
+      toast.success("Relatório exportado", {
+        description: `${rows} despesas em ${fileName}. Pronto para o seu ERP ou financeiro.`,
+      });
     } finally {
       setExporting(false);
     }
