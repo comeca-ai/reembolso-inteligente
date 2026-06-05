@@ -9,38 +9,149 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppUsersRouteImport } from './routes/_app.users'
+import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppPolicyRouteImport } from './routes/_app.policy'
+import { Route as AppOverviewRouteImport } from './routes/_app.overview'
+import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
+import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPolicyRoute = AppPolicyRouteImport.update({
+  id: '/policy',
+  path: '/policy',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOverviewRoute = AppOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpensesIndexRoute = AppExpensesIndexRouteImport.update({
+  id: '/expenses/',
+  path: '/expenses/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpensesIdRoute = AppExpensesIdRouteImport.update({
+  id: '/expenses/$id',
+  path: '/expenses/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/overview': typeof AppOverviewRoute
+  '/policy': typeof AppPolicyRoute
+  '/reports': typeof AppReportsRoute
+  '/users': typeof AppUsersRoute
+  '/expenses/$id': typeof AppExpensesIdRoute
+  '/expenses/': typeof AppExpensesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/overview': typeof AppOverviewRoute
+  '/policy': typeof AppPolicyRoute
+  '/reports': typeof AppReportsRoute
+  '/users': typeof AppUsersRoute
+  '/expenses/$id': typeof AppExpensesIdRoute
+  '/expenses': typeof AppExpensesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_app/overview': typeof AppOverviewRoute
+  '/_app/policy': typeof AppPolicyRoute
+  '/_app/reports': typeof AppReportsRoute
+  '/_app/users': typeof AppUsersRoute
+  '/_app/expenses/$id': typeof AppExpensesIdRoute
+  '/_app/expenses/': typeof AppExpensesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/sitemap.xml'
+    | '/overview'
+    | '/policy'
+    | '/reports'
+    | '/users'
+    | '/expenses/$id'
+    | '/expenses/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/sitemap.xml'
+    | '/overview'
+    | '/policy'
+    | '/reports'
+    | '/users'
+    | '/expenses/$id'
+    | '/expenses'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/sitemap.xml'
+    | '/_app/overview'
+    | '/_app/policy'
+    | '/_app/reports'
+    | '/_app/users'
+    | '/_app/expenses/$id'
+    | '/_app/expenses/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +159,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/users': {
+      id: '/_app/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/policy': {
+      id: '/_app/policy'
+      path: '/policy'
+      fullPath: '/policy'
+      preLoaderRoute: typeof AppPolicyRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/overview': {
+      id: '/_app/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof AppOverviewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/expenses/': {
+      id: '/_app/expenses/'
+      path: '/expenses'
+      fullPath: '/expenses/'
+      preLoaderRoute: typeof AppExpensesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/expenses/$id': {
+      id: '/_app/expenses/$id'
+      path: '/expenses/$id'
+      fullPath: '/expenses/$id'
+      preLoaderRoute: typeof AppExpensesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppOverviewRoute: typeof AppOverviewRoute
+  AppPolicyRoute: typeof AppPolicyRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppUsersRoute: typeof AppUsersRoute
+  AppExpensesIdRoute: typeof AppExpensesIdRoute
+  AppExpensesIndexRoute: typeof AppExpensesIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppOverviewRoute: AppOverviewRoute,
+  AppPolicyRoute: AppPolicyRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppUsersRoute: AppUsersRoute,
+  AppExpensesIdRoute: AppExpensesIdRoute,
+  AppExpensesIndexRoute: AppExpensesIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
