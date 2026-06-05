@@ -1,14 +1,32 @@
 /**
- * Mock API — reembolsa.aí
+ * Camada de dados — reembolsa.aí
  *
- * Sem backend real nesta etapa. Todos os dados são simulados e ficam em memória.
- * As funções retornam Promises com pequenos delays para imitar latência de rede.
- * Quando o backend existir, basta substituir o corpo destas funções.
+ * Esta é a camada de abstração da aplicação. Ela expõe um único objeto `api`
+ * que pode ser servido por duas fontes:
+ *
+ *   - `supabaseApi`  → quando VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY estão
+ *                       configuradas, conversa com um Supabase próprio.
+ *   - `mockApi`      → dados de demonstração em memória (fallback automático).
+ *
+ * A UI importa sempre de `api` e não precisa saber qual fonte está ativa.
+ * Operações sensíveis (decisões, auditoria, cadastros) ficam preparadas para
+ * rodar via edge function — ver `invokeFunction` em `./supabase`.
  */
+
+import {
+  supabase,
+  isSupabaseConfigured,
+  isUsingMockData,
+  invokeFunction,
+} from "./supabase";
+
+export { isUsingMockData, isSupabaseConfigured };
 
 // ---------------------------------------------------------------------------
 // Tipos
 // ---------------------------------------------------------------------------
+
+
 
 export type Channel = "whatsapp" | "email";
 
@@ -151,6 +169,108 @@ export interface PolicyRule {
 }
 
 export const POLICY_COMPANY = "Construtora Horizonte S.A.";
+
+// ---------------------------------------------------------------------------
+// Tipos alinhados ao schema do Supabase
+// ---------------------------------------------------------------------------
+//
+// Estes tipos espelham as tabelas previstas no banco. A camada de abstração
+// faz o mapeamento entre as linhas do Supabase e os modelos ricos usados pela
+// UI (Expense, etc.). Mantidos aqui para servir de contrato único.
+
+/** Empresa-cliente (tenant). Tabela: `companies`. */
+export interface Company {
+  id: string;
+  name: string;
+  cnpj: string;
+  createdAt: string; // ISO
+}
+
+/** Conta com login web — aprovadores e admins. Tabela: `user_accounts`. */
+export interface UserAccount {
+  id: string;
+  companyId: string;
+  name: string;
+  email: string;
+  role: "admin" | "aprovador";
+  jobTitle?: string;
+  whatsapp?: string;
+  active: boolean;
+  createdAt: string; // ISO
+}
+
+/** Documento de política versionado. Tabela: `policies`. */
+export interface Policy {
+  id: string;
+  companyId: string;
+  version: string;
+  fileName: string;
+  storagePath?: string;
+  uploadedBy: string;
+  uploadedAt: string; // ISO
+  active: boolean;
+  pages: number;
+  sizeKb: number;
+}
+
+/** Extração bruta da IA a partir do comprovante. Tabela: `ai_extractions`. */
+export interface AiExtraction {
+  id: string;
+  expenseId: string;
+  fields: ExtractedField[];
+  rawText?: string;
+  model?: string;
+  createdAt: string; // ISO
+}
+
+/** Recomendação explicável da IA. Tabela: `ai_recommendations`. */
+export interface AiRecommendation {
+  id: string;
+  expenseId: string;
+  verdict: Verdict;
+  confidence: number; // 0..1
+  summary: string;
+  rules: RuleCheckResult[];
+  citations: PolicyCitation[];
+  policyId?: string;
+  createdAt: string; // ISO
+}
+
+/** Decisão humana sobre a despesa. Tabela: `decisions`. */
+export interface Decision {
+  id: string;
+  expenseId: string;
+  decidedBy: string;
+  decision: Extract<ExpenseStatus, "aprovado" | "aprovado_ressalva" | "recusado">;
+  note?: string;
+  decidedAt: string; // ISO
+}
+
+/** Mensagem recebida/enviada (WhatsApp ou e-mail). Tabela: `messages`. */
+export interface Message {
+  id: string;
+  expenseId?: string;
+  fieldUserId?: string;
+  channel: Channel;
+  direction: "inbound" | "outbound";
+  content: string;
+  attachmentUrl?: string;
+  createdAt: string; // ISO
+}
+
+/** Trilha de auditoria de eventos sensíveis. Tabela: `audit_logs`. */
+export interface AuditLog {
+  id: string;
+  companyId?: string;
+  actor: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string; // ISO
+}
+
+
 
 
 
@@ -906,127 +1026,137 @@ export interface OverviewMetrics {
   critical: CriticalItem[];
 }
 
-export const api = {
+/** Computa as métricas do dashboard a partir de uma lista de despesas. */
+function computeOverview(list: Expense[]): OverviewMetrics {
+  const pending = list.filter((e) => e.status === "pendente" || e.status === "em_analise").length;
+  const inAnalysis = list.filter((e) => e.status === "em_analise").length;
+  const approved = list.filter((e) => e.status === "aprovado" || e.status === "aprovado_ressalva");
+  const rejected = list.filter((e) => e.status === "recusado");
+  const totalReimbursedMonth = approved.reduce((s, e) => s + e.amount, 0);
+  const rejectedByPolicyAmount = rejected.reduce((s, e) => s + e.amount, 0);
+  const autoApprovable = list.filter((e) => e.ai.verdict === "aprovar").length;
+  const flaggedForReview = list.filter((e) => e.ai.verdict === "revisar").length;
+
+  // Concordância: entre as despesas já decididas, quantas a decisão humana
+  // coincidiu com a recomendação da IA.
+  const decided = list.filter((e) =>
+    ["aprovado", "aprovado_ressalva", "recusado"].includes(e.status),
+  );
+  const verdictToStatus: Record<Verdict, ExpenseStatus[]> = {
+    aprovar: ["aprovado"],
+    revisar: ["aprovado_ressalva"],
+    recusar: ["recusado"],
+  };
+  const agreed = decided.filter((e) => verdictToStatus[e.ai.verdict].includes(e.status)).length;
+  const agreementRate = decided.length ? Math.round((agreed / decided.length) * 100) : 0;
+
+  const catMap = new Map<ExpenseCategory, { total: number; count: number }>();
+  for (const e of list) {
+    const cur = catMap.get(e.category) ?? { total: 0, count: 0 };
+    cur.total += e.amount;
+    cur.count += 1;
+    catMap.set(e.category, cur);
+  }
+  const byCategory = Array.from(catMap.entries())
+    .map(([category, v]) => ({ category, label: categoryLabels[category], ...v }))
+    .sort((a, b) => b.total - a.total);
+
+  const statusOrder: ExpenseStatus[] = [
+    "extraindo",
+    "em_analise",
+    "aprovado",
+    "aprovado_ressalva",
+    "recusado",
+  ];
+  const byStatus = statusOrder
+    .map((status) => ({
+      status,
+      label: statusLabels[status],
+      count: list.filter((e) => e.status === status).length,
+    }))
+    .filter((s) => s.count > 0);
+
+  // Pendências críticas — despesas que ainda não foram decididas
+  const open = list.filter((e) => e.status === "em_analise" || e.status === "extraindo");
+  const critical: CriticalItem[] = [];
+  const amountSeen = new Map<string, number>();
+  for (const e of list) {
+    const key = `${e.employeeName}|${e.amount}|${e.category}`;
+    amountSeen.set(key, (amountSeen.get(key) ?? 0) + 1);
+  }
+  for (const e of open) {
+    const overLimit = e.ai.rules.some(
+      (r) => r.status === "violado" && /limite|teto|diária|diaria/i.test(r.label),
+    );
+    const lowConfidence =
+      e.ai.confidence < 0.6 || e.extracted.some((f) => f.confidence < 0.8);
+    const noCnpj = !e.cnpj;
+    const dupKey = `${e.employeeName}|${e.amount}|${e.category}`;
+    const duplicate = (amountSeen.get(dupKey) ?? 0) > 1;
+
+    let kind: CriticalKind | null = null;
+    let detail = "";
+    if (overLimit) {
+      kind = "limite";
+      const rule = e.ai.rules.find((r) => r.status === "violado");
+      detail = rule?.detail ?? "Valor acima do teto da política.";
+    } else if (noCnpj) {
+      kind = "sem_cnpj";
+      detail = "Comprovante sem CNPJ identificável.";
+    } else if (duplicate) {
+      kind = "duplicidade";
+      detail = "Mesmo colaborador, valor e categoria em outra despesa.";
+    } else if (lowConfidence) {
+      kind = "confianca";
+      detail = `Confiança de extração em ${Math.round(e.ai.confidence * 100)}%.`;
+    }
+    if (kind) {
+      critical.push({
+        id: e.id,
+        protocol: e.protocol,
+        employeeName: e.employeeName,
+        amount: e.amount,
+        kind,
+        detail,
+      });
+    }
+  }
+
+  return {
+    pending,
+    inAnalysis,
+    approvedThisMonth: approved.length,
+    totalReimbursedMonth,
+    avgDecisionHours: 3.4,
+    autoApprovalRate: list.length ? Math.round((autoApprovable / list.length) * 100) : 0,
+    agreementRate,
+    rejectedByPolicyAmount,
+    flaggedForReview,
+    byCategory,
+    byStatus,
+    weekly: [
+      { week: "Sem 1", aprovados: 18, recusados: 2 },
+      { week: "Sem 2", aprovados: 24, recusados: 3 },
+      { week: "Sem 3", aprovados: 21, recusados: 1 },
+      { week: "Sem 4", aprovados: 27, recusados: 4 },
+    ],
+    recent: [...list]
+      .sort((a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt))
+      .slice(0, 5),
+    critical,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Fonte: dados de demonstração (mock, em memória)
+// ---------------------------------------------------------------------------
+
+const mockApi = {
   async getOverview(): Promise<OverviewMetrics> {
     await delay();
-    const pending = expenses.filter((e) => e.status === "pendente" || e.status === "em_analise").length;
-    const inAnalysis = expenses.filter((e) => e.status === "em_analise").length;
-    const approved = expenses.filter((e) => e.status === "aprovado" || e.status === "aprovado_ressalva");
-    const rejected = expenses.filter((e) => e.status === "recusado");
-    const totalReimbursedMonth = approved.reduce((s, e) => s + e.amount, 0);
-    const rejectedByPolicyAmount = rejected.reduce((s, e) => s + e.amount, 0);
-    const autoApprovable = expenses.filter((e) => e.ai.verdict === "aprovar").length;
-    const flaggedForReview = expenses.filter((e) => e.ai.verdict === "revisar").length;
-
-    // Concordância: entre as despesas já decididas, quantas a decisão humana
-    // coincidiu com a recomendação da IA.
-    const decided = expenses.filter((e) =>
-      ["aprovado", "aprovado_ressalva", "recusado"].includes(e.status),
-    );
-    const verdictToStatus: Record<Verdict, ExpenseStatus[]> = {
-      aprovar: ["aprovado"],
-      revisar: ["aprovado_ressalva"],
-      recusar: ["recusado"],
-    };
-    const agreed = decided.filter((e) => verdictToStatus[e.ai.verdict].includes(e.status)).length;
-    const agreementRate = decided.length ? Math.round((agreed / decided.length) * 100) : 0;
-
-    const catMap = new Map<ExpenseCategory, { total: number; count: number }>();
-    for (const e of expenses) {
-      const cur = catMap.get(e.category) ?? { total: 0, count: 0 };
-      cur.total += e.amount;
-      cur.count += 1;
-      catMap.set(e.category, cur);
-    }
-    const byCategory = Array.from(catMap.entries())
-      .map(([category, v]) => ({ category, label: categoryLabels[category], ...v }))
-      .sort((a, b) => b.total - a.total);
-
-    const statusOrder: ExpenseStatus[] = [
-      "extraindo",
-      "em_analise",
-      "aprovado",
-      "aprovado_ressalva",
-      "recusado",
-    ];
-    const byStatus = statusOrder
-      .map((status) => ({
-        status,
-        label: statusLabels[status],
-        count: expenses.filter((e) => e.status === status).length,
-      }))
-      .filter((s) => s.count > 0);
-
-    // Pendências críticas — despesas que ainda não foram decididas
-    const open = expenses.filter((e) => e.status === "em_analise" || e.status === "extraindo");
-    const critical: CriticalItem[] = [];
-    const amountSeen = new Map<string, number>();
-    for (const e of expenses) {
-      const key = `${e.employeeName}|${e.amount}|${e.category}`;
-      amountSeen.set(key, (amountSeen.get(key) ?? 0) + 1);
-    }
-    for (const e of open) {
-      const overLimit = e.ai.rules.some(
-        (r) => r.status === "violado" && /limite|teto|diária|diaria/i.test(r.label),
-      );
-      const lowConfidence =
-        e.ai.confidence < 0.6 || e.extracted.some((f) => f.confidence < 0.8);
-      const noCnpj = !e.cnpj;
-      const dupKey = `${e.employeeName}|${e.amount}|${e.category}`;
-      const duplicate = (amountSeen.get(dupKey) ?? 0) > 1;
-
-      let kind: CriticalKind | null = null;
-      let detail = "";
-      if (overLimit) {
-        kind = "limite";
-        const rule = e.ai.rules.find((r) => r.status === "violado");
-        detail = rule?.detail ?? "Valor acima do teto da política.";
-      } else if (noCnpj) {
-        kind = "sem_cnpj";
-        detail = "Comprovante sem CNPJ identificável.";
-      } else if (duplicate) {
-        kind = "duplicidade";
-        detail = "Mesmo colaborador, valor e categoria em outra despesa.";
-      } else if (lowConfidence) {
-        kind = "confianca";
-        detail = `Confiança de extração em ${Math.round(e.ai.confidence * 100)}%.`;
-      }
-      if (kind) {
-        critical.push({
-          id: e.id,
-          protocol: e.protocol,
-          employeeName: e.employeeName,
-          amount: e.amount,
-          kind,
-          detail,
-        });
-      }
-    }
-
-    return {
-      pending,
-      inAnalysis,
-      approvedThisMonth: approved.length,
-      totalReimbursedMonth,
-      avgDecisionHours: 3.4,
-      autoApprovalRate: Math.round((autoApprovable / expenses.length) * 100),
-      agreementRate,
-      rejectedByPolicyAmount,
-      flaggedForReview,
-      byCategory,
-      byStatus,
-      weekly: [
-        { week: "Sem 1", aprovados: 18, recusados: 2 },
-        { week: "Sem 2", aprovados: 24, recusados: 3 },
-        { week: "Sem 3", aprovados: 21, recusados: 1 },
-        { week: "Sem 4", aprovados: 27, recusados: 4 },
-      ],
-      recent: [...expenses]
-        .sort((a, b) => +new Date(b.submittedAt) - +new Date(a.submittedAt))
-        .slice(0, 5),
-      critical,
-    };
+    return computeOverview(expenses);
   },
+
 
 
   async listExpenses(): Promise<Expense[]> {
@@ -1187,3 +1317,242 @@ export const api = {
     };
   },
 };
+
+// ---------------------------------------------------------------------------
+// Fonte: Supabase próprio (somente leitura via anon key + RLS)
+// ---------------------------------------------------------------------------
+//
+// Leituras usam a anon key e dependem de RLS no projeto Supabase. Operações
+// sensíveis (decisões, cadastros, upload de política) NÃO gravam direto do
+// frontend — são roteadas para edge functions via `invokeFunction`.
+
+/** Contrato único compartilhado entre as fontes de dados. */
+export type DataProvider = typeof mockApi;
+
+type Row = Record<string, unknown>;
+
+function first<T = Row>(rel: unknown): T | undefined {
+  if (Array.isArray(rel)) return rel[0] as T | undefined;
+  return (rel as T) ?? undefined;
+}
+
+function rowToExpense(row: Row): Expense {
+  const extraction = first(row.ai_extractions);
+  const reco = first(row.ai_recommendations);
+  return {
+    id: String(row.id),
+    protocol: String(row.protocol ?? row.id),
+    employeeId: String(row.employee_id ?? ""),
+    employeeName: String(row.employee_name ?? ""),
+    category: row.category as ExpenseCategory,
+    merchant: String(row.merchant ?? ""),
+    cnpj: (row.cnpj as string | null) ?? undefined,
+    description: String(row.description ?? ""),
+    amount: Number(row.amount ?? 0),
+    date: String(row.date ?? ""),
+    submittedAt: String(row.submitted_at ?? row.created_at ?? ""),
+    channel: row.channel as Channel,
+    status: row.status as ExpenseStatus,
+    receiptUrl: String(row.receipt_url ?? ""),
+    extracted: ((extraction?.fields as ExtractedField[]) ?? []),
+    costCenter: String(row.cost_center ?? "—"),
+    decidedBy: (row.decided_by as string | null) ?? undefined,
+    decidedAt: (row.decided_at as string | null) ?? undefined,
+    decisionNote: (row.decision_note as string | null) ?? undefined,
+    ai: {
+      verdict: (reco?.verdict as Verdict) ?? "revisar",
+      confidence: Number(reco?.confidence ?? 0),
+      summary: String(reco?.summary ?? ""),
+      rules: ((reco?.rules as RuleCheckResult[]) ?? []),
+      citations: ((reco?.citations as PolicyCitation[]) ?? []),
+    },
+  } satisfies Expense;
+}
+
+const EXPENSE_SELECT =
+  "*, ai_extractions(*), ai_recommendations(*)";
+
+function buildReportCsv(list: Expense[]): { fileName: string; content: string; rows: number } {
+  const header = [
+    "Protocolo", "Colaborador", "Centro de Custo", "Categoria", "Estabelecimento",
+    "Valor", "Data", "Canal", "Status", "Veredito IA", "Confianca IA", "Decidido por",
+  ];
+  const lines = list.map((e) =>
+    [
+      e.protocol,
+      e.employeeName,
+      e.costCenter,
+      categoryLabels[e.category],
+      e.merchant,
+      e.amount.toFixed(2).replace(".", ","),
+      formatDate(e.date),
+      channelLabels[e.channel],
+      statusLabels[e.status],
+      verdictLabels[e.ai.verdict],
+      `${Math.round(e.ai.confidence * 100)}%`,
+      e.decidedBy ?? "",
+    ]
+      .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+      .join(";"),
+  );
+  return {
+    fileName: `relatorio-reembolsos-${new Date().toISOString().slice(0, 10)}.csv`,
+    content: [header.join(";"), ...lines].join("\n"),
+    rows: lines.length,
+  };
+}
+
+function db() {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  return supabase;
+}
+
+const supabaseApi: DataProvider = {
+  async getOverview() {
+    const list = await supabaseApi.listExpenses();
+    return computeOverview(list);
+  },
+
+  async listExpenses() {
+    const { data, error } = await db()
+      .from("expenses")
+      .select(EXPENSE_SELECT)
+      .order("submitted_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToExpense(r as Row));
+  },
+
+  async getExpense(id: string) {
+    const { data, error } = await db()
+      .from("expenses")
+      .select(EXPENSE_SELECT)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? rowToExpense(data as Row) : undefined;
+  },
+
+  // Operação sensível: decisão de reembolso roteada para edge function.
+  async decideExpense(id, decision, note, decidedBy = "Carla Menezes") {
+    return invokeFunction<Expense>("decide-expense", { id, decision, note, decidedBy });
+  },
+
+  async listUsers() {
+    const { data, error } = await db().from("user_accounts").select("*");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        role: (row.role === "admin" ? "aprovador" : (row.role as UserRole)) ?? "campo",
+        team: String(row.team ?? ""),
+        costCenter: String(row.cost_center ?? ""),
+        status: (row.active === false ? "inativo" : "ativo") as AppUser["status"],
+        phone: (row.whatsapp as string | null) ?? undefined,
+      } satisfies AppUser;
+    });
+  },
+
+  async listFieldUsers() {
+    const { data, error } = await db().from("field_users").select("*");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        cpfMasked: String(row.cpf_masked ?? "***.***.***-**"),
+        whatsapp: (row.whatsapp as string | null) ?? undefined,
+        email: (row.email as string | null) ?? undefined,
+        approverName: String(row.approver_name ?? ""),
+        team: String(row.team ?? ""),
+        costCenter: String(row.cost_center ?? ""),
+        status: (row.status as FieldUserStatus) ?? "pendente",
+        activatedAt: (row.activated_at as string | null) ?? undefined,
+      } satisfies FieldUser;
+    });
+  },
+
+  async listApprovers() {
+    const { data, error } = await db().from("user_accounts").select("*").eq("role", "aprovador");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        jobTitle: String(row.job_title ?? ""),
+        whatsapp: (row.whatsapp as string | null) ?? undefined,
+        pendingCount: Number(row.pending_count ?? 0),
+      } satisfies Approver;
+    });
+  },
+
+  // Operação sensível: cadastro roteado para edge function.
+  async createFieldUser(input) {
+    return invokeFunction<FieldUser>("create-field-user", { ...input });
+  },
+
+  // Operação sensível: cadastro roteado para edge function.
+  async createApprover(input) {
+    return invokeFunction<Approver>("create-approver", { ...input });
+  },
+
+  async listPolicyVersions() {
+    const { data, error } = await db()
+      .from("policies")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        version: String(row.version ?? ""),
+        fileName: String(row.file_name ?? ""),
+        uploadedBy: String(row.uploaded_by ?? ""),
+        uploadedAt: String(row.uploaded_at ?? row.created_at ?? ""),
+        active: Boolean(row.active),
+        pages: Number(row.pages ?? 0),
+        sizeKb: Number(row.size_kb ?? 0),
+        company: String(row.company ?? POLICY_COMPANY),
+      } satisfies PolicyVersion;
+    });
+  },
+
+  async listPolicyRules() {
+    const { data, error } = await db().from("policy_rules").select("*").order("code");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        code: String(row.code ?? ""),
+        title: String(row.title ?? ""),
+        category: row.category as PolicyRule["category"],
+        limit: String(row.limit ?? ""),
+        basis: String(row.basis ?? ""),
+        text: String(row.text ?? ""),
+      } satisfies PolicyRule;
+    });
+  },
+
+  // Operação sensível: publicação de política roteada para edge function.
+  async uploadPolicy(fileName, uploadedBy = "Carla Menezes") {
+    return invokeFunction<PolicyVersion>("upload-policy", { fileName, uploadedBy });
+  },
+
+  async exportReportCsv() {
+    const list = await supabaseApi.listExpenses();
+    return buildReportCsv(list);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// API exportada — escolhe a fonte conforme a configuração de ambiente.
+// ---------------------------------------------------------------------------
+
+export const api: DataProvider = isSupabaseConfigured ? supabaseApi : mockApi;
+
