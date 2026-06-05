@@ -42,6 +42,15 @@ export const Route = createFileRoute("/_app/overview")({
     meta: [{ title: "Visão geral · reembolsa.aí" }],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(overviewQuery),
+  pendingComponent: () => (
+    <PageSkeleton>
+      <KpiSkeleton />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="h-72 rounded-xl border bg-card shadow-[var(--shadow-card)] lg:col-span-2" />
+        <div className="h-72 rounded-xl border bg-card shadow-[var(--shadow-card)]" />
+      </div>
+    </PageSkeleton>
+  ),
   component: OverviewPage,
 });
 
