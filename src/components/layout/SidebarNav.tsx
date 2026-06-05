@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/Logo";
 import { getCurrentUser } from "@/lib/auth";
-import { canAccess } from "@/lib/permissions";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import {
   LayoutDashboard,
   ReceiptText,
