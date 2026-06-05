@@ -97,6 +97,38 @@ export interface AppUser {
   monthlyLimit?: number;
 }
 
+/** Usuário de campo — não tem login, é identificado por WhatsApp ou e-mail. */
+export type FieldUserStatus = "ativo" | "pendente" | "bloqueado";
+
+export interface FieldUser {
+  id: string;
+  name: string;
+  cpfMasked: string; // ex.: "***.456.789-**"
+  whatsapp?: string;
+  email?: string;
+  approverName: string; // aprovador responsável pelo roteamento
+  team: string;
+  costCenter: string;
+  status: FieldUserStatus;
+  activatedAt?: string; // ISO — ausente quando pendente
+}
+
+/** Aprovador/admin — tem login web na plataforma. */
+export interface Approver {
+  id: string;
+  name: string;
+  email: string;
+  jobTitle: string; // função (ex.: "Gerente financeiro")
+  whatsapp?: string;
+  pendingCount: number; // despesas aguardando decisão
+}
+
+export const fieldUserStatusLabels: Record<FieldUserStatus, string> = {
+  ativo: "Ativo",
+  pendente: "Pendente",
+  bloqueado: "Bloqueado",
+};
+
 export interface PolicyVersion {
   id: string;
   version: string;
@@ -221,8 +253,25 @@ const users: AppUser[] = [
   { id: "u-106", name: "Juliana Castro", email: "juliana.castro@empresa.com.br", role: "campo", team: "Manutenção MG", costCenter: "FLD-MG", status: "inativo", phone: "(31) 98654-9090", monthlyLimit: 2000 },
 ];
 
-// ---------------------------------------------------------------------------
-// Dados — Despesas
+// Usuários de campo — sem login, roteados por WhatsApp/e-mail
+let fieldUsers: FieldUser[] = [
+  { id: "f-101", name: "Diego Albuquerque", cpfMasked: "***.412.788-**", whatsapp: "(11) 98123-7788", email: "diego.alb@empresa.com.br", approverName: "Carla Menezes", team: "Técnica Campo SP", costCenter: "FLD-SP", status: "ativo", activatedAt: "2025-03-12" },
+  { id: "f-102", name: "Fernanda Lima", cpfMasked: "***.905.221-**", whatsapp: "(11) 98233-1190", email: "fernanda.lima@empresa.com.br", approverName: "Carla Menezes", team: "Técnica Campo SP", costCenter: "FLD-SP", status: "ativo", activatedAt: "2025-03-12" },
+  { id: "f-103", name: "Marcos Vinícius Souza", cpfMasked: "***.118.640-**", whatsapp: "(51) 98990-6622", email: "marcos.souza@empresa.com.br", approverName: "Roberto Tavares", team: "Instalações RS", costCenter: "FLD-RS", status: "ativo", activatedAt: "2025-04-02" },
+  { id: "f-104", name: "Patrícia Gomes", cpfMasked: "***.673.009-**", whatsapp: "(51) 99001-2255", approverName: "Roberto Tavares", team: "Instalações RS", costCenter: "FLD-RS", status: "ativo", activatedAt: "2025-04-02" },
+  { id: "f-105", name: "Anderson Ribeiro", cpfMasked: "***.554.301-**", whatsapp: "(31) 98777-4431", email: "anderson.ribeiro@empresa.com.br", approverName: "Roberto Tavares", team: "Manutenção MG", costCenter: "FLD-MG", status: "ativo", activatedAt: "2025-04-18" },
+  { id: "f-106", name: "Juliana Castro", cpfMasked: "***.230.917-**", whatsapp: "(31) 98654-9090", email: "juliana.castro@empresa.com.br", approverName: "Roberto Tavares", team: "Manutenção MG", costCenter: "FLD-MG", status: "bloqueado", activatedAt: "2025-04-18" },
+  { id: "f-107", name: "Rafael Pinto", cpfMasked: "***.781.452-**", whatsapp: "(11) 99540-3321", approverName: "Carla Menezes", team: "Técnica Campo SP", costCenter: "FLD-SP", status: "pendente" },
+  { id: "f-108", name: "Bianca Moreira", cpfMasked: "***.066.310-**", email: "bianca.moreira@empresa.com.br", approverName: "Carla Menezes", team: "Operações Sul", costCenter: "OPS-SUL", status: "pendente" },
+];
+
+// Aprovadores/admins — têm login web
+let approvers: Approver[] = [
+  { id: "a-001", name: "Carla Menezes", email: "carla.menezes@empresa.com.br", jobTitle: "Gerente financeira", whatsapp: "(51) 99812-4456", pendingCount: 4 },
+  { id: "a-002", name: "Roberto Tavares", email: "roberto.tavares@empresa.com.br", jobTitle: "Coordenador de operações", whatsapp: "(11) 99654-2210", pendingCount: 2 },
+  { id: "a-003", name: "Letícia Fonseca", email: "leticia.fonseca@empresa.com.br", jobTitle: "Analista financeira sênior", whatsapp: "(11) 99320-7781", pendingCount: 0 },
+];
+
 // ---------------------------------------------------------------------------
 
 function buildExpenses(): Expense[] {
@@ -905,6 +954,62 @@ export const api = {
     await delay();
     return [...users];
   },
+
+  async listFieldUsers(): Promise<FieldUser[]> {
+    await delay();
+    return [...fieldUsers];
+  },
+
+  async listApprovers(): Promise<Approver[]> {
+    await delay();
+    return [...approvers];
+  },
+
+  async createFieldUser(input: {
+    name: string;
+    cpfMasked?: string;
+    whatsapp?: string;
+    email?: string;
+    approverName: string;
+    team: string;
+    costCenter: string;
+  }): Promise<FieldUser> {
+    await delay(450);
+    const created: FieldUser = {
+      id: `f-${100 + fieldUsers.length + 1}`,
+      name: input.name,
+      cpfMasked: input.cpfMasked?.trim() || "***.***.***-**",
+      whatsapp: input.whatsapp?.trim() || undefined,
+      email: input.email?.trim() || undefined,
+      approverName: input.approverName,
+      team: input.team,
+      costCenter: input.costCenter,
+      status: "pendente",
+    };
+    fieldUsers = [created, ...fieldUsers];
+    return created;
+  },
+
+  async createApprover(input: {
+    name: string;
+    email: string;
+    jobTitle: string;
+    whatsapp?: string;
+  }): Promise<Approver> {
+    await delay(450);
+    const created: Approver = {
+      id: `a-${100 + approvers.length + 1}`,
+      name: input.name,
+      email: input.email,
+      jobTitle: input.jobTitle,
+      whatsapp: input.whatsapp?.trim() || undefined,
+      pendingCount: 0,
+    };
+    approvers = [...approvers, created];
+    return created;
+  },
+
+
 
   async listPolicyVersions(): Promise<PolicyVersion[]> {
     await delay();
