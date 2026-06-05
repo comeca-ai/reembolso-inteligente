@@ -62,7 +62,12 @@ function inTab(e: Expense, tab: TabKey) {
 }
 
 function ExpensesPage() {
-  const { data } = useSuspenseQuery(expensesQuery);
+  const { data: allExpenses } = useSuspenseQuery(expensesQuery);
+  const { data: fieldUsers } = useSuspenseQuery(fieldUsersQuery);
+  const data = useMemo(
+    () => filterExpensesForUser(allExpenses, getCurrentUser(), fieldUsers),
+    [allExpenses, fieldUsers],
+  );
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabKey>("analise");
   const [exporting, setExporting] = useState(false);
