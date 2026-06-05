@@ -12,7 +12,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { generateObject, generateText } from "ai";
+import { generateText } from "ai";
 import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
@@ -116,6 +116,28 @@ function parseExtraction(raw: string): { pages: number; rules: z.infer<typeof ru
       : 0;
 
   return { pages, rules };
+}
+
+function extractJsonObject(raw: string) {
+  let txt = (raw ?? "").trim();
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) txt = fence[1].trim();
+  const first = txt.indexOf("{");
+  const last = txt.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) txt = txt.slice(first, last + 1);
+  return JSON.parse(txt);
+}
+
+function parseEvaluation(raw: string): ExpenseEvaluation {
+  const parsed = extractJsonObject(raw);
+  return evaluationSchema.parse({
+    verdict: parsed?.verdict,
+    confidence: Number(parsed?.confidence ?? 0.5),
+    summary: String(parsed?.summary ?? "Despesa marcada para revisão."),
+    citedRuleCode: String(parsed?.citedRuleCode ?? ""),
+    citedClause: String(parsed?.citedClause ?? ""),
+    checks: Array.isArray(parsed?.checks) ? parsed.checks : [],
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -389,9 +411,8 @@ export const evaluateExpense = createServerFn({ method: "POST" })
       .join("\n");
 
     const gateway = createLovableAiGatewayProvider(getLovableApiKey());
-    const { object } = await generateObject({
+    const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
-      schema: evaluationSchema,
       messages: [
         {
           role: "user",
@@ -406,13 +427,14 @@ export const evaluateExpense = createServerFn({ method: "POST" })
             `- Data: ${data.date || "n/d"}\n` +
             `- Descrição: ${data.description || "n/d"}\n\n` +
             "Decida entre aprovar, revisar ou recusar. Cite o código da cláusula " +
-            "que justifica a decisão e liste verificações por regra. Responda em " +
-            "português do Brasil.",
+            "que justifica a decisão e liste verificações por regra. Responda APENAS " +
+            "com JSON válido no formato: " +
+            '{ "verdict": "aprovar|revisar|recusar", "confidence": 0.8, "summary": string, "citedRuleCode": string, "citedClause": string, "checks": [{ "label": string, "status": "ok|alerta|violado", "detail": string }] }.',
         },
       ],
     });
 
-    return object;
+    return parseEvaluation(text);
   });
 
 // ---------------------------------------------------------------------------
