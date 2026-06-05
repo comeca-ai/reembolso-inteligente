@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
-import { DemoDataBadge } from "@/components/shared/DemoDataBadge";
+
 import { TrustChips } from "@/components/shared/TrustStrip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -82,13 +82,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <p className="text-xs text-muted-foreground">CNPJ {companyCnpj}</p>
               )}
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
-              </span>
-              Piloto
-            </span>
           </div>
 
           <div className="relative ml-auto hidden max-w-md flex-1 md:block lg:ml-6">
@@ -100,7 +93,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3 md:ml-0">
-            <DemoDataBadge />
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" />
