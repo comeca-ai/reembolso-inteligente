@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
-import { DemoDataBadge } from "@/components/shared/DemoDataBadge";
+
 import { TrustChips } from "@/components/shared/TrustStrip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
