@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, notFound, Navigate } from "@tanstack/react-router";
 import {
   useSuspenseQuery,
   queryOptions,
@@ -8,6 +8,8 @@ import {
 } from "@tanstack/react-query";
 
 import { api, formatBRL, formatDate, formatDateTime, type ExpenseStatus } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
+import { canViewExpense } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,9 +43,19 @@ const expenseQuery = (id: string) =>
     },
   });
 
+const fieldUsersQuery = queryOptions({
+  queryKey: ["fieldUsers"],
+  queryFn: () => api.listFieldUsers(),
+});
+
 export const Route = createFileRoute("/_app/expenses/$id")({
   head: ({ params }) => ({ meta: [{ title: `${params.id} · reembolsa.aí` }] }),
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(expenseQuery(params.id)),
+  loader: async ({ context, params }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(expenseQuery(params.id)),
+      context.queryClient.ensureQueryData(fieldUsersQuery),
+    ]);
+  },
   component: ExpenseDetailPage,
   notFoundComponent: () => (
     <div className="py-20 text-center">
@@ -59,9 +71,13 @@ const LOW_CONFIDENCE = 0.8;
 function ExpenseDetailPage() {
   const { id } = Route.useParams();
   const { data: expense } = useSuspenseQuery(expenseQuery(id));
+  const { data: fieldUsers } = useSuspenseQuery(fieldUsersQuery);
   const queryClient = useQueryClient();
   const router = useRouter();
   const [note, setNote] = useState("");
+
+  const canView = canViewExpense(expense, getCurrentUser(), fieldUsers);
+
 
   const mutation = useMutation({
     mutationFn: (decision: Decision) => api.decideExpense(id, decision, note || undefined),
@@ -91,6 +107,7 @@ function ExpenseDetailPage() {
   });
 
   if (!expense) return null;
+  if (!canView) return <Navigate to="/expenses" />;
 
   const decided = ["aprovado", "aprovado_ressalva", "recusado"].includes(expense.status);
 

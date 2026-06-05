@@ -1,5 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSuspenseQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { inviteApprover } from "@/lib/invites.functions";
@@ -49,6 +51,12 @@ const approversQuery = queryOptions({ queryKey: ["approvers"], queryFn: () => ap
 
 export const Route = createFileRoute("/_app/users")({
   head: () => ({ meta: [{ title: "Cadastros · reembolsa.aí" }] }),
+  beforeLoad: () => {
+    const role = getCurrentUser()?.role;
+    if (!canAccess("/users", role)) {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   loader: async ({ context }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(fieldUsersQuery),

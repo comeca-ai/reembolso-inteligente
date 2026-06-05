@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { api, formatBRL, type OverviewMetrics } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -12,6 +14,12 @@ const overviewQuery = queryOptions({ queryKey: ["overview"], queryFn: () => api.
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Relatórios · reembolsa.aí" }] }),
+  beforeLoad: () => {
+    const role = getCurrentUser()?.role;
+    if (!canAccess("/reports", role)) {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(overviewQuery),
   component: ReportsPage,
 });

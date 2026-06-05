@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -100,6 +102,12 @@ const emptyDraft: RuleDraft = {
 
 export const Route = createFileRoute("/_app/policy")({
   head: () => ({ meta: [{ title: "Política · reembolsa.aí" }] }),
+  beforeLoad: () => {
+    const role = getCurrentUser()?.role;
+    if (!canAccess("/policy", role)) {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   component: PolicyPage,
 });
 

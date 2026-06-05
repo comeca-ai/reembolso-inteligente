@@ -1,6 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/Logo";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import {
   LayoutDashboard,
   ReceiptText,
@@ -21,11 +23,13 @@ const nav = [
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const role = getCurrentUser()?.role;
+  const visibleNav = nav.filter((item) => canAccess(item.to, role));
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center border-b border-sidebar-border/60 px-5">
-        <Link to="/overview" aria-label="reembolsa aí — Visão geral">
+        <Link to={landingForRole(role)} aria-label="reembolsa aí — Início">
           <Logo variant="light" className="h-7" />
         </Link>
       </div>
@@ -34,7 +38,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
           Operação
         </p>
-        {nav.map((item) => {
+        {visibleNav.map((item) => {
           const active =
             pathname === item.to || (item.to !== "/overview" && pathname.startsWith(item.to));
           const Icon = item.icon;

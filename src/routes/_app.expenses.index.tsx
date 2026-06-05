@@ -21,15 +21,27 @@ import { Search, ChevronRight, Download, ReceiptText } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "sonner";
+import { getCurrentUser } from "@/lib/auth";
+import { filterExpensesForUser } from "@/lib/permissions";
 
 const expensesQuery = queryOptions({
   queryKey: ["expenses"],
   queryFn: () => api.listExpenses(),
 });
 
+const fieldUsersQuery = queryOptions({
+  queryKey: ["fieldUsers"],
+  queryFn: () => api.listFieldUsers(),
+});
+
 export const Route = createFileRoute("/_app/expenses/")({
   head: () => ({ meta: [{ title: "Despesas · reembolsa.aí" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(expensesQuery),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(expensesQuery),
+      context.queryClient.ensureQueryData(fieldUsersQuery),
+    ]);
+  },
   pendingComponent: () => (
     <PageSkeleton>
       <TableSkeleton rows={8} cols={8} />
@@ -52,7 +64,12 @@ function inTab(e: Expense, tab: TabKey) {
 }
 
 function ExpensesPage() {
-  const { data } = useSuspenseQuery(expensesQuery);
+  const { data: allExpenses } = useSuspenseQuery(expensesQuery);
+  const { data: fieldUsers } = useSuspenseQuery(fieldUsersQuery);
+  const data = useMemo(
+    () => filterExpensesForUser(allExpenses, getCurrentUser(), fieldUsers),
+    [allExpenses, fieldUsers],
+  );
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<TabKey>("analise");
   const [exporting, setExporting] = useState(false);
