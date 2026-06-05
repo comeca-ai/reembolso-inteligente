@@ -96,7 +96,7 @@ export const getPolicyState = createServerFn({ method: "GET" })
       version: p.version,
       fileName: p.file_name,
       uploadedBy: p.uploaded_by ?? "",
-      uploadedAt: p.uploaded_at ?? p.created_at,
+      uploadedAt: p.created_at,
       active: p.active,
       pages: p.pages ?? 0,
       sizeKb: p.size_kb ?? 0,
