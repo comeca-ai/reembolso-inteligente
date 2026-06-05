@@ -113,10 +113,11 @@ function UsersPage() {
   }, [approvers, search]);
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Equipe"
         title="Cadastros"
-        description="Equipe de campo que envia comprovantes e aprovadores que decidem na plataforma."
+        description="Cadastre quem envia comprovantes em campo e quem aprova na plataforma — o roteamento é feito pelo WhatsApp ou e-mail do remetente."
         actions={
           tab === "campo" ? (
             <Button onClick={() => setDrawer("campo")} className="gap-2">
