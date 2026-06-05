@@ -151,21 +151,18 @@ export function formatBRL(value: number): string {
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  // Parse the date parts directly to avoid timezone-dependent rendering
+  // (which causes SSR/client hydration mismatches).
+  const [datePart] = iso.split("T");
+  const [y, m, d] = datePart.split("-");
+  return `${d}/${m}/${y}`;
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const [datePart, timePart = "00:00"] = iso.split("T");
+  const [y, m, d] = datePart.split("-");
+  const [hh, mm] = timePart.split(":");
+  return `${d}/${m}/${y}, ${hh}:${mm}`;
 }
 
 const delay = (ms = 320) => new Promise((r) => setTimeout(r, ms));
