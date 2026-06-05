@@ -19,12 +19,12 @@ import {
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
   head: () => ({ meta: [{ title: "Configuração inicial · reembolsa.aí" }] }),
-  beforeLoad: () => {
-    if (!isAuthenticated()) {
+  beforeLoad: async () => {
+    if (!(await isAuthenticated())) {
       throw redirect({ to: "/login" });
     }
     // Já enviou a política? Então não precisa do onboarding.
-    if (hasPolicyUploaded()) {
+    if (await hasPolicyUploaded()) {
       throw redirect({ to: "/overview" });
     }
   },
