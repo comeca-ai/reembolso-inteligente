@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, notFound } from "@tanstack/react-router";
 import {
   useSuspenseQuery,
   queryOptions,
@@ -34,7 +34,11 @@ import { cn } from "@/lib/utils";
 const expenseQuery = (id: string) =>
   queryOptions({
     queryKey: ["expense", id],
-    queryFn: () => api.getExpense(id),
+    queryFn: async () => {
+      const expense = await api.getExpense(id);
+      if (!expense) throw notFound();
+      return expense;
+    },
   });
 
 export const Route = createFileRoute("/_app/expenses/$id")({
