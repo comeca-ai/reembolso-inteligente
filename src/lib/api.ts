@@ -1317,3 +1317,242 @@ const mockApi = {
     };
   },
 };
+
+// ---------------------------------------------------------------------------
+// Fonte: Supabase próprio (somente leitura via anon key + RLS)
+// ---------------------------------------------------------------------------
+//
+// Leituras usam a anon key e dependem de RLS no projeto Supabase. Operações
+// sensíveis (decisões, cadastros, upload de política) NÃO gravam direto do
+// frontend — são roteadas para edge functions via `invokeFunction`.
+
+/** Contrato único compartilhado entre as fontes de dados. */
+export type DataProvider = typeof mockApi;
+
+type Row = Record<string, unknown>;
+
+function first<T = Row>(rel: unknown): T | undefined {
+  if (Array.isArray(rel)) return rel[0] as T | undefined;
+  return (rel as T) ?? undefined;
+}
+
+function rowToExpense(row: Row): Expense {
+  const extraction = first(row.ai_extractions);
+  const reco = first(row.ai_recommendations);
+  return {
+    id: String(row.id),
+    protocol: String(row.protocol ?? row.id),
+    employeeId: String(row.employee_id ?? ""),
+    employeeName: String(row.employee_name ?? ""),
+    category: row.category as ExpenseCategory,
+    merchant: String(row.merchant ?? ""),
+    cnpj: (row.cnpj as string | null) ?? undefined,
+    description: String(row.description ?? ""),
+    amount: Number(row.amount ?? 0),
+    date: String(row.date ?? ""),
+    submittedAt: String(row.submitted_at ?? row.created_at ?? ""),
+    channel: row.channel as Channel,
+    status: row.status as ExpenseStatus,
+    receiptUrl: String(row.receipt_url ?? ""),
+    extracted: ((extraction?.fields as ExtractedField[]) ?? []),
+    costCenter: String(row.cost_center ?? "—"),
+    decidedBy: (row.decided_by as string | null) ?? undefined,
+    decidedAt: (row.decided_at as string | null) ?? undefined,
+    decisionNote: (row.decision_note as string | null) ?? undefined,
+    ai: {
+      verdict: (reco?.verdict as Verdict) ?? "revisar",
+      confidence: Number(reco?.confidence ?? 0),
+      summary: String(reco?.summary ?? ""),
+      rules: ((reco?.rules as RuleCheckResult[]) ?? []),
+      citations: ((reco?.citations as PolicyCitation[]) ?? []),
+    },
+  } satisfies Expense;
+}
+
+const EXPENSE_SELECT =
+  "*, ai_extractions(*), ai_recommendations(*)";
+
+function buildReportCsv(list: Expense[]): { fileName: string; content: string; rows: number } {
+  const header = [
+    "Protocolo", "Colaborador", "Centro de Custo", "Categoria", "Estabelecimento",
+    "Valor", "Data", "Canal", "Status", "Veredito IA", "Confianca IA", "Decidido por",
+  ];
+  const lines = list.map((e) =>
+    [
+      e.protocol,
+      e.employeeName,
+      e.costCenter,
+      categoryLabels[e.category],
+      e.merchant,
+      e.amount.toFixed(2).replace(".", ","),
+      formatDate(e.date),
+      channelLabels[e.channel],
+      statusLabels[e.status],
+      verdictLabels[e.ai.verdict],
+      `${Math.round(e.ai.confidence * 100)}%`,
+      e.decidedBy ?? "",
+    ]
+      .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+      .join(";"),
+  );
+  return {
+    fileName: `relatorio-reembolsos-${new Date().toISOString().slice(0, 10)}.csv`,
+    content: [header.join(";"), ...lines].join("\n"),
+    rows: lines.length,
+  };
+}
+
+function db() {
+  if (!supabase) throw new Error("Supabase não configurado.");
+  return supabase;
+}
+
+const supabaseApi: DataProvider = {
+  async getOverview() {
+    const list = await supabaseApi.listExpenses();
+    return computeOverview(list);
+  },
+
+  async listExpenses() {
+    const { data, error } = await db()
+      .from("expenses")
+      .select(EXPENSE_SELECT)
+      .order("submitted_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => rowToExpense(r as Row));
+  },
+
+  async getExpense(id: string) {
+    const { data, error } = await db()
+      .from("expenses")
+      .select(EXPENSE_SELECT)
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? rowToExpense(data as Row) : undefined;
+  },
+
+  // Operação sensível: decisão de reembolso roteada para edge function.
+  async decideExpense(id, decision, note, decidedBy = "Carla Menezes") {
+    return invokeFunction<Expense>("decide-expense", { id, decision, note, decidedBy });
+  },
+
+  async listUsers() {
+    const { data, error } = await db().from("user_accounts").select("*");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        role: (row.role === "admin" ? "aprovador" : (row.role as UserRole)) ?? "campo",
+        team: String(row.team ?? ""),
+        costCenter: String(row.cost_center ?? ""),
+        status: (row.active === false ? "inativo" : "ativo") as AppUser["status"],
+        phone: (row.whatsapp as string | null) ?? undefined,
+      } satisfies AppUser;
+    });
+  },
+
+  async listFieldUsers() {
+    const { data, error } = await db().from("field_users").select("*");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        cpfMasked: String(row.cpf_masked ?? "***.***.***-**"),
+        whatsapp: (row.whatsapp as string | null) ?? undefined,
+        email: (row.email as string | null) ?? undefined,
+        approverName: String(row.approver_name ?? ""),
+        team: String(row.team ?? ""),
+        costCenter: String(row.cost_center ?? ""),
+        status: (row.status as FieldUserStatus) ?? "pendente",
+        activatedAt: (row.activated_at as string | null) ?? undefined,
+      } satisfies FieldUser;
+    });
+  },
+
+  async listApprovers() {
+    const { data, error } = await db().from("user_accounts").select("*").eq("role", "aprovador");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        name: String(row.name ?? ""),
+        email: String(row.email ?? ""),
+        jobTitle: String(row.job_title ?? ""),
+        whatsapp: (row.whatsapp as string | null) ?? undefined,
+        pendingCount: Number(row.pending_count ?? 0),
+      } satisfies Approver;
+    });
+  },
+
+  // Operação sensível: cadastro roteado para edge function.
+  async createFieldUser(input) {
+    return invokeFunction<FieldUser>("create-field-user", { ...input });
+  },
+
+  // Operação sensível: cadastro roteado para edge function.
+  async createApprover(input) {
+    return invokeFunction<Approver>("create-approver", { ...input });
+  },
+
+  async listPolicyVersions() {
+    const { data, error } = await db()
+      .from("policies")
+      .select("*")
+      .order("uploaded_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        id: String(row.id),
+        version: String(row.version ?? ""),
+        fileName: String(row.file_name ?? ""),
+        uploadedBy: String(row.uploaded_by ?? ""),
+        uploadedAt: String(row.uploaded_at ?? row.created_at ?? ""),
+        active: Boolean(row.active),
+        pages: Number(row.pages ?? 0),
+        sizeKb: Number(row.size_kb ?? 0),
+        company: String(row.company ?? POLICY_COMPANY),
+      } satisfies PolicyVersion;
+    });
+  },
+
+  async listPolicyRules() {
+    const { data, error } = await db().from("policy_rules").select("*").order("code");
+    if (error) throw error;
+    return (data ?? []).map((r) => {
+      const row = r as Row;
+      return {
+        code: String(row.code ?? ""),
+        title: String(row.title ?? ""),
+        category: row.category as PolicyRule["category"],
+        limit: String(row.limit ?? ""),
+        basis: String(row.basis ?? ""),
+        text: String(row.text ?? ""),
+      } satisfies PolicyRule;
+    });
+  },
+
+  // Operação sensível: publicação de política roteada para edge function.
+  async uploadPolicy(fileName, uploadedBy = "Carla Menezes") {
+    return invokeFunction<PolicyVersion>("upload-policy", { fileName, uploadedBy });
+  },
+
+  async exportReportCsv() {
+    const list = await supabaseApi.listExpenses();
+    return buildReportCsv(list);
+  },
+};
+
+// ---------------------------------------------------------------------------
+// API exportada — escolhe a fonte conforme a configuração de ambiente.
+// ---------------------------------------------------------------------------
+
+export const api: DataProvider = isSupabaseConfigured ? supabaseApi : mockApi;
+
