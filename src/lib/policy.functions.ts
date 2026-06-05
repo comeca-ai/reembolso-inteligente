@@ -77,6 +77,51 @@ const extractionSchema = z.object({
   rules: z.array(ruleSchema).min(1).describe("Regras-chave estruturadas extraídas da política."),
 });
 
+function normalizeCategory(value: unknown): PolicyCategory {
+  const v = String(value ?? "").toLowerCase().trim();
+  return (CATEGORIES as readonly string[]).includes(v) ? (v as PolicyCategory) : "outros";
+}
+
+/** Faz parse tolerante do JSON devolvido pela IA (pode vir com cercas markdown). */
+function parseExtraction(raw: string): { pages: number; rules: z.infer<typeof ruleSchema>[] } {
+  let txt = (raw ?? "").trim();
+  // Remove cercas ```json ... ``` se existirem.
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) txt = fence[1].trim();
+  // Pega do primeiro { ao último } para descartar texto extra.
+  const first = txt.indexOf("{");
+  const last = txt.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    txt = txt.slice(first, last + 1);
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(txt);
+  } catch {
+    throw new Error("Resposta da IA não estava em JSON válido.");
+  }
+
+  const rawRules = Array.isArray(data?.rules) ? data.rules : [];
+  const rules = rawRules
+    .map((r: any) => ({
+      code: String(r?.code ?? "").trim(),
+      title: String(r?.title ?? "").trim(),
+      category: normalizeCategory(r?.category),
+      limit: String(r?.limit ?? "").trim(),
+      basis: String(r?.basis ?? "").trim(),
+      text: String(r?.text ?? "").trim(),
+    }))
+    .filter((r: z.infer<typeof ruleSchema>) => r.title || r.text);
+
+  const pages =
+    typeof data?.pages === "number" && Number.isFinite(data.pages)
+      ? Math.max(0, Math.round(data.pages))
+      : 0;
+
+  return { pages, rules };
+}
+
 // ---------------------------------------------------------------------------
 // Leitura do estado atual da política
 // ---------------------------------------------------------------------------
