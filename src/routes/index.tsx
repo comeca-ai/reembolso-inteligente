@@ -165,10 +165,10 @@ function HeroMock() {
         </div>
 
         <div className="mt-4 space-y-3 rounded-xl bg-muted/60 p-4">
-          <Row label="Estabelecimento" value="Posto Shell · BR-101" />
-          <Row label="Categoria" value="Combustível" />
-          <Row label="Valor" value="R$ 248,90" strong />
-          <Row label="Confiança da extração" value="97%" accent />
+          <Row label="Estabelecimento" value="Restaurante Bom Prato · Av. Paulista" />
+          <Row label="Categoria" value="Alimentação / Refeição" />
+          <Row label="Valor" value="R$ 87,50" strong />
+          <Row label="Confiança da extração" value="98%" accent />
         </div>
 
         <div className="mt-4 rounded-xl border border-success/25 bg-success/10 p-4">
@@ -177,7 +177,7 @@ function HeroMock() {
             Recomendação da IA: Aprovar
           </div>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-            Dentro do teto de combustível (R$ 300) e com CNPJ válido. Nenhuma
+            Dentro do teto de alimentação (R$ 120/dia) e com CNPJ válido. Nenhuma
             regra da política v3.2 foi violada.
           </p>
         </div>
