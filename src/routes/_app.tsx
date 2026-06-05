@@ -6,9 +6,9 @@ export const Route = createFileRoute("/_app")({
   // Auth mockada vive em localStorage (client-side), então desligamos SSR
   // para que o guard rode no cliente e evite loops de redirecionamento.
   ssr: false,
-  beforeLoad: ({ location }) => {
+  beforeLoad: () => {
     if (!isAuthenticated()) {
-      throw redirect({ to: "/login", search: { redirect: location.href } });
+      throw redirect({ to: "/login" });
     }
   },
   component: AppLayout,
