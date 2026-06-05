@@ -121,7 +121,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
             amount: data.amount ?? null,
             category: data.category ?? null,
             status: "recebido",
-            raw_payload: raw as Record<string, unknown>,
+            raw_payload: raw as never,
           })
           .select("id, created_at")
           .single();
