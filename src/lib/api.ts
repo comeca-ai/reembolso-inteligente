@@ -23,6 +23,7 @@ export type ExpenseCategory =
 
 export type ExpenseStatus =
   | "pendente"
+  | "extraindo"
   | "em_analise"
   | "aprovado"
   | "aprovado_ressalva"
@@ -66,6 +67,7 @@ export interface Expense {
   employeeName: string;
   category: ExpenseCategory;
   merchant: string;
+  cnpj?: string;
   description: string;
   amount: number; // BRL
   date: string; // ISO
@@ -122,10 +124,11 @@ export const categoryLabels: Record<ExpenseCategory, string> = {
 
 export const statusLabels: Record<ExpenseStatus, string> = {
   pendente: "Pendente",
+  extraindo: "Extraindo",
   em_analise: "Em análise",
-  aprovado: "Aprovado",
-  aprovado_ressalva: "Aprovado com ressalva",
-  recusado: "Recusado",
+  aprovado: "Aprovada",
+  aprovado_ressalva: "Parcial",
+  recusado: "Recusada",
 };
 
 export const verdictLabels: Record<Verdict, string> = {
