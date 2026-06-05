@@ -97,6 +97,38 @@ export interface AppUser {
   monthlyLimit?: number;
 }
 
+/** Usuário de campo — não tem login, é identificado por WhatsApp ou e-mail. */
+export type FieldUserStatus = "ativo" | "pendente" | "bloqueado";
+
+export interface FieldUser {
+  id: string;
+  name: string;
+  cpfMasked: string; // ex.: "***.456.789-**"
+  whatsapp?: string;
+  email?: string;
+  approverName: string; // aprovador responsável pelo roteamento
+  team: string;
+  costCenter: string;
+  status: FieldUserStatus;
+  activatedAt?: string; // ISO — ausente quando pendente
+}
+
+/** Aprovador/admin — tem login web na plataforma. */
+export interface Approver {
+  id: string;
+  name: string;
+  email: string;
+  jobTitle: string; // função (ex.: "Gerente financeiro")
+  whatsapp?: string;
+  pendingCount: number; // despesas aguardando decisão
+}
+
+export const fieldUserStatusLabels: Record<FieldUserStatus, string> = {
+  ativo: "Ativo",
+  pendente: "Pendente",
+  bloqueado: "Bloqueado",
+};
+
 export interface PolicyVersion {
   id: string;
   version: string;
