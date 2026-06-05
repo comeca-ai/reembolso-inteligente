@@ -91,7 +91,7 @@ function ExpenseDetailPage() {
   const decided = ["aprovado", "aprovado_ressalva", "recusado"].includes(expense.status);
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <Button variant="ghost" size="sm" asChild className="-ml-2 h-7 text-muted-foreground">
