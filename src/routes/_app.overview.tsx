@@ -311,7 +311,7 @@ function OverviewPage() {
                   className="flex items-center gap-4 px-6 py-3.5 transition-colors hover:bg-secondary/50"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <p className="truncate text-sm font-medium text-foreground">{e.employeeName}</p>
                       <ChannelBadge channel={e.channel} />
                     </div>
@@ -319,7 +319,7 @@ function OverviewPage() {
                       {e.merchant} · {formatDateTime(e.submittedAt)}
                     </p>
                   </div>
-                  <span className="hidden text-sm font-semibold tabular-nums text-foreground sm:block">
+                  <span className="hidden whitespace-nowrap text-sm font-semibold tabular-nums text-foreground sm:block">
                     {formatBRL(e.amount)}
                   </span>
                   <VerdictBadge verdict={e.ai.verdict} size="sm" className="hidden md:inline-flex" />
