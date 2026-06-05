@@ -71,9 +71,14 @@ const LOW_CONFIDENCE = 0.8;
 function ExpenseDetailPage() {
   const { id } = Route.useParams();
   const { data: expense } = useSuspenseQuery(expenseQuery(id));
+  const { data: fieldUsers } = useSuspenseQuery(fieldUsersQuery);
   const queryClient = useQueryClient();
   const router = useRouter();
   const [note, setNote] = useState("");
+
+  if (!canViewExpense(expense, getCurrentUser(), fieldUsers)) {
+    return <Navigate to="/expenses" />;
+  }
 
   const mutation = useMutation({
     mutationFn: (decision: Decision) => api.decideExpense(id, decision, note || undefined),
