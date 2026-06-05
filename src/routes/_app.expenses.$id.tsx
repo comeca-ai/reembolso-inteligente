@@ -76,9 +76,8 @@ function ExpenseDetailPage() {
   const router = useRouter();
   const [note, setNote] = useState("");
 
-  if (!canViewExpense(expense, getCurrentUser(), fieldUsers)) {
-    return <Navigate to="/expenses" />;
-  }
+  const canView = canViewExpense(expense, getCurrentUser(), fieldUsers);
+
 
   const mutation = useMutation({
     mutationFn: (decision: Decision) => api.decideExpense(id, decision, note || undefined),
