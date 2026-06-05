@@ -131,6 +131,7 @@ function SignupPage() {
         email: form.email,
         whatsapp: form.whatsapp,
         senha: form.senha,
+        politicaReembolsoArquivo: politica?.name,
       });
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
