@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppOverviewRouteImport } from './routes/_app.overview'
 import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
+import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -33,15 +34,22 @@ const AppExpensesIndexRoute = AppExpensesIndexRouteImport.update({
   path: '/expenses/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppExpensesIdRoute = AppExpensesIdRouteImport.update({
+  id: '/expenses/$id',
+  path: '/expenses/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/overview': typeof AppOverviewRoute
+  '/expenses/$id': typeof AppExpensesIdRoute
   '/expenses/': typeof AppExpensesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/overview': typeof AppOverviewRoute
+  '/expenses/$id': typeof AppExpensesIdRoute
   '/expenses': typeof AppExpensesIndexRoute
 }
 export interface FileRoutesById {
@@ -49,14 +57,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
   '/_app/overview': typeof AppOverviewRoute
+  '/_app/expenses/$id': typeof AppExpensesIdRoute
   '/_app/expenses/': typeof AppExpensesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/overview' | '/expenses/'
+  fullPaths: '/' | '/overview' | '/expenses/$id' | '/expenses/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/overview' | '/expenses'
-  id: '__root__' | '/' | '/_app' | '/_app/overview' | '/_app/expenses/'
+  to: '/' | '/overview' | '/expenses/$id' | '/expenses'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/_app/overview'
+    | '/_app/expenses/$id'
+    | '/_app/expenses/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,16 +109,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpensesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/expenses/$id': {
+      id: '/_app/expenses/$id'
+      path: '/expenses/$id'
+      fullPath: '/expenses/$id'
+      preLoaderRoute: typeof AppExpensesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppOverviewRoute: typeof AppOverviewRoute
+  AppExpensesIdRoute: typeof AppExpensesIdRoute
   AppExpensesIndexRoute: typeof AppExpensesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppOverviewRoute: AppOverviewRoute,
+  AppExpensesIdRoute: AppExpensesIdRoute,
   AppExpensesIndexRoute: AppExpensesIndexRoute,
 }
 
