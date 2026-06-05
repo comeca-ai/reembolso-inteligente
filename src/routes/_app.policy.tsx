@@ -5,13 +5,44 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getPolicyState,
   uploadAndExtractPolicy,
+  savePolicyRule,
+  deletePolicyRule,
   type PolicyRuleDTO,
   type PolicyVersionDTO,
+  type PolicyCategory,
 } from "@/lib/policy.functions";
 import { categoryLabels } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   UploadCloud,
@@ -29,9 +60,43 @@ import {
   ListChecks,
   Loader2,
   AlertTriangle,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const CATEGORY_OPTIONS: PolicyCategory[] = [
+  "combustivel",
+  "refeicao",
+  "hospedagem",
+  "transporte",
+  "pedagio",
+  "material",
+  "documentos",
+  "outros",
+];
+
+type RuleDraft = {
+  id?: string;
+  code: string;
+  title: string;
+  category: PolicyCategory;
+  limit: string;
+  basis: string;
+  text: string;
+};
+
+const emptyDraft: RuleDraft = {
+  code: "",
+  title: "",
+  category: "outros",
+  limit: "",
+  basis: "",
+  text: "",
+};
+
 
 export const Route = createFileRoute("/_app/policy")({
   head: () => ({ meta: [{ title: "Política · reembolsa.aí" }] }),
