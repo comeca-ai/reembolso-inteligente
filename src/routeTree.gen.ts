@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsersRouteImport } from './routes/_app.users'
+import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppPolicyRouteImport } from './routes/_app.policy'
 import { Route as AppOverviewRouteImport } from './routes/_app.overview'
 import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppUsersRoute = AppUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPolicyRoute = AppPolicyRouteImport.update({
@@ -56,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
+  '/reports': typeof AppReportsRoute
   '/users': typeof AppUsersRoute
   '/expenses/$id': typeof AppExpensesIdRoute
   '/expenses/': typeof AppExpensesIndexRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
+  '/reports': typeof AppReportsRoute
   '/users': typeof AppUsersRoute
   '/expenses/$id': typeof AppExpensesIdRoute
   '/expenses': typeof AppExpensesIndexRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/overview': typeof AppOverviewRoute
   '/_app/policy': typeof AppPolicyRoute
+  '/_app/reports': typeof AppReportsRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/expenses/$id': typeof AppExpensesIdRoute
   '/_app/expenses/': typeof AppExpensesIndexRoute
@@ -84,17 +93,26 @@ export interface FileRouteTypes {
     | '/'
     | '/overview'
     | '/policy'
+    | '/reports'
     | '/users'
     | '/expenses/$id'
     | '/expenses/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/overview' | '/policy' | '/users' | '/expenses/$id' | '/expenses'
+  to:
+    | '/'
+    | '/overview'
+    | '/policy'
+    | '/reports'
+    | '/users'
+    | '/expenses/$id'
+    | '/expenses'
   id:
     | '__root__'
     | '/'
     | '/_app'
     | '/_app/overview'
     | '/_app/policy'
+    | '/_app/reports'
     | '/_app/users'
     | '/_app/expenses/$id'
     | '/_app/expenses/'
@@ -126,6 +144,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/reports': {
+      id: '/_app/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/policy': {
@@ -162,6 +187,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppOverviewRoute: typeof AppOverviewRoute
   AppPolicyRoute: typeof AppPolicyRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppUsersRoute: typeof AppUsersRoute
   AppExpensesIdRoute: typeof AppExpensesIdRoute
   AppExpensesIndexRoute: typeof AppExpensesIndexRoute
@@ -170,6 +196,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppOverviewRoute: AppOverviewRoute,
   AppPolicyRoute: AppPolicyRoute,
+  AppReportsRoute: AppReportsRoute,
   AppUsersRoute: AppUsersRoute,
   AppExpensesIdRoute: AppExpensesIdRoute,
   AppExpensesIndexRoute: AppExpensesIndexRoute,
