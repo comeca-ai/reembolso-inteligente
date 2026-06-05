@@ -770,9 +770,52 @@ let expenses: Expense[] = buildExpenses();
 // ---------------------------------------------------------------------------
 
 let policyVersions: PolicyVersion[] = [
-  { id: "pol-3", version: "v3.2", fileName: "politica-reembolso-2025.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2025-05-15T10:00:00", active: true, pages: 12, sizeKb: 348 },
-  { id: "pol-2", version: "v3.1", fileName: "politica-reembolso-2024-rev.pdf", uploadedBy: "Roberto Tavares", uploadedAt: "2024-11-02T09:30:00", active: false, pages: 11, sizeKb: 331 },
-  { id: "pol-1", version: "v3.0", fileName: "politica-reembolso-2024.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2024-01-10T14:20:00", active: false, pages: 10, sizeKb: 298 },
+  { id: "pol-3", version: "v3.2", fileName: "politica-reembolso-2025.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2025-05-15T10:00:00", active: true, pages: 12, sizeKb: 348, company: POLICY_COMPANY },
+  { id: "pol-2", version: "v3.1", fileName: "politica-reembolso-2024-rev.pdf", uploadedBy: "Roberto Tavares", uploadedAt: "2024-11-02T09:30:00", active: false, pages: 11, sizeKb: 331, company: POLICY_COMPANY },
+  { id: "pol-1", version: "v3.0", fileName: "politica-reembolso-2024.pdf", uploadedBy: "Carla Menezes", uploadedAt: "2024-01-10T14:20:00", active: false, pages: 10, sizeKb: 298, company: POLICY_COMPANY },
+];
+
+const policyRules: PolicyRule[] = [
+  {
+    code: "4.1",
+    title: "Combustível",
+    category: "combustivel",
+    limit: "R$ 350,00",
+    basis: "por abastecimento",
+    text: "Combustível é reembolsável até R$ 350,00 por abastecimento, mediante cupom fiscal com CNPJ. Veículo deve estar vinculado ao colaborador ou possuir termo de uso de veículo próprio vigente.",
+  },
+  {
+    code: "4.2",
+    title: "Alimentação",
+    category: "refeicao",
+    limit: "R$ 60,00",
+    basis: "por refeição individual",
+    text: "Refeições individuais são reembolsáveis até R$ 60,00 por evento em deslocamento. Despesas coletivas exigem autorização prévia do gestor responsável.",
+  },
+  {
+    code: "4.3",
+    title: "Hospedagem",
+    category: "hospedagem",
+    limit: "R$ 350,00",
+    basis: "por diária",
+    text: "Hospedagem é reembolsável até R$ 350,00 por diária em deslocamentos autorizados acima de 100 km. Valores acima do teto podem ser aprovados com ressalva mediante justificativa do gestor.",
+  },
+  {
+    code: "4.4",
+    title: "KM rodado",
+    category: "transporte",
+    limit: "R$ 1,00 / km",
+    basis: "por quilômetro em veículo próprio",
+    text: "Reembolso por quilometragem a R$ 1,00 por km rodado em veículo próprio autorizado. Exige hodômetro inicial e final informados no momento do envio do comprovante.",
+  },
+  {
+    code: "4.5",
+    title: "Documentos fiscais",
+    category: "documentos",
+    limit: "Obrigatório",
+    basis: "todas as despesas",
+    text: "Somente cupom ou nota fiscal eletrônica com CNPJ identificável são aceitos como comprovante. Recibos sem CNPJ são automaticamente recusados.",
+  },
 ];
 
 // ---------------------------------------------------------------------------
