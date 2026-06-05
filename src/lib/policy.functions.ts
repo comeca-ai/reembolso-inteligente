@@ -12,7 +12,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
