@@ -32,6 +32,7 @@ const CATEGORIES = [
 export type PolicyCategory = (typeof CATEGORIES)[number];
 
 export interface PolicyRuleDTO {
+  id: string;
   code: string;
   title: string;
   category: PolicyCategory;
@@ -113,6 +114,7 @@ export const getPolicyState = createServerFn({ method: "GET" })
         .order("code");
       if (rErr) throw rErr;
       rules = (r ?? []).map((row) => ({
+        id: row.id,
         code: row.code,
         title: row.title,
         category: (row.category as PolicyCategory) ?? "outros",
@@ -309,6 +311,7 @@ export const evaluateExpense = createServerFn({ method: "POST" })
         .eq("policy_id", active.id)
         .order("code");
       rules = (r ?? []).map((row) => ({
+        id: row.id,
         code: row.code,
         title: row.title,
         category: (row.category as PolicyCategory) ?? "outros",
@@ -362,4 +365,105 @@ export const evaluateExpense = createServerFn({ method: "POST" })
     });
 
     return object;
+  });
+
+// ---------------------------------------------------------------------------
+// Edição manual de regras pelo administrador
+// ---------------------------------------------------------------------------
+
+const ruleInput = z.object({
+  id: z.string().uuid().optional(),
+  code: z.string().trim().min(1).max(40),
+  title: z.string().trim().min(1).max(160),
+  category: z.enum(CATEGORIES),
+  limit: z.string().trim().max(160).optional().default(""),
+  basis: z.string().trim().max(160).optional().default(""),
+  text: z.string().trim().max(2000).optional().default(""),
+});
+
+async function assertAdmin(
+  supabase: { from: (t: string) => any },
+  userId: string,
+): Promise<string> {
+  const { data: profile, error: profErr } = await supabase
+    .from("profiles")
+    .select("company_id")
+    .eq("id", userId)
+    .single();
+  if (profErr) throw profErr;
+  const companyId = profile?.company_id as string | undefined;
+  if (!companyId) throw new Error("Empresa não encontrada para o usuário.");
+
+  const { data: roles } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+  const isAdmin = (roles ?? []).some((r: { role: string }) => r.role === "admin");
+  if (!isAdmin) throw new Error("Apenas administradores podem editar as regras.");
+
+  return companyId;
+}
+
+export const savePolicyRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ruleInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const companyId = await assertAdmin(supabase, userId);
+
+    const payload = {
+      code: data.code,
+      title: data.title,
+      category: data.category,
+      rule_limit: data.limit,
+      rule_basis: data.basis,
+      rule_text: data.text,
+    };
+
+    if (data.id) {
+      const { error } = await supabase
+        .from("policy_rules")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("company_id", companyId);
+      if (error) throw error;
+      return { ok: true, id: data.id };
+    }
+
+    const { data: active, error: actErr } = await supabase
+      .from("policies")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("active", true)
+      .maybeSingle();
+    if (actErr) throw actErr;
+    if (!active) {
+      throw new Error("Publique uma política ativa antes de adicionar regras.");
+    }
+
+    const { data: inserted, error } = await supabase
+      .from("policy_rules")
+      .insert({ ...payload, policy_id: active.id, company_id: companyId })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { ok: true, id: inserted.id };
+  });
+
+const deleteInput = z.object({ id: z.string().uuid() });
+
+export const deletePolicyRule = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => deleteInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const companyId = await assertAdmin(supabase, userId);
+
+    const { error } = await supabase
+      .from("policy_rules")
+      .delete()
+      .eq("id", data.id)
+      .eq("company_id", companyId);
+    if (error) throw error;
+    return { ok: true };
   });

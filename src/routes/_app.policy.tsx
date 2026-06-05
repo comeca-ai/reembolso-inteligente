@@ -5,13 +5,44 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   getPolicyState,
   uploadAndExtractPolicy,
+  savePolicyRule,
+  deletePolicyRule,
   type PolicyRuleDTO,
   type PolicyVersionDTO,
+  type PolicyCategory,
 } from "@/lib/policy.functions";
 import { categoryLabels } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   UploadCloud,
@@ -29,9 +60,43 @@ import {
   ListChecks,
   Loader2,
   AlertTriangle,
+  Plus,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const CATEGORY_OPTIONS: PolicyCategory[] = [
+  "combustivel",
+  "refeicao",
+  "hospedagem",
+  "transporte",
+  "pedagio",
+  "material",
+  "documentos",
+  "outros",
+];
+
+type RuleDraft = {
+  id?: string;
+  code: string;
+  title: string;
+  category: PolicyCategory;
+  limit: string;
+  basis: string;
+  text: string;
+};
+
+const emptyDraft: RuleDraft = {
+  code: "",
+  title: "",
+  category: "outros",
+  limit: "",
+  basis: "",
+  text: "",
+};
+
 
 export const Route = createFileRoute("/_app/policy")({
   head: () => ({ meta: [{ title: "Política · reembolsa.aí" }] }),
@@ -127,6 +192,70 @@ function PolicyPage() {
 
   const openPicker = () => fileInputRef.current?.click();
   const busy = mutation.isPending;
+
+  // ---- Edição manual de regras ----
+  const saveRuleFn = useServerFn(savePolicyRule);
+  const deleteRuleFn = useServerFn(deletePolicyRule);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [draft, setDraft] = useState<RuleDraft>(emptyDraft);
+  const [deleteTarget, setDeleteTarget] = useState<PolicyRuleDTO | null>(null);
+
+  const openNewRule = () => {
+    setDraft(emptyDraft);
+    setEditorOpen(true);
+  };
+
+  const openEditRule = (r: PolicyRuleDTO) => {
+    setDraft({
+      id: r.id,
+      code: r.code,
+      title: r.title,
+      category: r.category,
+      limit: r.limit,
+      basis: r.basis,
+      text: r.text,
+    });
+    setEditorOpen(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: (d: RuleDraft) => saveRuleFn({ data: d }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["policy-state"] });
+      setEditorOpen(false);
+      toast.success(draft.id ? "Regra atualizada" : "Regra adicionada");
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Falha ao salvar a regra.";
+      toast.error("Não foi possível salvar", { description: message });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteRuleFn({ data: { id } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["policy-state"] });
+      setDeleteTarget(null);
+      toast.success("Regra removida");
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Falha ao remover a regra.";
+      toast.error("Não foi possível remover", { description: message });
+    },
+  });
+
+  const submitRule = () => {
+    if (!draft.code.trim() || !draft.title.trim()) {
+      toast.error("Código e título são obrigatórios.");
+      return;
+    }
+    saveMutation.mutate({
+      ...draft,
+      code: draft.code.trim(),
+      title: draft.title.trim(),
+    });
+  };
+
 
   return (
     <div className="animate-fade-rise space-y-8">
@@ -262,14 +391,20 @@ function PolicyPage() {
 
       {/* Preview de regras estruturadas */}
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="h-4 w-4 text-brand" />
-            Regras estruturadas extraídas da política
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Versão legível para humanos do que a IA enxerga ao avaliar um comprovante.
-          </p>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ListChecks className="h-4 w-4 text-brand" />
+              Regras estruturadas extraídas da política
+            </CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Versão legível para humanos do que a IA enxerga ao avaliar um comprovante. Você pode editar
+              ou inserir regras manualmente.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" className="shrink-0 gap-1.5" onClick={openNewRule}>
+            <Plus className="h-4 w-4" /> Nova regra
+          </Button>
         </CardHeader>
         <CardContent className="px-0">
           {isError ? (
@@ -277,8 +412,17 @@ function PolicyPage() {
               <AlertTriangle className="h-4 w-4" /> Não foi possível carregar as regras.
             </div>
           ) : rules.length === 0 ? (
-            <div className="px-6 py-8 text-sm text-muted-foreground">
-              {isLoading ? "Carregando regras…" : "Publique uma política em PDF para a IA extrair as regras."}
+            <div className="flex flex-col items-start gap-3 px-6 py-8 text-sm text-muted-foreground">
+              <span>
+                {isLoading
+                  ? "Carregando regras…"
+                  : "Nenhuma regra ainda. Publique um PDF para a IA extrair, ou adicione manualmente."}
+              </span>
+              {!isLoading && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={openNewRule}>
+                  <Plus className="h-4 w-4" /> Adicionar regra manualmente
+                </Button>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -291,13 +435,14 @@ function PolicyPage() {
                     <th className="px-4 py-2.5 font-medium">Limite</th>
                     <th className="px-4 py-2.5 font-medium">Base do limite</th>
                     <th className="px-4 py-2.5 font-medium">Texto da regra</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {rules.map((r, i) => {
                     const Icon = ruleIcons[r.category] ?? ReceiptText;
                     return (
-                      <tr key={`${r.code}-${i}`} className="align-top transition-colors hover:bg-secondary/40">
+                      <tr key={r.id ?? `${r.code}-${i}`} className="align-top transition-colors hover:bg-secondary/40">
                         <td className="px-6 py-3">
                           <span className="font-semibold tabular-nums text-brand">{r.code}</span>
                         </td>
@@ -317,6 +462,28 @@ function PolicyPage() {
                         <td className="px-4 py-3 font-semibold tabular-nums text-foreground">{r.limit || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground">{r.basis || "—"}</td>
                         <td className="max-w-md px-4 py-3 text-muted-foreground">{r.text}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => openEditRule(r)}
+                              aria-label="Editar regra"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteTarget(r)}
+                              aria-label="Remover regra"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -326,6 +493,7 @@ function PolicyPage() {
           )}
         </CardContent>
       </Card>
+
 
       {/* Histórico */}
       <Card className="shadow-sm">
@@ -375,7 +543,122 @@ function PolicyPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Editor de regra (criar/editar) */}
+      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{draft.id ? "Editar regra" : "Nova regra"}</DialogTitle>
+            <DialogDescription>
+              Essas regras entram no contexto de cada análise de despesa pela IA.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-code">Código</Label>
+                <Input
+                  id="rule-code"
+                  placeholder="4.1"
+                  value={draft.code}
+                  onChange={(e) => setDraft((d) => ({ ...d, code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-category">Categoria</Label>
+                <Select
+                  value={draft.category}
+                  onValueChange={(v) => setDraft((d) => ({ ...d, category: v as PolicyCategory }))}
+                >
+                  <SelectTrigger id="rule-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_OPTIONS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {categoryLabel(c)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-title">Título</Label>
+              <Input
+                id="rule-title"
+                placeholder="Limite por abastecimento"
+                value={draft.title}
+                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-limit">Limite</Label>
+                <Input
+                  id="rule-limit"
+                  placeholder="R$ 350,00"
+                  value={draft.limit}
+                  onChange={(e) => setDraft((d) => ({ ...d, limit: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-basis">Base do limite</Label>
+                <Input
+                  id="rule-basis"
+                  placeholder="por abastecimento"
+                  value={draft.basis}
+                  onChange={(e) => setDraft((d) => ({ ...d, basis: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-text">Texto da regra</Label>
+              <Textarea
+                id="rule-text"
+                rows={4}
+                placeholder="Descreva a cláusula como ela aparece na política."
+                value={draft.text}
+                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditorOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={submitRule} disabled={saveMutation.isPending} className="gap-2">
+              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {draft.id ? "Salvar alterações" : "Adicionar regra"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação de remoção */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover regra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A regra {deleteTarget?.code ? `“${deleteTarget.code}” ` : ""}será removida e deixará de ser
+              usada nas análises. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
