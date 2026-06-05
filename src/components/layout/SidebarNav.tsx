@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/brand/Logo";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, signOut } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
 import {
   LayoutDashboard,
@@ -11,7 +11,10 @@ import {
   BarChart3,
   Sparkles,
   ShieldCheck,
+  LogOut,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 const nav = [
   { to: "/overview", label: "Visão geral", icon: LayoutDashboard },
@@ -23,6 +26,7 @@ const nav = [
 
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const role = getCurrentUser()?.role;
   const visibleNav = nav.filter((item) => canAccess(item.to, role));
 
@@ -69,22 +73,39 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      <div className="space-y-3 p-3">
-        <div className="rounded-xl bg-sidebar-accent/50 p-4 ring-1 ring-sidebar-border">
-          <div className="flex items-center gap-2 text-sidebar-primary">
-            <Sparkles className="h-4 w-4" />
-            <span className="text-xs font-semibold">IA ativa</span>
-          </div>
-          <p className="mt-1.5 text-xs leading-relaxed text-sidebar-foreground/70">
-            Comprovantes recebidos por WhatsApp e e-mail são analisados automaticamente.
-          </p>
-        </div>
+      <div className="mt-auto space-y-3 p-3">
+        <button
+          onClick={async () => {
+            await signOut();
+            toast.success("Você saiu da sua conta", {
+              description: "Até a próxima!",
+            });
+            navigate({ to: "/login" });
+            onNavigate?.();
+          }}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+        >
+          <LogOut className="h-[18px] w-[18px] text-sidebar-foreground/60" />
+          Sair da aplicação
+        </button>
 
-        <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 ring-1 ring-sidebar-border/60">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-sidebar-primary" />
-          <div className="leading-tight">
-            <p className="text-xs font-semibold text-sidebar-foreground">Política v3.2 · vigente</p>
-            <p className="text-[11px] text-sidebar-foreground/60">Auditoria e LGPD ativas</p>
+        <div className="space-y-3">
+          <div className="rounded-xl bg-sidebar-accent/50 p-4 ring-1 ring-sidebar-border">
+            <div className="flex items-center gap-2 text-sidebar-primary">
+              <Sparkles className="h-4 w-4" />
+              <span className="text-xs font-semibold">IA ativa</span>
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-sidebar-foreground/70">
+              Comprovantes recebidos por WhatsApp e e-mail são analisados automaticamente.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 ring-1 ring-sidebar-border/60">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-sidebar-primary" />
+            <div className="leading-tight">
+              <p className="text-xs font-semibold text-sidebar-foreground">Política v3.2 · vigente</p>
+              <p className="text-[11px] text-sidebar-foreground/60">Auditoria e LGPD ativas</p>
+            </div>
           </div>
         </div>
       </div>
