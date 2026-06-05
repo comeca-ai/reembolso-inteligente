@@ -543,7 +543,122 @@ function PolicyPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Editor de regra (criar/editar) */}
+      <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{draft.id ? "Editar regra" : "Nova regra"}</DialogTitle>
+            <DialogDescription>
+              Essas regras entram no contexto de cada análise de despesa pela IA.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-code">Código</Label>
+                <Input
+                  id="rule-code"
+                  placeholder="4.1"
+                  value={draft.code}
+                  onChange={(e) => setDraft((d) => ({ ...d, code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-category">Categoria</Label>
+                <Select
+                  value={draft.category}
+                  onValueChange={(v) => setDraft((d) => ({ ...d, category: v as PolicyCategory }))}
+                >
+                  <SelectTrigger id="rule-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_OPTIONS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {categoryLabel(c)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-title">Título</Label>
+              <Input
+                id="rule-title"
+                placeholder="Limite por abastecimento"
+                value={draft.title}
+                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-limit">Limite</Label>
+                <Input
+                  id="rule-limit"
+                  placeholder="R$ 350,00"
+                  value={draft.limit}
+                  onChange={(e) => setDraft((d) => ({ ...d, limit: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rule-basis">Base do limite</Label>
+                <Input
+                  id="rule-basis"
+                  placeholder="por abastecimento"
+                  value={draft.basis}
+                  onChange={(e) => setDraft((d) => ({ ...d, basis: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="rule-text">Texto da regra</Label>
+              <Textarea
+                id="rule-text"
+                rows={4}
+                placeholder="Descreva a cláusula como ela aparece na política."
+                value={draft.text}
+                onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditorOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={submitRule} disabled={saveMutation.isPending} className="gap-2">
+              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {draft.id ? "Salvar alterações" : "Adicionar regra"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação de remoção */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover regra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A regra {deleteTarget?.code ? `“${deleteTarget.code}” ` : ""}será removida e deixará de ser
+              usada nas análises. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
 
