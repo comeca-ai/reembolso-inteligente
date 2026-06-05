@@ -117,10 +117,11 @@ function OverviewPage() {
   const maxStatus = Math.max(...data.byStatus.map((s) => s.count));
 
   return (
-    <div className="space-y-6">
+    <div className="animate-fade-rise space-y-8">
       <PageHeader
+        eyebrow="Painel executivo"
         title="Visão geral"
-        description="Painel executivo dos reembolsos da equipe de campo e da fila de aprovação."
+        description="Acompanhe o que a IA já resolveu, o que precisa da sua decisão e a economia gerada pela política — tudo em um só lugar."
         actions={
           <Button asChild>
             <Link to="/expenses">
