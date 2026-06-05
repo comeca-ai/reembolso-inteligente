@@ -27,9 +27,19 @@ const expensesQuery = queryOptions({
   queryFn: () => api.listExpenses(),
 });
 
+const fieldUsersQuery = queryOptions({
+  queryKey: ["fieldUsers"],
+  queryFn: () => api.listFieldUsers(),
+});
+
 export const Route = createFileRoute("/_app/expenses/")({
   head: () => ({ meta: [{ title: "Despesas · reembolsa.aí" }] }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(expensesQuery),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(expensesQuery),
+      context.queryClient.ensureQueryData(fieldUsersQuery),
+    ]);
+  },
   pendingComponent: () => (
     <PageSkeleton>
       <TableSkeleton rows={8} cols={8} />
