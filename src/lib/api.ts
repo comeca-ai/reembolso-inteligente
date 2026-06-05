@@ -1,14 +1,32 @@
 /**
- * Mock API — reembolsa.aí
+ * Camada de dados — reembolsa.aí
  *
- * Sem backend real nesta etapa. Todos os dados são simulados e ficam em memória.
- * As funções retornam Promises com pequenos delays para imitar latência de rede.
- * Quando o backend existir, basta substituir o corpo destas funções.
+ * Esta é a camada de abstração da aplicação. Ela expõe um único objeto `api`
+ * que pode ser servido por duas fontes:
+ *
+ *   - `supabaseApi`  → quando VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY estão
+ *                       configuradas, conversa com um Supabase próprio.
+ *   - `mockApi`      → dados de demonstração em memória (fallback automático).
+ *
+ * A UI importa sempre de `api` e não precisa saber qual fonte está ativa.
+ * Operações sensíveis (decisões, auditoria, cadastros) ficam preparadas para
+ * rodar via edge function — ver `invokeFunction` em `./supabase`.
  */
+
+import {
+  supabase,
+  isSupabaseConfigured,
+  isUsingMockData,
+  invokeFunction,
+} from "./supabase";
+
+export { isUsingMockData, isSupabaseConfigured };
 
 // ---------------------------------------------------------------------------
 // Tipos
 // ---------------------------------------------------------------------------
+
+
 
 export type Channel = "whatsapp" | "email";
 
