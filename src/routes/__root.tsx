@@ -77,16 +77,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "reembolsa.aí — Reembolsos de equipes de campo no automático" },
+      {
+        name: "description",
+        content:
+          "Funcionários enviam o comprovante por WhatsApp ou e-mail, a IA extrai os dados, compara com a política e gera uma recomendação explicável para o aprovador.",
+      },
+      { name: "author", content: "reembolsa.aí" },
+      { property: "og:title", content: "reembolsa.aí" },
+      {
+        property: "og:description",
+        content: "Automatize os reembolsos da sua equipe de campo com IA explicável.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+      },
       {
         rel: "stylesheet",
         href: appCss,
