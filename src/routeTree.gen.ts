@@ -21,6 +21,7 @@ import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppPolicyRouteImport } from './routes/_app.policy'
 import { Route as AppOverviewRouteImport } from './routes/_app.overview'
 import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
+import { Route as ApiPublicReimbursementsRouteImport } from './routes/api/public/reimbursements'
 import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -82,6 +83,11 @@ const AppExpensesIndexRoute = AppExpensesIndexRouteImport.update({
   path: '/expenses/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicReimbursementsRoute = ApiPublicReimbursementsRouteImport.update({
+  id: '/api/public/reimbursements',
+  path: '/api/public/reimbursements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppExpensesIdRoute = AppExpensesIdRouteImport.update({
   id: '/expenses/$id',
   path: '/expenses/$id',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/users': typeof AppUsersRoute
   '/expenses/$id': typeof AppExpensesIdRoute
+  '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/expenses/': typeof AppExpensesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/users': typeof AppUsersRoute
   '/expenses/$id': typeof AppExpensesIdRoute
+  '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/expenses': typeof AppExpensesIndexRoute
 }
 export interface FileRoutesById {
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/users': typeof AppUsersRoute
   '/_app/expenses/$id': typeof AppExpensesIdRoute
+  '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/_app/expenses/': typeof AppExpensesIndexRoute
 }
 export interface FileRouteTypes {
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/users'
     | '/expenses/$id'
+    | '/api/public/reimbursements'
     | '/expenses/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/users'
     | '/expenses/$id'
+    | '/api/public/reimbursements'
     | '/expenses'
   id:
     | '__root__'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/users'
     | '/_app/expenses/$id'
+    | '/api/public/reimbursements'
     | '/_app/expenses/'
   fileRoutesById: FileRoutesById
 }
@@ -186,6 +198,7 @@ export interface RootRouteChildren {
   PreCadastroRoute: typeof PreCadastroRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicReimbursementsRoute: typeof ApiPublicReimbursementsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpensesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/reimbursements': {
+      id: '/api/public/reimbursements'
+      path: '/api/public/reimbursements'
+      fullPath: '/api/public/reimbursements'
+      preLoaderRoute: typeof ApiPublicReimbursementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/expenses/$id': {
       id: '/_app/expenses/$id'
       path: '/expenses/$id'
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreCadastroRoute: PreCadastroRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicReimbursementsRoute: ApiPublicReimbursementsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -22,6 +22,7 @@ export type Database = {
           politica_reembolso_arquivo: string | null
           razao_social: string
           updated_at: string
+          webhook_token: string
         }
         Insert: {
           cnpj: string
@@ -30,6 +31,7 @@ export type Database = {
           politica_reembolso_arquivo?: string | null
           razao_social: string
           updated_at?: string
+          webhook_token?: string
         }
         Update: {
           cnpj?: string
@@ -38,8 +40,65 @@ export type Database = {
           politica_reembolso_arquivo?: string | null
           razao_social?: string
           updated_at?: string
+          webhook_token?: string
         }
         Relationships: []
+      }
+      inbound_reimbursements: {
+        Row: {
+          amount: number | null
+          attachment_url: string | null
+          category: string | null
+          channel: string
+          company_id: string
+          created_at: string
+          id: string
+          message: string | null
+          raw_payload: Json
+          sender: string
+          sender_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          attachment_url?: string | null
+          category?: string | null
+          channel?: string
+          company_id: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          raw_payload?: Json
+          sender: string
+          sender_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          attachment_url?: string | null
+          category?: string | null
+          channel?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          message?: string | null
+          raw_payload?: Json
+          sender?: string
+          sender_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_reimbursements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       policies: {
         Row: {
