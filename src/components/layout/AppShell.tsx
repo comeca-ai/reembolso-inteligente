@@ -77,15 +77,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Empresa + ambiente */}
           <div className="hidden items-center gap-2.5 lg:flex">
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-foreground">Transtech Logística</p>
-              <p className="text-xs text-muted-foreground">CNPJ 12.345.678/0001-90</p>
+              <p className="text-sm font-semibold text-foreground">{companyName}</p>
+              {companyCnpj && (
+                <p className="text-xs text-muted-foreground">CNPJ {companyCnpj}</p>
+              )}
             </div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-xs font-semibold text-brand">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-60" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand" />
               </span>
-              Ambiente Piloto
+              Piloto
             </span>
           </div>
 
