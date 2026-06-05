@@ -193,6 +193,70 @@ function PolicyPage() {
   const openPicker = () => fileInputRef.current?.click();
   const busy = mutation.isPending;
 
+  // ---- Edição manual de regras ----
+  const saveRuleFn = useServerFn(savePolicyRule);
+  const deleteRuleFn = useServerFn(deletePolicyRule);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [draft, setDraft] = useState<RuleDraft>(emptyDraft);
+  const [deleteTarget, setDeleteTarget] = useState<PolicyRuleDTO | null>(null);
+
+  const openNewRule = () => {
+    setDraft(emptyDraft);
+    setEditorOpen(true);
+  };
+
+  const openEditRule = (r: PolicyRuleDTO) => {
+    setDraft({
+      id: r.id,
+      code: r.code,
+      title: r.title,
+      category: r.category,
+      limit: r.limit,
+      basis: r.basis,
+      text: r.text,
+    });
+    setEditorOpen(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: (d: RuleDraft) => saveRuleFn({ data: d }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["policy-state"] });
+      setEditorOpen(false);
+      toast.success(draft.id ? "Regra atualizada" : "Regra adicionada");
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Falha ao salvar a regra.";
+      toast.error("Não foi possível salvar", { description: message });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteRuleFn({ data: { id } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["policy-state"] });
+      setDeleteTarget(null);
+      toast.success("Regra removida");
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Falha ao remover a regra.";
+      toast.error("Não foi possível remover", { description: message });
+    },
+  });
+
+  const submitRule = () => {
+    if (!draft.code.trim() || !draft.title.trim()) {
+      toast.error("Código e título são obrigatórios.");
+      return;
+    }
+    saveMutation.mutate({
+      ...draft,
+      code: draft.code.trim(),
+      title: draft.title.trim(),
+    });
+  };
+
+
   return (
     <div className="animate-fade-rise space-y-8">
       <input
