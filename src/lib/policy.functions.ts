@@ -32,6 +32,7 @@ const CATEGORIES = [
 export type PolicyCategory = (typeof CATEGORIES)[number];
 
 export interface PolicyRuleDTO {
+  id: string;
   code: string;
   title: string;
   category: PolicyCategory;
