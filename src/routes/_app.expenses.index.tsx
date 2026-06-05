@@ -21,6 +21,8 @@ import { Search, ChevronRight, Download, ReceiptText } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "sonner";
+import { getCurrentUser } from "@/lib/auth";
+import { filterExpensesForUser } from "@/lib/permissions";
 
 const expensesQuery = queryOptions({
   queryKey: ["expenses"],
