@@ -150,24 +150,23 @@ function ExpensesPage() {
 
         {/* Tabela densa */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-2.5 font-medium">Código</th>
-                <th className="px-4 py-2.5 font-medium">Colaborador</th>
-                <th className="px-4 py-2.5 font-medium">Categoria</th>
-                <th className="px-4 py-2.5 text-right font-medium">Valor</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Recomendação IA</th>
-                <th className="px-4 py-2.5 font-medium">Confiança</th>
-                <th className="px-4 py-2.5 font-medium">Data</th>
-                <th className="px-4 py-2.5" />
+                <th className="whitespace-nowrap px-5 py-3 font-medium">Código</th>
+                <th className="px-5 py-3 font-medium">Colaborador</th>
+                <th className="px-5 py-3 font-medium">Categoria</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Valor</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium">Recomendação IA</th>
+                <th className="whitespace-nowrap px-5 py-3 text-right font-medium">Data</th>
+                <th className="w-10 px-2 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((e) => (
                 <tr key={e.id} className="group transition-colors hover:bg-secondary/40">
-                  <td className="px-4 py-3">
+                  <td className="whitespace-nowrap px-5 py-4 align-top">
                     <Link
                       to="/expenses/$id"
                       params={{ id: e.id }}
@@ -176,36 +175,38 @@ function ExpensesPage() {
                       {e.protocol}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4 align-top">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">{e.employeeName}</span>
+                      <span className="whitespace-nowrap font-medium text-foreground">{e.employeeName}</span>
                       <ChannelBadge channel={e.channel} />
                     </div>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="mt-0.5 block max-w-[15rem] truncate text-xs text-muted-foreground">
                       {e.costCenter} · {e.merchant}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4 align-top">
                     <CategoryBadge category={e.category} />
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold tabular-nums text-foreground">
+                  <td className="whitespace-nowrap px-5 py-4 text-right align-top font-semibold tabular-nums text-foreground">
                     {formatBRL(e.amount)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-4 align-top">
                     <StatusBadge status={e.status} />
                   </td>
-                  <td className="px-4 py-3">
-                    <VerdictBadge verdict={e.ai.verdict} size="sm" />
+                  <td className="px-5 py-4 align-top">
+                    <div className="flex flex-col items-start gap-1.5">
+                      <VerdictBadge verdict={e.ai.verdict} size="sm" />
+                      <ConfidenceBadge confidence={e.ai.confidence} />
+                    </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <ConfidenceBadge confidence={e.ai.confidence} />
+                  <td className="whitespace-nowrap px-5 py-4 text-right align-top tabular-nums text-muted-foreground">
+                    {formatDate(e.date)}
                   </td>
-                  <td className="px-4 py-3 tabular-nums text-muted-foreground">{formatDate(e.date)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-2 py-4 text-right align-top">
                     <Link
                       to="/expenses/$id"
                       params={{ id: e.id }}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-secondary group-hover:opacity-100"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-secondary hover:text-foreground md:opacity-0 md:group-hover:opacity-100"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Link>
