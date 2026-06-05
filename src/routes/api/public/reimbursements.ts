@@ -3,25 +3,23 @@ import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 /**
- * Webhook público para receber mensagens de reembolso dos colaboradores.
+ * Webhook público e simples para receber mensagens de reembolso.
  *
- * Cada empresa tem um `webhook_token` único. O integrador (gateway de
- * WhatsApp, e-mail, formulário, etc.) deve chamar:
+ * Sem autenticação: qualquer integrador pode chamar e o backend (Lovable
+ * Cloud / Supabase) grava a mensagem na tabela inbound_reimbursements.
  *
  *   POST /api/public/reimbursements
- *   Header:  x-webhook-token: <token da empresa>
  *   Body (JSON):
  *     {
- *       "sender": "+5511999999999",   // obrigatório (telefone ou e-mail)
- *       "sender_name": "João Silva",  // opcional
- *       "channel": "whatsapp",        // whatsapp | email (default whatsapp)
+ *       "sender": "+5511999999999",      // obrigatório (telefone ou e-mail)
+ *       "sender_name": "João Silva",     // opcional
+ *       "channel": "whatsapp",           // whatsapp | email (default whatsapp)
  *       "message": "Almoço com cliente", // opcional
- *       "attachment_url": "https://...",  // opcional (comprovante)
- *       "amount": 89.90,              // opcional
- *       "category": "refeicao"        // opcional
+ *       "attachment_url": "https://...", // opcional (comprovante)
+ *       "amount": 89.90,                 // opcional
+ *       "category": "refeicao",          // opcional
+ *       "company_id": "uuid"             // opcional (usa a 1ª empresa se ausente)
  *     }
- *
- * O token também pode ser enviado via query string (?token=...).
  */
 
 const PayloadSchema = z.object({
@@ -42,12 +40,13 @@ const PayloadSchema = z.object({
       "outros",
     ])
     .optional(),
+  company_id: z.string().uuid().optional(),
 });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, x-webhook-token",
+  "Access-Control-Allow-Headers": "Content-Type",
 };
 
 function json(body: unknown, status: number) {
@@ -57,27 +56,14 @@ function json(body: unknown, status: number) {
   });
 }
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export const Route = createFileRoute("/api/public/reimbursements")({
   server: {
     handlers: {
-      OPTIONS: async () => new Response(null, { status: 204, headers: corsHeaders }),
+      OPTIONS: async () =>
+        new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Token da empresa (header ou query string)
-        const url = new URL(request.url);
-        const token =
-          request.headers.get("x-webhook-token") ??
-          url.searchParams.get("token") ??
-          "";
-
-        if (!token || !UUID_RE.test(token)) {
-          return json({ error: "Token inválido ou ausente." }, 401);
-        }
-
-        // 2. Valida o corpo
+        // 1. Valida o corpo
         let raw: unknown;
         try {
           raw = await request.json();
@@ -93,26 +79,32 @@ export const Route = createFileRoute("/api/public/reimbursements")({
           );
         }
 
-        // 3. Resolve a empresa pelo token
-        const { data: company, error: companyError } = await supabaseAdmin
-          .from("companies")
-          .select("id")
-          .eq("webhook_token", token)
-          .maybeSingle();
-
-        if (companyError) {
-          return json({ error: "Erro ao validar a empresa." }, 500);
-        }
-        if (!company) {
-          return json({ error: "Token não reconhecido." }, 401);
-        }
-
-        // 4. Grava a mensagem recebida
         const data = parsed.data;
+
+        // 2. Resolve a empresa: usa o company_id informado ou a primeira empresa.
+        let companyId = data.company_id ?? null;
+        if (!companyId) {
+          const { data: company, error: companyError } = await supabaseAdmin
+            .from("companies")
+            .select("id")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (companyError) {
+            return json({ error: "Erro ao resolver a empresa." }, 500);
+          }
+          companyId = company?.id ?? null;
+        }
+
+        if (!companyId) {
+          return json({ error: "Nenhuma empresa encontrada." }, 400);
+        }
+
+        // 3. Grava a mensagem recebida
         const { data: inserted, error: insertError } = await supabaseAdmin
           .from("inbound_reimbursements")
           .insert({
-            company_id: company.id,
+            company_id: companyId,
             channel: data.channel,
             sender: data.sender,
             sender_name: data.sender_name ?? null,
@@ -131,11 +123,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
         }
 
         return json(
-          {
-            ok: true,
-            id: inserted.id,
-            received_at: inserted.created_at,
-          },
+          { ok: true, id: inserted.id, received_at: inserted.created_at },
           201,
         );
       },
