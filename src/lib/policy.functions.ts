@@ -411,9 +411,8 @@ export const evaluateExpense = createServerFn({ method: "POST" })
       .join("\n");
 
     const gateway = createLovableAiGatewayProvider(getLovableApiKey());
-    const { object } = await generateObject({
+    const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
-      schema: evaluationSchema,
       messages: [
         {
           role: "user",
@@ -428,13 +427,14 @@ export const evaluateExpense = createServerFn({ method: "POST" })
             `- Data: ${data.date || "n/d"}\n` +
             `- Descrição: ${data.description || "n/d"}\n\n` +
             "Decida entre aprovar, revisar ou recusar. Cite o código da cláusula " +
-            "que justifica a decisão e liste verificações por regra. Responda em " +
-            "português do Brasil.",
+            "que justifica a decisão e liste verificações por regra. Responda APENAS " +
+            "com JSON válido no formato: " +
+            '{ "verdict": "aprovar|revisar|recusar", "confidence": 0.8, "summary": string, "citedRuleCode": string, "citedClause": string, "checks": [{ "label": string, "status": "ok|alerta|violado", "detail": string }] }.',
         },
       ],
     });
 
-    return object;
+    return parseEvaluation(text);
   });
 
 // ---------------------------------------------------------------------------
