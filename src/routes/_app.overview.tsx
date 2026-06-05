@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccess, landingForRole } from "@/lib/permissions";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { api, formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
