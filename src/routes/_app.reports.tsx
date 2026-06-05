@@ -14,6 +14,12 @@ const overviewQuery = queryOptions({ queryKey: ["overview"], queryFn: () => api.
 
 export const Route = createFileRoute("/_app/reports")({
   head: () => ({ meta: [{ title: "Relatórios · reembolsa.aí" }] }),
+  beforeLoad: () => {
+    const role = getCurrentUser()?.role;
+    if (!canAccess("/reports", role)) {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(overviewQuery),
   component: ReportsPage,
 });
