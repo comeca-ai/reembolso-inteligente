@@ -1,5 +1,5 @@
 /**
- * Cliente Supabase — reembolsa.aí
+ * Cliente Supabase — reembolso.ia.br
  *
  * Conecta a um projeto Supabase próprio usando APENAS as variáveis públicas
  * do cliente:

@@ -7,7 +7,7 @@ import { Upload, Send, Loader2, CheckCircle, XCircle, ImageIcon } from "lucide-r
 export const Route = createFileRoute("/teste-webhook")({
   head: () => ({
     meta: [
-      { title: "Teste do Webhook — reembolsa aí" },
+      { title: "Teste do Webhook — reembolso.ia.br" },
       { name: "description", content: "Página de teste do webhook de reembolsos" },
     ],
   }),
@@ -51,7 +51,7 @@ function TesteWebhookPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image_base64: base64,
-          sender: "teste@reembolsa.ai",
+          sender: "teste@reembolso.ia.br",
           sender_name: "Teste Manual",
           channel: "email",
           message: "Teste via página de debug",
@@ -75,7 +75,7 @@ function TesteWebhookPage() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <a href="/" aria-label="reembolsa aí">
+          <a href="/" aria-label="reembolso.ia.br">
             <Logo className="h-7 sm:h-8" />
           </a>
           <span className="text-xs font-medium text-muted-foreground">Debug / Teste Webhook</span>

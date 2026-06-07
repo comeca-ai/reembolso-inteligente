@@ -18,7 +18,7 @@ import {
 
 export const Route = createFileRoute("/onboarding")({
   ssr: false,
-  head: () => ({ meta: [{ title: "Configuração inicial · reembolsa.aí" }] }),
+  head: () => ({ meta: [{ title: "Configuração inicial · reembolso.ia.br" }] }),
   beforeLoad: async () => {
     if (!(await isAuthenticated())) {
       throw redirect({ to: "/login" });

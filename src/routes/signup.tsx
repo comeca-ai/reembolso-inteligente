@@ -293,7 +293,7 @@ function SignupPage() {
             />
             <Label htmlFor="aceite" className="text-sm font-normal leading-snug text-muted-foreground">
               Li e aceito os termos de uso e a política de privacidade (LGPD) do
-              reembolsa.aí.
+              reembolso.ia.br.
             </Label>
           </div>
           {errors.aceite && <p className="text-xs text-destructive">{errors.aceite}</p>}
