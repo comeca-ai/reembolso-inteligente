@@ -116,29 +116,28 @@ function ExpensesPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "inbound_reimbursements" },
         (payload) => {
-          const nova = payload.new as RichDespesa & Record<string, unknown>;
+          const nova = payload.new as Record<string, unknown>;
           queryClient.setQueryData<RichDespesa[]>(DESPESAS_KEY, (prev) => {
             const list = prev ?? [];
-            if (list.some((d) => d.id === nova.id)) return list;
+            const newId = String(nova.id ?? "");
+            if (list.some((d) => d.id === newId)) return list;
             const mapped: RichDespesa = {
-              id: nova.id,
-              channel: (nova.channel as string) ?? "whatsapp",
-              sender: (nova.sender as string) ?? "",
+              id: newId,
+              channel: String(nova.channel ?? "whatsapp"),
+              sender: String(nova.sender ?? ""),
               senderName: (nova.sender_name as string | null) ?? null,
               message: (nova.message as string | null) ?? null,
               attachmentUrl: (nova.attachment_url as string | null) ?? null,
-              amount:
-                nova.amount === null
-                  ? null
-                  : Number(nova.amount),
+              amount: nova.amount === null ? null : Number(nova.amount),
               category: (nova.category as string | null) ?? null,
-              status: (nova.status as string) ?? "recebido",
-              createdAt: (nova.created_at as string) ?? new Date().toISOString(),
+              status: String(nova.status ?? "recebido"),
+              createdAt: String(nova.created_at ?? new Date().toISOString()),
             };
             return [mapped, ...list];
           });
+          const desc = (nova.sender_name as string | null) || (nova.sender as string | null);
           toast.success("Nova despesa recebida", {
-            description: nova.sender_name || nova.sender || undefined,
+            description: desc ?? undefined,
           });
         },
       )
