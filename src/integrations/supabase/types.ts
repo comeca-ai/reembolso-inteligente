@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      despesas: {
+        Row: {
+          created_at: string
+          id: number
+          recibo: string | null
+          telefone: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          recibo?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          recibo?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       inbound_reimbursements: {
         Row: {
           amount: number | null
