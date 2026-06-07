@@ -317,6 +317,17 @@ function ReimbursementRow({
           >
             {statusLabels[item.status] ?? item.status}
           </span>
+          {item.collaboratorName ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success ring-1 ring-success/30">
+              <UserCheck className="h-3.5 w-3.5" />
+              {item.collaboratorName}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border">
+              <UserX className="h-3.5 w-3.5" />
+              Sem colaborador
+            </span>
+          )}
         </div>
         {item.message && (
           <p className="mt-1.5 text-sm text-muted-foreground">{item.message}</p>
