@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TesteWebhookRouteImport } from './routes/teste-webhook'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PreCadastroRouteImport } from './routes/pre-cadastro'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
@@ -39,6 +40,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreCadastroRoute = PreCadastroRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pre-cadastro': typeof PreCadastroRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teste-webhook': typeof TesteWebhookRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pre-cadastro': typeof PreCadastroRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teste-webhook': typeof TesteWebhookRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/pre-cadastro': typeof PreCadastroRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teste-webhook': typeof TesteWebhookRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/pre-cadastro'
+    | '/reset-password'
     | '/signup'
     | '/sitemap.xml'
     | '/teste-webhook'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/pre-cadastro'
+    | '/reset-password'
     | '/signup'
     | '/sitemap.xml'
     | '/teste-webhook'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/pre-cadastro'
+    | '/reset-password'
     | '/signup'
     | '/sitemap.xml'
     | '/teste-webhook'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PreCadastroRoute: typeof PreCadastroRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TesteWebhookRoute: typeof TesteWebhookRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pre-cadastro': {
@@ -371,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PreCadastroRoute: PreCadastroRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TesteWebhookRoute: TesteWebhookRoute,

@@ -17,6 +17,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 export interface AuthCompany {
   id: string;
@@ -52,9 +53,58 @@ export interface SignInInput {
   senha: string;
 }
 
+export interface ResetPasswordInput {
+  email: string;
+}
+
 /** Cache em memória do usuário autenticado (populado em loadSession). */
 let cachedUser: AuthUser | null = null;
 let sessionLoaded = false;
+
+function getMetadataText(authUser: User, key: string, fallback = ""): string {
+  const value = authUser.user_metadata?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+async function ensureProfileRows(authUser: User): Promise<void> {
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", authUser.id)
+    .maybeSingle();
+
+  if (existingProfile) return;
+
+  const politicaArquivo = getMetadataText(authUser, "politica_reembolso_arquivo");
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .insert({
+      razao_social: getMetadataText(authUser, "razao_social", "Empresa"),
+      cnpj: getMetadataText(authUser, "cnpj"),
+      politica_reembolso_arquivo: politicaArquivo || null,
+    })
+    .select("id")
+    .single();
+
+  if (companyError) throw companyError;
+
+  const { error: profileError } = await supabase.from("profiles").insert({
+    id: authUser.id,
+    company_id: company.id,
+    nome: getMetadataText(authUser, "nome", authUser.email ?? "Usuário"),
+    email: authUser.email ?? getMetadataText(authUser, "email"),
+    whatsapp: getMetadataText(authUser, "whatsapp") || null,
+  });
+
+  if (profileError) throw profileError;
+
+  const { error: roleError } = await supabase.from("user_roles").insert({
+    user_id: authUser.id,
+    role: "admin",
+  });
+
+  if (roleError && roleError.code !== "23505") throw roleError;
+}
 
 /**
  * Carrega a sessão atual a partir do Auth + perfil + empresa + papel.
@@ -70,11 +120,21 @@ export async function loadSession(): Promise<AuthUser | null> {
 
   const authUser = userData.user;
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("id, nome, email, whatsapp, company_id")
     .eq("id", authUser.id)
     .maybeSingle();
+
+  if (!profile) {
+    await ensureProfileRows(authUser);
+    const { data: repairedProfile } = await supabase
+      .from("profiles")
+      .select("id, nome, email, whatsapp, company_id")
+      .eq("id", authUser.id)
+      .maybeSingle();
+    profile = repairedProfile;
+  }
 
   let company: AuthCompany = {
     id: "",
@@ -208,6 +268,19 @@ export async function signIn(input: SignInInput): Promise<AuthUser> {
   const user = await loadSession();
   if (!user) throw new Error("Falha ao carregar a sessão após o login.");
   return user;
+}
+
+export async function sendPasswordReset(input: ResetPasswordInput): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(input.email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+
+  if (error) throw error;
+}
+
+export async function updatePassword(senha: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: senha });
+  if (error) throw error;
 }
 
 export async function signOut(): Promise<void> {
