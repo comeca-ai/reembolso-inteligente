@@ -95,6 +95,64 @@ function isUsableBase64(value: string | null): boolean {
   return v.length > 100;
 }
 
+/** Extensão de arquivo a partir do mimetype. */
+function extFromMime(mime: string): string {
+  if (mime.includes("pdf")) return "pdf";
+  if (mime.includes("png")) return "png";
+  if (mime.includes("webp")) return "webp";
+  if (mime.includes("gif")) return "gif";
+  return "jpg";
+}
+
+/**
+ * Persiste o comprovante no Storage (bucket privado "comprovantes") e devolve
+ * o CAMINHO do objeto (ex.: "<companyId>/2026/uuid.jpg"). Aceita data URL,
+ * base64 cru ou uma URL http (que será baixada). Retorna null se falhar — nesse
+ * caso a despesa ainda é gravada, só sem anexo persistido.
+ */
+async function uploadComprovante(
+  companyId: string,
+  source: string,
+  mimetype: string | null,
+): Promise<string | null> {
+  try {
+    let mime = mimetype || "image/jpeg";
+    let bytes: Uint8Array | null = null;
+    const trimmed = source.trim();
+
+    if (/^https?:\/\//i.test(trimmed)) {
+      const res = await fetch(trimmed);
+      if (!res.ok) return null;
+      mime = res.headers.get("content-type") || mime;
+      bytes = new Uint8Array(await res.arrayBuffer());
+    } else {
+      let b64 = trimmed;
+      const m = b64.match(/^data:([^;]+);base64,(.*)$/s);
+      if (m) {
+        mime = m[1] || mime;
+        b64 = m[2];
+      }
+      bytes = Buffer.from(b64, "base64");
+    }
+
+    if (!bytes || bytes.length === 0) return null;
+
+    const year = new Date().getFullYear();
+    const path = `${companyId}/${year}/${crypto.randomUUID()}.${extFromMime(mime)}`;
+    const { error } = await supabaseAdmin.storage
+      .from("comprovantes")
+      .upload(path, bytes, { contentType: mime, upsert: false });
+    if (error) {
+      console.error("[evolution webhook] upload do comprovante falhou:", error);
+      return null;
+    }
+    return path;
+  } catch (e) {
+    console.error("[evolution webhook] upload do comprovante exceção:", e);
+    return null;
+  }
+}
+
 /**
  * Pede ao Evolution o base64 já DESCRIPTOGRAFADO da mídia (.enc → imagem/pdf).
  * Precisa dos secrets EVOLUTION_API_URL e EVOLUTION_API_KEY e do nome da instância.
