@@ -130,10 +130,19 @@ export async function loadSession(): Promise<AuthUser | null> {
     }
   }
 
-  const { data: roleRows } = await supabase
+  let { data: roleRows } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", authUser.id);
+
+  if (!roleRows?.length) {
+    await ensureProfileRows(authUser);
+    const { data: repairedRoleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authUser.id);
+    roleRows = repairedRoleRows;
+  }
 
   const role = resolveSessionRole(roleRows);
 
