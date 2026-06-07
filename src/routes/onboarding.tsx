@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { isAuthenticated, hasPolicyUploaded, markPolicyUploaded, getCurrentUser } from "@/lib/auth";
+import { landingForRole } from "@/lib/permissions";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
@@ -24,8 +25,9 @@ export const Route = createFileRoute("/onboarding")({
       throw redirect({ to: "/login" });
     }
     // Onboarding (envio da política) é etapa do admin. Convidados entram direto.
-    if (getCurrentUser()?.role !== "admin") {
-      throw redirect({ to: "/overview" });
+    const role = getCurrentUser()?.role;
+    if (role !== "admin") {
+      throw redirect({ to: landingForRole(role) });
     }
     // Já enviou a política? Então não precisa do onboarding.
     if (await hasPolicyUploaded()) {

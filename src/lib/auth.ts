@@ -18,6 +18,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { resolveSessionRole } from "@/lib/auth-gates";
 
 export interface AuthCompany {
   id: string;
@@ -129,15 +130,21 @@ export async function loadSession(): Promise<AuthUser | null> {
     }
   }
 
-  const { data: roleRows } = await supabase
+  let { data: roleRows } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", authUser.id);
 
-  const role =
-    (roleRows?.find((r) => r.role === "admin")?.role as AuthUser["role"]) ??
-    (roleRows?.[0]?.role as AuthUser["role"]) ??
-    "admin";
+  if (!roleRows?.length) {
+    await ensureProfileRows(authUser);
+    const { data: repairedRoleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", authUser.id);
+    roleRows = repairedRoleRows;
+  }
+
+  const role = resolveSessionRole(roleRows);
 
   cachedUser = {
     id: profile?.id ?? authUser.id,
