@@ -216,6 +216,7 @@ export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
         nome: input.nomeResponsavel.trim(),
         whatsapp: input.whatsapp.trim(),
         politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || "",
+        cartao_cnpj_arquivo: input.cartaoCnpjArquivo?.trim() || "",
       },
     },
   });
