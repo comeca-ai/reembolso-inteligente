@@ -108,6 +108,25 @@ function ExpensesPage() {
 
   const despesas = useMemo(() => data ?? [], [data]);
 
+  // Abre o comprovante: links http/data abrem direto; caminhos do Storage
+  // geram uma URL assinada temporária (bucket privado "comprovantes").
+  async function openComprovante(attachmentUrl: string) {
+    if (/^(https?:|data:)/i.test(attachmentUrl)) {
+      window.open(attachmentUrl, "_blank", "noopener");
+      return;
+    }
+    const { data: signed, error } = await supabase.storage
+      .from("comprovantes")
+      .createSignedUrl(attachmentUrl, 60 * 5);
+    if (error || !signed?.signedUrl) {
+      toast.error("Não foi possível abrir o comprovante");
+      return;
+    }
+    window.open(signed.signedUrl, "_blank", "noopener");
+  }
+
+
+
   // Realtime: novas despesas inseridas aparecem automaticamente no topo.
   useEffect(() => {
     const channel = supabase
