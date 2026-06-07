@@ -53,6 +53,10 @@ export interface SignInInput {
   senha: string;
 }
 
+export interface ResetPasswordInput {
+  email: string;
+}
+
 /** Cache em memória do usuário autenticado (populado em loadSession). */
 let cachedUser: AuthUser | null = null;
 let sessionLoaded = false;
@@ -264,6 +268,19 @@ export async function signIn(input: SignInInput): Promise<AuthUser> {
   const user = await loadSession();
   if (!user) throw new Error("Falha ao carregar a sessão após o login.");
   return user;
+}
+
+export async function sendPasswordReset(input: ResetPasswordInput): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(input.email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+
+  if (error) throw error;
+}
+
+export async function updatePassword(senha: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: senha });
+  if (error) throw error;
 }
 
 export async function signOut(): Promise<void> {
