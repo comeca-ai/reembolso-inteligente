@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { isAuthenticated, hasPolicyUploadedSync, getCurrentUser } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
+import { shouldRequirePolicyOnboarding } from "@/lib/auth-gates";
 
 export const Route = createFileRoute("/_app")({
   // Sessão vive no cliente (Auth + localStorage), então desligamos SSR
@@ -13,8 +14,7 @@ export const Route = createFileRoute("/_app")({
     // Trava de onboarding (envio da política) é exclusiva do admin que está
     // configurando a empresa. Usuários convidados (approver/member) — que não
     // necessariamente passaram pelo pré-cadastro — entram direto na aplicação.
-    const role = getCurrentUser()?.role;
-    if (role === "admin" && !hasPolicyUploadedSync()) {
+    if (shouldRequirePolicyOnboarding(getCurrentUser())) {
       throw redirect({ to: "/onboarding" });
     }
   },
