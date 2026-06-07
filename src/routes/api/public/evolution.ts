@@ -80,6 +80,63 @@ function toDataUrl(input: string, mimetype?: string | null): string {
   return `data:${mimetype || "image/jpeg"};base64,${trimmed}`;
 }
 
+/** A mídia do WhatsApp vem criptografada (.enc) — base64 puro não é uma URL .enc. */
+function isUsableBase64(value: string | null): boolean {
+  if (!value) return false;
+  const v = value.trim();
+  if (v.startsWith("data:")) return true;
+  // URLs .enc (CDN criptografada do WhatsApp) NÃO servem para a IA.
+  if (/^https?:\/\//i.test(v)) return !/\.enc(\?|$)/i.test(v);
+  // Caso contrário, assumimos base64 cru (já descriptografado).
+  return v.length > 100;
+}
+
+/**
+ * Pede ao Evolution o base64 já DESCRIPTOGRAFADO da mídia (.enc → imagem/pdf).
+ * Precisa dos secrets EVOLUTION_API_URL e EVOLUTION_API_KEY e do nome da instância.
+ * Endpoint: POST /chat/getBase64FromMediaMessage/{instance}
+ */
+async function decryptMediaFromEvolution(
+  instance: string | null | undefined,
+  message: Record<string, any> | undefined,
+  key: Record<string, any> | undefined,
+): Promise<{ base64: string | null; mimetype: string | null }> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  if (!apiUrl || !apiKey || !instance) {
+    return { base64: null, mimetype: null };
+  }
+  try {
+    const base = apiUrl.replace(/\/+$/, "");
+    const res = await fetch(
+      `${base}/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: apiKey },
+        body: JSON.stringify({
+          message: { key, message },
+          convertToMp4: false,
+        }),
+      },
+    );
+    if (!res.ok) {
+      console.error(
+        "[evolution webhook] getBase64FromMediaMessage status",
+        res.status,
+      );
+      return { base64: null, mimetype: null };
+    }
+    const json = (await res.json()) as { base64?: string; mimetype?: string };
+    return {
+      base64: json?.base64 ?? null,
+      mimetype: json?.mimetype ?? null,
+    };
+  } catch (e) {
+    console.error("[evolution webhook] decrypt falhou:", e);
+    return { base64: null, mimetype: null };
+  }
+}
+
 /** Extrai o telefone (apenas dígitos + "+") de um remoteJid do WhatsApp. */
 function phoneFromJid(jid: string | undefined | null): string {
   if (!jid) return "desconhecido";
@@ -166,7 +223,22 @@ export const Route = createFileRoute("/api/public/evolution")({
 
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;
-          const { base64, mimetype, caption } = findImageBase64(data?.message);
+          let { base64, mimetype } = findImageBase64(data?.message);
+          const { caption } = findImageBase64(data?.message);
+
+          // Se não veio base64 utilizável (ex.: só a URL .enc criptografada),
+          // pedimos ao Evolution o conteúdo já descriptografado.
+          if (!isUsableBase64(base64) && data?.message) {
+            const decrypted = await decryptMediaFromEvolution(
+              evt?.instance,
+              data.message,
+              key,
+            );
+            if (decrypted.base64) {
+              base64 = decrypted.base64;
+              mimetype = decrypted.mimetype ?? mimetype;
+            }
+          }
 
           // 3. Resolve a empresa (primeira empresa cadastrada).
           const { data: company, error: companyError } = await supabaseAdmin
@@ -181,13 +253,13 @@ export const Route = createFileRoute("/api/public/evolution")({
           }
           const companyId = company.id;
 
-          // 4. IA analisa o comprovante quando há imagem.
+          // 4. IA analisa o comprovante quando há imagem utilizável.
           let amount: number | null = null;
           let category: string | null = null;
           let aiDescription: string | null = null;
           let attachmentUrl: string | null = null;
 
-          if (base64) {
+          if (isUsableBase64(base64) && base64) {
             attachmentUrl = toDataUrl(base64, mimetype);
             try {
               const provider = createLovableAiGatewayProvider(getLovableApiKey());
