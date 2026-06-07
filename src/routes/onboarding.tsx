@@ -23,6 +23,10 @@ export const Route = createFileRoute("/onboarding")({
     if (!(await isAuthenticated())) {
       throw redirect({ to: "/login" });
     }
+    // Onboarding (envio da política) é etapa do admin. Convidados entram direto.
+    if (getCurrentUser()?.role !== "admin") {
+      throw redirect({ to: "/overview" });
+    }
     // Já enviou a política? Então não precisa do onboarding.
     if (await hasPolicyUploaded()) {
       throw redirect({ to: "/overview" });
