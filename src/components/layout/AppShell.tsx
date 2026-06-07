@@ -151,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <TrustChips />
             <p className="text-xs text-muted-foreground">
-              reembolsa.aí · IA explicável com decisão humana
+              reembolso.ia.br · IA explicável com decisão humana
             </p>
           </div>
         </footer>

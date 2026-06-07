@@ -78,21 +78,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "reembolsa.aí — Reembolsos de equipes de campo no automático" },
+      { title: "reembolso.ia.br — Reembolsos de equipes de campo no automático" },
       {
         name: "description",
         content:
           "Funcionários enviam o comprovante por WhatsApp ou e-mail, a IA extrai os dados, compara com a política e gera uma recomendação explicável para o aprovador.",
       },
-      { name: "author", content: "reembolsa.aí" },
-      { property: "og:title", content: "reembolsa.aí — Reembolsos de equipes de campo no automático" },
+      { name: "author", content: "reembolso.ia.br" },
+      { property: "og:title", content: "reembolso.ia.br — Reembolsos de equipes de campo no automático" },
       {
         property: "og:description",
         content: "Automatize os reembolsos da sua equipe de campo com IA explicável.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "reembolsa.aí — Reembolsos de equipes de campo no automático" },
+      { name: "twitter:title", content: "reembolso.ia.br — Reembolsos de equipes de campo no automático" },
       {
         name: "twitter:description",
         content: "Automatize os reembolsos da sua equipe de campo com IA explicável.",
