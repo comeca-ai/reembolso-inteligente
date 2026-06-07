@@ -24,6 +24,7 @@ export interface AuthCompany {
   razao_social: string;
   cnpj: string;
   politica_reembolso_arquivo?: string;
+  cartao_cnpj_arquivo?: string;
 }
 
 export interface AuthUser {
