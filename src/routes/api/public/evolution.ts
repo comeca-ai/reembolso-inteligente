@@ -223,7 +223,22 @@ export const Route = createFileRoute("/api/public/evolution")({
 
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;
-          const { base64, mimetype, caption } = findImageBase64(data?.message);
+          let { base64, mimetype } = findImageBase64(data?.message);
+          const { caption } = findImageBase64(data?.message);
+
+          // Se não veio base64 utilizável (ex.: só a URL .enc criptografada),
+          // pedimos ao Evolution o conteúdo já descriptografado.
+          if (!isUsableBase64(base64) && data?.message) {
+            const decrypted = await decryptMediaFromEvolution(
+              evt?.instance,
+              data.message,
+              key,
+            );
+            if (decrypted.base64) {
+              base64 = decrypted.base64;
+              mimetype = decrypted.mimetype ?? mimetype;
+            }
+          }
 
           // 3. Resolve a empresa (primeira empresa cadastrada).
           const { data: company, error: companyError } = await supabaseAdmin
@@ -238,13 +253,13 @@ export const Route = createFileRoute("/api/public/evolution")({
           }
           const companyId = company.id;
 
-          // 4. IA analisa o comprovante quando há imagem.
+          // 4. IA analisa o comprovante quando há imagem utilizável.
           let amount: number | null = null;
           let category: string | null = null;
           let aiDescription: string | null = null;
           let attachmentUrl: string | null = null;
 
-          if (base64) {
+          if (isUsableBase64(base64) && base64) {
             attachmentUrl = toDataUrl(base64, mimetype);
             try {
               const provider = createLovableAiGatewayProvider(getLovableApiKey());
