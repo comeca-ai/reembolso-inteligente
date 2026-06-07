@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { signIn, isAuthenticated } from "@/lib/auth";
+import { signIn, isAuthenticated, sendPasswordReset } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -25,6 +25,7 @@ function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; senha?: string }>({});
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   function validate() {
     const next: typeof errors = {};
@@ -55,6 +56,27 @@ function LoginPage() {
     }
   }
 
+  async function handlePasswordReset() {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setErrors((current) => ({ ...current, email: "Informe seu e-mail para recuperar a senha." }));
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      await sendPasswordReset({ email });
+      toast.success("E-mail de recuperação enviado", {
+        description: "Abra o link recebido para cadastrar uma nova senha.",
+      });
+    } catch {
+      toast.error("Não foi possível enviar a recuperação", {
+        description: "Confira o e-mail e tente novamente.",
+      });
+    } finally {
+      setResetLoading(false);
+    }
+  }
+
   return (
     <AuthLayout
       eyebrow="Acesso ao painel"
@@ -81,14 +103,11 @@ function LoginPage() {
             <Label htmlFor="senha">Senha</Label>
             <button
               type="button"
-              onClick={() =>
-                toast("Recuperação de senha", {
-                  description: "Em breve você poderá redefinir sua senha por e-mail.",
-                })
-              }
+              onClick={handlePasswordReset}
+              disabled={resetLoading}
               className="text-xs font-medium text-brand hover:underline"
             >
-              Esqueci minha senha
+              {resetLoading ? "Enviando…" : "Esqueci minha senha"}
             </button>
           </div>
           <div className="relative">
