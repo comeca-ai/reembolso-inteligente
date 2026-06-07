@@ -30,8 +30,7 @@ function LoginPage() {
   function validate() {
     const next: typeof errors = {};
     if (!email.trim()) next.email = "Informe seu e-mail.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-      next.email = "E-mail inválido.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) next.email = "E-mail inválido.";
     if (!senha) next.senha = "Informe sua senha.";
     setErrors(next);
     return Object.keys(next).length === 0;
