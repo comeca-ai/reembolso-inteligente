@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getReimbursementsConfig,
   updateReimbursementStatus,
@@ -24,6 +25,8 @@ import {
   Link2,
   RefreshCw,
   Paperclip,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
