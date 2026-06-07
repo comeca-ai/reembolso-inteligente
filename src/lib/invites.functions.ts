@@ -31,11 +31,11 @@ function inviteEmailHtml(params: {
 <html lang="pt-BR">
   <body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#0f2e2e;">
     <div style="max-width:520px;margin:0 auto;padding:32px 24px;">
-      <h1 style="font-size:20px;margin:0 0 16px;">Você foi convidado para o reembolsa.aí</h1>
+      <h1 style="font-size:20px;margin:0 0 16px;">Você foi convidado para o reembolso.ia.br</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Olá, ${escapeHtml(nome)}!</p>
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">
         Você foi convidado por <strong>${escapeHtml(companyName)}</strong> para aprovar despesas
-        na plataforma reembolsa.aí. Clique no botão abaixo para ativar seu acesso.
+        na plataforma reembolso.ia.br. Clique no botão abaixo para ativar seu acesso.
       </p>
       <p style="text-align:center;margin:28px 0;">
         <a href="${actionLink}"
