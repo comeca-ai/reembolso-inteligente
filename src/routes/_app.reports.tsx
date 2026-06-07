@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const overviewQuery = queryOptions({ queryKey: ["overview"], queryFn: () => api.getOverview() });
 
 export const Route = createFileRoute("/_app/reports")({
-  head: () => ({ meta: [{ title: "Relatórios · reembolsa.aí" }] }),
+  head: () => ({ meta: [{ title: "Relatórios · reembolso.ia.br" }] }),
   beforeLoad: () => {
     const role = getCurrentUser()?.role;
     if (!canAccess("/reports", role)) {

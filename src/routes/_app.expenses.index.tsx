@@ -74,7 +74,7 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
 }
 
 export const Route = createFileRoute("/_app/expenses/")({
-  head: () => ({ meta: [{ title: "Despesas · reembolsa.aí" }] }),
+  head: () => ({ meta: [{ title: "Despesas · reembolso.ia.br" }] }),
   pendingComponent: () => (
     <PageSkeleton>
       <TableSkeleton rows={8} cols={6} />

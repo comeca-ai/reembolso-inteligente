@@ -44,7 +44,7 @@ const overviewQuery = queryOptions({
 
 export const Route = createFileRoute("/_app/overview")({
   head: () => ({
-    meta: [{ title: "Visão geral · reembolsa.aí" }],
+    meta: [{ title: "Visão geral · reembolso.ia.br" }],
   }),
   beforeLoad: () => {
     const role = getCurrentUser()?.role;

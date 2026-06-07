@@ -42,7 +42,7 @@ function LoginPage() {
     setLoading(true);
     try {
       const user = await signIn({ email, senha });
-      toast.success("Bem-vindo ao reembolsa.aí", {
+      toast.success("Bem-vindo ao reembolso.ia.br", {
         description: `Acesso liberado para ${user.nome}.`,
       });
       navigate({ to: "/overview" });

@@ -101,7 +101,7 @@ const emptyDraft: RuleDraft = {
 
 
 export const Route = createFileRoute("/_app/policy")({
-  head: () => ({ meta: [{ title: "Política · reembolsa.aí" }] }),
+  head: () => ({ meta: [{ title: "Política · reembolso.ia.br" }] }),
   beforeLoad: () => {
     const role = getCurrentUser()?.role;
     if (!canAccess("/policy", role)) {

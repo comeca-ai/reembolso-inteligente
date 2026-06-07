@@ -1,5 +1,5 @@
 /**
- * Camada de autenticação — reembolsa.aí
+ * Camada de autenticação — reembolso.ia.br
  *
  * Implementação real com Lovable Cloud (Supabase Auth + Postgres).
  *

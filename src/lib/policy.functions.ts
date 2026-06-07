@@ -1,5 +1,5 @@
 /**
- * Funções de servidor para a Política de reembolso (reembolsa.aí).
+ * Funções de servidor para a Política de reembolso (reembolso.ia.br).
  *
  * - getPolicyState: lista versões + regras da política ativa (RLS do usuário).
  * - uploadAndExtractPolicy: recebe o PDF, guarda no storage, usa a IA para

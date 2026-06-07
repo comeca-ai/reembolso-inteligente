@@ -50,7 +50,7 @@ const fieldUsersQuery = queryOptions({ queryKey: ["field-users"], queryFn: () =>
 const approversQuery = queryOptions({ queryKey: ["approvers"], queryFn: () => api.listApprovers() });
 
 export const Route = createFileRoute("/_app/users")({
-  head: () => ({ meta: [{ title: "Cadastros · reembolsa.aí" }] }),
+  head: () => ({ meta: [{ title: "Cadastros · reembolso.ia.br" }] }),
   beforeLoad: () => {
     const role = getCurrentUser()?.role;
     if (!canAccess("/users", role)) {
