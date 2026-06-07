@@ -58,7 +58,10 @@ function LoginPage() {
 
   async function handlePasswordReset() {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setErrors((current) => ({ ...current, email: "Informe seu e-mail para recuperar a senha." }));
+      setErrors((current) => ({
+        ...current,
+        email: "Informe seu e-mail para recuperar a senha.",
+      }));
       return;
     }
 
