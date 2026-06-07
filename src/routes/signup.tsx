@@ -140,7 +140,12 @@ function SignupPage() {
       next.confirmarSenha = "As senhas não conferem.";
     if (!form.aceite) next.aceite = "É necessário aceitar os termos.";
     setErrors(next);
-    return Object.keys(next).length === 0;
+    let cartaoOk = true;
+    if (!cartaoCnpj) {
+      setCartaoCnpjErro("Envie o Cartão do CNPJ.");
+      cartaoOk = false;
+    }
+    return Object.keys(next).length === 0 && cartaoOk;
   }
 
   async function handleSubmit(e: React.FormEvent) {
