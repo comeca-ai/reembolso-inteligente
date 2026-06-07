@@ -124,31 +124,36 @@ export const inviteApprover = createServerFn({ method: "POST" })
 
     const actionLink = linkData.properties.action_link;
 
-    // 4) Envia o e-mail pelo Resend.
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (!resendApiKey) {
+    // 4) Envia o e-mail pelo SMTP2GO.
+    const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
+    if (!smtp2goApiKey) {
       throw new Error("Envio de e-mail indisponível: configuração ausente.");
     }
+    // Remetente: precisa pertencer a um domínio verificado no SMTP2GO.
+    const sender = process.env.SMTP2GO_SENDER ?? "reembolsa.aí <nao-responder@reembolsa.ai>";
 
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch("https://api.smtp2go.com/v3/email/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${resendApiKey}`,
+        "X-Smtp2go-Api-Key": smtp2goApiKey,
       },
       body: JSON.stringify({
-        from: "reembolsa.aí <onboarding@resend.dev>",
+        sender,
         to: [email],
         subject: `Convite para o reembolsa.aí — ${companyName}`,
-        html: inviteEmailHtml({ nome: data.nome.trim(), companyName, actionLink }),
+        html_body: inviteEmailHtml({ nome: data.nome.trim(), companyName, actionLink }),
       }),
     });
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      console.error(`[Resend] ${res.status}: ${body}`);
+    const result = (await res.json().catch(() => null)) as
+      | { data?: { succeeded?: number; failures?: unknown[] } }
+      | null;
+
+    if (!res.ok || !result?.data?.succeeded) {
+      console.error(`[SMTP2GO] ${res.status}: ${JSON.stringify(result)}`);
       throw new Error(
-        "Convite criado, mas o e-mail não pôde ser enviado. Verifique a chave do Resend e o domínio do remetente.",
+        "Convite criado, mas o e-mail não pôde ser enviado. Verifique a API key do SMTP2GO e o domínio do remetente.",
       );
     }
 
