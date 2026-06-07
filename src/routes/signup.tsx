@@ -70,9 +70,12 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [politica, setPolitica] = useState<File | null>(null);
   const [politicaErro, setPoliticaErro] = useState<string | undefined>(undefined);
+  const [cartaoCnpj, setCartaoCnpj] = useState<File | null>(null);
+  const [cartaoCnpjErro, setCartaoCnpjErro] = useState<string | undefined>(undefined);
 
   const MAX_POLITICA_MB = 10;
   const TIPOS_ACEITOS = [".pdf", ".doc", ".docx"];
+  const TIPOS_CARTAO = [".pdf", ".jpg", ".jpeg", ".png"];
 
   function handlePoliticaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -93,6 +96,27 @@ function SignupPage() {
       return;
     }
     setPolitica(file);
+  }
+
+  function handleCartaoCnpjChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setCartaoCnpjErro(undefined);
+    if (!file) {
+      setCartaoCnpj(null);
+      return;
+    }
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!TIPOS_CARTAO.includes(ext)) {
+      setCartaoCnpjErro("Envie um arquivo PDF, JPG ou PNG.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_POLITICA_MB * 1024 * 1024) {
+      setCartaoCnpjErro(`Arquivo muito grande (máx. ${MAX_POLITICA_MB} MB).`);
+      e.target.value = "";
+      return;
+    }
+    setCartaoCnpj(file);
   }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
