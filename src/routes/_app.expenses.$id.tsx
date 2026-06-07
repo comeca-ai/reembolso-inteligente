@@ -49,7 +49,7 @@ const fieldUsersQuery = queryOptions({
 });
 
 export const Route = createFileRoute("/_app/expenses/$id")({
-  head: ({ params }) => ({ meta: [{ title: `${params.id} · reembolsa.aí` }] }),
+  head: ({ params }) => ({ meta: [{ title: `${params.id} · reembolso.ia.br` }] }),
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(expenseQuery(params.id)),

@@ -19,14 +19,14 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "reembolsa aí — Reembolsos de equipes de campo no automático",
+        title: "reembolso.ia.br — Reembolsos de equipes de campo no automático",
       },
       {
         name: "description",
         content:
           "Sua equipe envia o comprovante pelo WhatsApp, a IA extrai os dados, confere com a sua política e gera uma recomendação explicável. O aprovador decide em segundos. Reembolso rápido, sem complicação.",
       },
-      { property: "og:title", content: "reembolsa aí — Reembolso rápido, sem complicação" },
+      { property: "og:title", content: "reembolso.ia.br — Reembolso rápido, sem complicação" },
       {
         property: "og:description",
         content:
@@ -57,7 +57,7 @@ function LandingNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" aria-label="reembolsa aí">
+        <Link to="/" aria-label="reembolso.ia.br">
           <Logo className="h-7 sm:h-8" />
         </Link>
         <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
@@ -442,7 +442,7 @@ function LandingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
         <Logo className="h-7" />
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} reembolsa aí · IA explicável com decisão humana · LGPD
+          © {new Date().getFullYear()} reembolso.ia.br · IA explicável com decisão humana · LGPD
         </p>
       </div>
     </footer>

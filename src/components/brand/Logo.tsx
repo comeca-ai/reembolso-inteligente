@@ -8,7 +8,7 @@ import iconWhite from "@/assets/reembolsa-icon-white.png.asset.json";
 
 interface LogoProps {
   className?: string;
-  /** Mostra o wordmark "reembolsa aí". Quando false, exibe só o ícone. */
+  /** Mostra o wordmark "reembolso.ia.br". Quando false, exibe só o ícone. */
   withWordmark?: boolean;
   /** Inclui o slogan "Reembolso rápido, sem complicação". */
   withTagline?: boolean;
@@ -17,7 +17,7 @@ interface LogoProps {
 }
 
 /**
- * Logotipo oficial reembolsa.aí (arte do cliente).
+ * Logotipo oficial reembolso.ia.br (arte do cliente).
  * Renderiza o PNG da marca em diferentes formatos/variantes.
  */
 export function Logo({
@@ -32,7 +32,7 @@ export function Logo({
     return (
       <img
         src={(light ? iconWhite : iconColor).url}
-        alt="reembolsa aí"
+        alt="reembolso.ia.br"
         className={cn("h-8 w-auto", className)}
         loading="eager"
         decoding="async"
@@ -47,7 +47,7 @@ export function Logo({
   return (
     <img
       src={src}
-      alt="reembolsa aí — Reembolso rápido, sem complicação"
+      alt="reembolso.ia.br — Reembolso rápido, sem complicação"
       className={cn("h-8 w-auto", className)}
       loading="eager"
       decoding="async"
@@ -66,7 +66,7 @@ export function LogoMark({
   return (
     <img
       src={(variant === "light" ? iconWhite : iconColor).url}
-      alt="reembolsa aí"
+      alt="reembolso.ia.br"
       className={cn("h-8 w-8", className)}
       loading="eager"
       decoding="async"

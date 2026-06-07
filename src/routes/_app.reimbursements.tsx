@@ -32,7 +32,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_app/reimbursements")({
-  head: () => ({ meta: [{ title: "Reembolsos recebidos · reembolsa.aí" }] }),
+  head: () => ({ meta: [{ title: "Reembolsos recebidos · reembolso.ia.br" }] }),
   beforeLoad: () => {
     const role = getCurrentUser()?.role;
     if (!canAccess("/reimbursements", role)) {

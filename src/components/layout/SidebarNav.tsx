@@ -35,7 +35,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-16 items-center border-b border-sidebar-border/60 px-5">
-        <Link to={landingForRole(role)} aria-label="reembolsa aí — Início">
+        <Link to={landingForRole(role)} aria-label="reembolso.ia.br — Início">
           <Logo variant="light" className="h-7" />
         </Link>
       </div>

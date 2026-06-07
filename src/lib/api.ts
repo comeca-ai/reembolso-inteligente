@@ -1,5 +1,5 @@
 /**
- * Camada de dados — reembolsa.aí
+ * Camada de dados — reembolso.ia.br
  *
  * Esta é a camada de abstração da aplicação. Ela expõe um único objeto `api`
  * que pode ser servido por duas fontes:
