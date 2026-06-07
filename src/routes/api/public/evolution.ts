@@ -176,21 +176,7 @@ export const Route = createFileRoute("/api/public/evolution")({
         new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Verificação opcional de token (se o secret estiver definido).
-        const expected = process.env.DESPESAS_WEBHOOK_TOKEN;
-        if (expected) {
-          const url = new URL(request.url);
-          const qsToken = url.searchParams.get("token") ?? "";
-          const apikey = request.headers.get("apikey") ?? "";
-          const bearer = (request.headers.get("authorization") ?? "").replace(
-            /^Bearer\s+/i,
-            "",
-          );
-          const provided = (qsToken || apikey || bearer).trim();
-          if (provided !== expected) {
-            return json({ error: "Token inválido." }, 401);
-          }
-        }
+        // 1. Webhook público sem token (qualquer chamada do Evolution é aceita).
 
         // 2. Lê o corpo.
         let raw: any;
