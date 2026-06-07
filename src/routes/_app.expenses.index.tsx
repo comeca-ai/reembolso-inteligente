@@ -333,15 +333,14 @@ function ExpensesPage() {
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 align-top">
                         {d.attachmentUrl ? (
-                          <a
-                            href={d.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => openComprovante(d.attachmentUrl!)}
                             className="inline-flex items-center gap-1 text-primary hover:underline"
                           >
                             <Paperclip className="h-3.5 w-3.5" />
                             Ver comprovante
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
