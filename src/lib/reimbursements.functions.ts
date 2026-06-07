@@ -125,10 +125,15 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
       .limit(200);
     if (error) throw error;
 
+    // Colaboradores da empresa para casar o comprovante pelo telefone.
+    const { data: collaborators } = await supabase
+      .from("profiles")
+      .select("id, nome, whatsapp");
+
     return {
       webhookToken,
       isAdmin,
-      messages: (rows ?? []).map(mapRow),
+      messages: (rows ?? []).map((row) => mapRow(row, collaborators ?? [])),
     };
   });
 
