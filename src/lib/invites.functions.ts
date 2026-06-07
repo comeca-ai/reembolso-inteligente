@@ -141,7 +141,7 @@ export const inviteApprover = createServerFn({ method: "POST" })
       body: JSON.stringify({
         sender,
         to: [email],
-        subject: `Convite para o reembolsa.aí — ${companyName}`,
+        subject: `Convite para o reembolso.ia.br — ${companyName}`,
         html_body: inviteEmailHtml({ nome: data.nome.trim(), companyName, actionLink }),
       }),
     });
