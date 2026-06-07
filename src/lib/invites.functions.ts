@@ -130,7 +130,7 @@ export const inviteApprover = createServerFn({ method: "POST" })
       throw new Error("Envio de e-mail indisponível: configuração ausente.");
     }
     // Remetente: precisa pertencer a um domínio verificado no SMTP2GO.
-    const sender = process.env.SMTP2GO_SENDER ?? "reembolsa.aí <nao-responder@reembolsa.ai>";
+    const sender = process.env.SMTP2GO_SENDER ?? "reembolsa.aí <nao-responder@reembolso.ia.br>";
 
     const res = await fetch("https://api.smtp2go.com/v3/email/send", {
       method: "POST",
