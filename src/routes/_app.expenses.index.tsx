@@ -253,7 +253,7 @@ function ExpensesPage() {
                 >
                   Limpar filtros
                 </Button>
-              ) : undefined
+              ) : null
             }
           />
         ) : (
