@@ -28,6 +28,7 @@ import { Route as ApiPublicReimbursementsRouteImport } from './routes/api/public
 import { Route as ApiPublicEvolutionRouteImport } from './routes/api/public/evolution'
 import { Route as ApiPublicDespesasRouteImport } from './routes/api/public/despesas'
 import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 
 const TesteWebhookRoute = TesteWebhookRouteImport.update({
   id: '/teste-webhook',
@@ -123,6 +124,12 @@ const AppExpensesIdRoute = AppExpensesIdRouteImport.update({
   path: '/expenses/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/expenses/': typeof AppExpensesIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -163,6 +171,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/expenses': typeof AppExpensesIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -185,6 +194,7 @@ export interface FileRoutesById {
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/_app/expenses/': typeof AppExpensesIndexRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution'
     | '/api/public/reimbursements'
     | '/expenses/'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution'
     | '/api/public/reimbursements'
     | '/expenses'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -248,6 +260,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution'
     | '/api/public/reimbursements'
     | '/_app/expenses/'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -263,6 +276,7 @@ export interface RootRouteChildren {
   ApiPublicDespesasRoute: typeof ApiPublicDespesasRoute
   ApiPublicEvolutionRoute: typeof ApiPublicEvolutionRoute
   ApiPublicReimbursementsRoute: typeof ApiPublicReimbursementsRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -400,6 +414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpensesIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -438,6 +459,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDespesasRoute: ApiPublicDespesasRoute,
   ApiPublicEvolutionRoute: ApiPublicEvolutionRoute,
   ApiPublicReimbursementsRoute: ApiPublicReimbursementsRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
