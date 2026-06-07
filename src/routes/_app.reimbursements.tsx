@@ -118,6 +118,30 @@ function ReimbursementsPage() {
     onError: () => toast.error("Não foi possível atualizar o status."),
   });
 
+  // Atualização em tempo real: novos comprovantes vindos do WhatsApp aparecem
+  // automaticamente. A chave de roteamento é sempre o número de telefone.
+  useEffect(() => {
+    const channel = supabase
+      .channel("inbound-reimbursements-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inbound_reimbursements" },
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { sender_name?: string; sender?: string };
+            toast.success("Novo comprovante recebido", {
+              description: row.sender_name || row.sender || "Remetente desconhecido",
+            });
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const webhookUrl =
     typeof window !== "undefined" ? `${window.location.origin}${WEBHOOK_PATH}` : WEBHOOK_PATH;
 
@@ -129,6 +153,7 @@ function ReimbursementsPage() {
       (m) =>
         m.sender.toLowerCase().includes(q) ||
         (m.senderName ?? "").toLowerCase().includes(q) ||
+        (m.collaboratorName ?? "").toLowerCase().includes(q) ||
         (m.message ?? "").toLowerCase().includes(q),
     );
   }, [messages, search]);
