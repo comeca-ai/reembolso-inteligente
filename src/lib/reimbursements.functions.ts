@@ -21,6 +21,33 @@ export interface InboundReimbursementDTO {
   category: string | null;
   status: string;
   createdAt: string;
+  /** Nome do colaborador casado pelo número de telefone (ou null). */
+  collaboratorName: string | null;
+  /** Id do perfil do colaborador casado pelo telefone (ou null). */
+  collaboratorId: string | null;
+}
+
+/** Mantém apenas os dígitos de um telefone para comparação robusta. */
+function digitsOnly(value: string | null | undefined): string {
+  return (value ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Casa um remetente (telefone) com um colaborador.
+ * Compara os últimos 8 dígitos para tolerar DDI/DDD e formatação distintos.
+ */
+function matchCollaborator(
+  sender: string,
+  profiles: { id: string; nome: string | null; whatsapp: string | null }[],
+): { id: string; nome: string } | null {
+  const senderDigits = digitsOnly(sender);
+  if (senderDigits.length < 8) return null;
+  const senderTail = senderDigits.slice(-8);
+  const found = profiles.find((p) => {
+    const pd = digitsOnly(p.whatsapp);
+    return pd.length >= 8 && pd.slice(-8) === senderTail;
+  });
+  return found ? { id: found.id, nome: found.nome ?? "Colaborador" } : null;
 }
 
 export interface ReimbursementsConfig {
@@ -29,18 +56,22 @@ export interface ReimbursementsConfig {
   messages: InboundReimbursementDTO[];
 }
 
-function mapRow(row: {
-  id: string;
-  channel: string;
-  sender: string;
-  sender_name: string | null;
-  message: string | null;
-  attachment_url: string | null;
-  amount: number | null;
-  category: string | null;
-  status: string;
-  created_at: string;
-}): InboundReimbursementDTO {
+function mapRow(
+  row: {
+    id: string;
+    channel: string;
+    sender: string;
+    sender_name: string | null;
+    message: string | null;
+    attachment_url: string | null;
+    amount: number | null;
+    category: string | null;
+    status: string;
+    created_at: string;
+  },
+  collaborators: { id: string; nome: string | null; whatsapp: string | null }[],
+): InboundReimbursementDTO {
+  const match = matchCollaborator(row.sender, collaborators);
   return {
     id: row.id,
     channel: row.channel,
@@ -52,6 +83,8 @@ function mapRow(row: {
     category: row.category,
     status: row.status,
     createdAt: row.created_at,
+    collaboratorName: match?.nome ?? null,
+    collaboratorId: match?.id ?? null,
   };
 }
 
@@ -92,10 +125,15 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
       .limit(200);
     if (error) throw error;
 
+    // Colaboradores da empresa para casar o comprovante pelo telefone.
+    const { data: collaborators } = await supabase
+      .from("profiles")
+      .select("id, nome, whatsapp");
+
     return {
       webhookToken,
       isAdmin,
-      messages: (rows ?? []).map(mapRow),
+      messages: (rows ?? []).map((row) => mapRow(row, collaborators ?? [])),
     };
   });
 

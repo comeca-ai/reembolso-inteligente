@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getReimbursementsConfig,
   updateReimbursementStatus,
@@ -24,6 +25,8 @@ import {
   Link2,
   RefreshCw,
   Paperclip,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -115,6 +118,30 @@ function ReimbursementsPage() {
     onError: () => toast.error("Não foi possível atualizar o status."),
   });
 
+  // Atualização em tempo real: novos comprovantes vindos do WhatsApp aparecem
+  // automaticamente. A chave de roteamento é sempre o número de telefone.
+  useEffect(() => {
+    const channel = supabase
+      .channel("inbound-reimbursements-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inbound_reimbursements" },
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { sender_name?: string; sender?: string };
+            toast.success("Novo comprovante recebido", {
+              description: row.sender_name || row.sender || "Remetente desconhecido",
+            });
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const webhookUrl =
     typeof window !== "undefined" ? `${window.location.origin}${WEBHOOK_PATH}` : WEBHOOK_PATH;
 
@@ -126,6 +153,7 @@ function ReimbursementsPage() {
       (m) =>
         m.sender.toLowerCase().includes(q) ||
         (m.senderName ?? "").toLowerCase().includes(q) ||
+        (m.collaboratorName ?? "").toLowerCase().includes(q) ||
         (m.message ?? "").toLowerCase().includes(q),
     );
   }, [messages, search]);
@@ -289,6 +317,17 @@ function ReimbursementRow({
           >
             {statusLabels[item.status] ?? item.status}
           </span>
+          {item.collaboratorName ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success ring-1 ring-success/30">
+              <UserCheck className="h-3.5 w-3.5" />
+              {item.collaboratorName}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border">
+              <UserX className="h-3.5 w-3.5" />
+              Sem colaborador
+            </span>
+          )}
         </div>
         {item.message && (
           <p className="mt-1.5 text-sm text-muted-foreground">{item.message}</p>
