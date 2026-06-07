@@ -24,6 +24,7 @@ export interface AuthCompany {
   razao_social: string;
   cnpj: string;
   politica_reembolso_arquivo?: string;
+  cartao_cnpj_arquivo?: string;
 }
 
 export interface AuthUser {
@@ -46,6 +47,8 @@ export interface SignUpInput {
   senha: string;
   /** Nome do arquivo da política de reembolso (opcional). */
   politicaReembolsoArquivo?: string;
+  /** Nome do arquivo do Cartão do CNPJ (obrigatório). */
+  cartaoCnpjArquivo?: string;
 }
 
 export interface SignInInput {
@@ -213,6 +216,7 @@ export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
         nome: input.nomeResponsavel.trim(),
         whatsapp: input.whatsapp.trim(),
         politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || "",
+        cartao_cnpj_arquivo: input.cartaoCnpjArquivo?.trim() || "",
       },
     },
   });

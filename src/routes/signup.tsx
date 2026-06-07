@@ -70,9 +70,12 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [politica, setPolitica] = useState<File | null>(null);
   const [politicaErro, setPoliticaErro] = useState<string | undefined>(undefined);
+  const [cartaoCnpj, setCartaoCnpj] = useState<File | null>(null);
+  const [cartaoCnpjErro, setCartaoCnpjErro] = useState<string | undefined>(undefined);
 
   const MAX_POLITICA_MB = 10;
   const TIPOS_ACEITOS = [".pdf", ".doc", ".docx"];
+  const TIPOS_CARTAO = [".pdf", ".jpg", ".jpeg", ".png"];
 
   function handlePoliticaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -93,6 +96,27 @@ function SignupPage() {
       return;
     }
     setPolitica(file);
+  }
+
+  function handleCartaoCnpjChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setCartaoCnpjErro(undefined);
+    if (!file) {
+      setCartaoCnpj(null);
+      return;
+    }
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!TIPOS_CARTAO.includes(ext)) {
+      setCartaoCnpjErro("Envie um arquivo PDF, JPG ou PNG.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_POLITICA_MB * 1024 * 1024) {
+      setCartaoCnpjErro(`Arquivo muito grande (máx. ${MAX_POLITICA_MB} MB).`);
+      e.target.value = "";
+      return;
+    }
+    setCartaoCnpj(file);
   }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -116,7 +140,12 @@ function SignupPage() {
       next.confirmarSenha = "As senhas não conferem.";
     if (!form.aceite) next.aceite = "É necessário aceitar os termos.";
     setErrors(next);
-    return Object.keys(next).length === 0;
+    let cartaoOk = true;
+    if (!cartaoCnpj) {
+      setCartaoCnpjErro("Envie o Cartão do CNPJ.");
+      cartaoOk = false;
+    }
+    return Object.keys(next).length === 0 && cartaoOk;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -132,6 +161,7 @@ function SignupPage() {
         whatsapp: form.whatsapp,
         senha: form.senha,
         politicaReembolsoArquivo: politica?.name,
+        cartaoCnpjArquivo: cartaoCnpj?.name,
       });
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
@@ -232,6 +262,53 @@ function SignupPage() {
             aria-invalid={!!errors.confirmarSenha}
           />
         </Field>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="cartaoCnpj">Cartão do CNPJ</Label>
+            <span className="text-xs text-destructive">Obrigatório</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Envie o Cartão do CNPJ da empresa (PDF, JPG ou PNG). Usamos para
+            validar os dados cadastrais.
+          </p>
+
+          {cartaoCnpj ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <FileText className="h-4 w-4 shrink-0 text-brand" />
+                <span className="truncate">{cartaoCnpj.name}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCartaoCnpj(null);
+                  setCartaoCnpjErro(undefined);
+                }}
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Remover arquivo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="cartaoCnpj"
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
+            >
+              <Paperclip className="h-4 w-4" />
+              Selecionar arquivo (até {MAX_POLITICA_MB} MB)
+            </label>
+          )}
+          <input
+            id="cartaoCnpj"
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            className="sr-only"
+            onChange={handleCartaoCnpjChange}
+          />
+          {cartaoCnpjErro && <p className="text-xs text-destructive">{cartaoCnpjErro}</p>}
+        </div>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
