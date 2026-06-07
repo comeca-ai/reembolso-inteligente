@@ -254,7 +254,7 @@ export const Route = createFileRoute("/api/public/evolution")({
             try {
               const provider = createLovableAiGatewayProvider(getLovableApiKey());
               const { object } = await generateObject({
-                model: provider("google/gemini-3-flash-preview"),
+                model: provider("google/gemini-2.5-flash"),
                 schema: ExtractionSchema,
                 messages: [
                   {
@@ -262,7 +262,13 @@ export const Route = createFileRoute("/api/public/evolution")({
                     content: [
                       {
                         type: "text",
-                        text: "Analise este comprovante de despesa e extraia o valor total, a categoria e uma descrição curta. Responda em português.",
+                        text:
+                          "Você é um leitor de comprovantes/recibos de despesa. " +
+                          "Olhe a imagem e extraia: (1) amount = o VALOR TOTAL pago em reais como número (ex.: 45.90), ou null se não conseguir ler; " +
+                          "(2) category = uma destas opções: " +
+                          CATEGORIES.join(", ") +
+                          " (escolha 'outros' se não tiver certeza); " +
+                          "(3) description = um resumo curto (ex.: nome do estabelecimento). Responda sempre preenchendo os três campos.",
                       },
                       { type: "image", image: attachmentUrl },
                     ],
@@ -270,7 +276,7 @@ export const Route = createFileRoute("/api/public/evolution")({
                 ],
               });
               amount = object.amount;
-              category = object.category;
+              category = object.category ?? "outros";
               aiDescription = object.description;
             } catch (e) {
               console.error("[evolution webhook] IA falhou:", e);
