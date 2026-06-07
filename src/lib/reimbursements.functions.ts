@@ -56,18 +56,22 @@ export interface ReimbursementsConfig {
   messages: InboundReimbursementDTO[];
 }
 
-function mapRow(row: {
-  id: string;
-  channel: string;
-  sender: string;
-  sender_name: string | null;
-  message: string | null;
-  attachment_url: string | null;
-  amount: number | null;
-  category: string | null;
-  status: string;
-  created_at: string;
-}): InboundReimbursementDTO {
+function mapRow(
+  row: {
+    id: string;
+    channel: string;
+    sender: string;
+    sender_name: string | null;
+    message: string | null;
+    attachment_url: string | null;
+    amount: number | null;
+    category: string | null;
+    status: string;
+    created_at: string;
+  },
+  collaborators: { id: string; nome: string | null; whatsapp: string | null }[],
+): InboundReimbursementDTO {
+  const match = matchCollaborator(row.sender, collaborators);
   return {
     id: row.id,
     channel: row.channel,
@@ -79,6 +83,8 @@ function mapRow(row: {
     category: row.category,
     status: row.status,
     createdAt: row.created_at,
+    collaboratorName: match?.nome ?? null,
+    collaboratorId: match?.id ?? null,
   };
 }
 
