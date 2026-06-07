@@ -80,6 +80,63 @@ function toDataUrl(input: string, mimetype?: string | null): string {
   return `data:${mimetype || "image/jpeg"};base64,${trimmed}`;
 }
 
+/** A mídia do WhatsApp vem criptografada (.enc) — base64 puro não é uma URL .enc. */
+function isUsableBase64(value: string | null): boolean {
+  if (!value) return false;
+  const v = value.trim();
+  if (v.startsWith("data:")) return true;
+  // URLs .enc (CDN criptografada do WhatsApp) NÃO servem para a IA.
+  if (/^https?:\/\//i.test(v)) return !/\.enc(\?|$)/i.test(v);
+  // Caso contrário, assumimos base64 cru (já descriptografado).
+  return v.length > 100;
+}
+
+/**
+ * Pede ao Evolution o base64 já DESCRIPTOGRAFADO da mídia (.enc → imagem/pdf).
+ * Precisa dos secrets EVOLUTION_API_URL e EVOLUTION_API_KEY e do nome da instância.
+ * Endpoint: POST /chat/getBase64FromMediaMessage/{instance}
+ */
+async function decryptMediaFromEvolution(
+  instance: string | null | undefined,
+  message: Record<string, any> | undefined,
+  key: Record<string, any> | undefined,
+): Promise<{ base64: string | null; mimetype: string | null }> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  if (!apiUrl || !apiKey || !instance) {
+    return { base64: null, mimetype: null };
+  }
+  try {
+    const base = apiUrl.replace(/\/+$/, "");
+    const res = await fetch(
+      `${base}/chat/getBase64FromMediaMessage/${encodeURIComponent(instance)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: apiKey },
+        body: JSON.stringify({
+          message: { key, message },
+          convertToMp4: false,
+        }),
+      },
+    );
+    if (!res.ok) {
+      console.error(
+        "[evolution webhook] getBase64FromMediaMessage status",
+        res.status,
+      );
+      return { base64: null, mimetype: null };
+    }
+    const json = (await res.json()) as { base64?: string; mimetype?: string };
+    return {
+      base64: json?.base64 ?? null,
+      mimetype: json?.mimetype ?? null,
+    };
+  } catch (e) {
+    console.error("[evolution webhook] decrypt falhou:", e);
+    return { base64: null, mimetype: null };
+  }
+}
+
 /** Extrai o telefone (apenas dígitos + "+") de um remoteJid do WhatsApp. */
 function phoneFromJid(jid: string | undefined | null): string {
   if (!jid) return "desconhecido";
