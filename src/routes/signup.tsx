@@ -266,7 +266,7 @@ function SignupPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="cartaoCnpj">Cartão do CNPJ</Label>
-            <span className="text-xs text-destructive">Obrigatório</span>
+            <span className="text-xs text-muted-foreground">Opcional</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Envie o Cartão do CNPJ da empresa (PDF, JPG ou PNG). Usamos para
