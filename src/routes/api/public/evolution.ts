@@ -52,10 +52,14 @@ const ExtractionSchema = z.object({
     .number()
     .nullable()
     .describe("Valor total do comprovante em reais, ou null se ilegível."),
-  category: z.enum(CATEGORIES).describe("Categoria da despesa mais provável."),
+  category: z
+    .enum(CATEGORIES)
+    .nullable()
+    .describe("Categoria da despesa mais provável (use 'outros' se incerto)."),
   description: z
     .string()
     .max(280)
+    .nullable()
     .describe("Resumo curto do que foi a despesa (ex.: estabelecimento)."),
 });
 
