@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TesteWebhookRouteImport } from './routes/teste-webhook'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PreCadastroRouteImport } from './routes/pre-cadastro'
@@ -25,6 +26,11 @@ import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.ind
 import { Route as ApiPublicReimbursementsRouteImport } from './routes/api/public/reimbursements'
 import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
 
+const TesteWebhookRoute = TesteWebhookRouteImport.update({
+  id: '/teste-webhook',
+  path: '/teste-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/pre-cadastro': typeof PreCadastroRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/teste-webhook': typeof TesteWebhookRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
   '/reimbursements': typeof AppReimbursementsRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/pre-cadastro': typeof PreCadastroRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/teste-webhook': typeof TesteWebhookRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
   '/reimbursements': typeof AppReimbursementsRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/pre-cadastro': typeof PreCadastroRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/teste-webhook': typeof TesteWebhookRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/policy': typeof AppPolicyRoute
   '/_app/reimbursements': typeof AppReimbursementsRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/pre-cadastro'
     | '/signup'
     | '/sitemap.xml'
+    | '/teste-webhook'
     | '/overview'
     | '/policy'
     | '/reimbursements'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/pre-cadastro'
     | '/signup'
     | '/sitemap.xml'
+    | '/teste-webhook'
     | '/overview'
     | '/policy'
     | '/reimbursements'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/pre-cadastro'
     | '/signup'
     | '/sitemap.xml'
+    | '/teste-webhook'
     | '/_app/overview'
     | '/_app/policy'
     | '/_app/reimbursements'
@@ -210,11 +222,19 @@ export interface RootRouteChildren {
   PreCadastroRoute: typeof PreCadastroRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TesteWebhookRoute: typeof TesteWebhookRoute
   ApiPublicReimbursementsRoute: typeof ApiPublicReimbursementsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/teste-webhook': {
+      id: '/teste-webhook'
+      path: '/teste-webhook'
+      fullPath: '/teste-webhook'
+      preLoaderRoute: typeof TesteWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -353,6 +373,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreCadastroRoute: PreCadastroRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TesteWebhookRoute: TesteWebhookRoute,
   ApiPublicReimbursementsRoute: ApiPublicReimbursementsRoute,
 }
 export const routeTree = rootRouteImport
