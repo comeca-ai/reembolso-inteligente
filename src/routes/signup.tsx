@@ -313,12 +313,11 @@ function SignupPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="politica">Política de reembolso</Label>
-            <span className="text-xs text-muted-foreground">Opcional</span>
+            <span className="text-xs text-destructive">Obrigatório</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Envie o seu plano/política de reembolso (PDF, DOC ou DOCX). É o
-            documento que a IA usa para avaliar as despesas. Você também pode
-            enviar depois, na tela de Política.
+            documento que a IA usa para avaliar as despesas.
           </p>
 
           {politica ? (
