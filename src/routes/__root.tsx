@@ -141,6 +141,28 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <Toaster richColors position="top-right" />
+      <ChatwootScript />
     </QueryClientProvider>
   );
+}
+
+function ChatwootScript() {
+  useEffect(() => {
+    if ((window as any).chatwootSDK) return;
+
+    const BASE_URL = "https://chatwoot-production-2176.up.railway.app";
+    const script = document.createElement("script");
+    script.src = `${BASE_URL}/packs/js/sdk.js`;
+    script.async = true;
+    script.onload = () => {
+      (window as any).chatwootSettings = { position: "right", type: "standard", launcherTitle: "" };
+      (window as any).chatwootSDK.run({
+        websiteToken: "juQ14DY6CRUy1SyEDQdU3rWh",
+        baseUrl: BASE_URL,
+      });
+    };
+    document.head.appendChild(script);
+  }, []);
+
+  return null;
 }
