@@ -140,12 +140,12 @@ function SignupPage() {
       next.confirmarSenha = "As senhas não conferem.";
     if (!form.aceite) next.aceite = "É necessário aceitar os termos.";
     setErrors(next);
-    let cartaoOk = true;
-    if (!cartaoCnpj) {
-      setCartaoCnpjErro("Envie o Cartão do CNPJ.");
-      cartaoOk = false;
+    let politicaOk = true;
+    if (!politica) {
+      setPoliticaErro("Envie a política de reembolso.");
+      politicaOk = false;
     }
-    return Object.keys(next).length === 0 && cartaoOk;
+    return Object.keys(next).length === 0 && politicaOk;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -266,7 +266,7 @@ function SignupPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="cartaoCnpj">Cartão do CNPJ</Label>
-            <span className="text-xs text-destructive">Obrigatório</span>
+            <span className="text-xs text-muted-foreground">Opcional</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Envie o Cartão do CNPJ da empresa (PDF, JPG ou PNG). Usamos para
@@ -313,12 +313,11 @@ function SignupPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="politica">Política de reembolso</Label>
-            <span className="text-xs text-muted-foreground">Opcional</span>
+            <span className="text-xs text-destructive">Obrigatório</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Envie o seu plano/política de reembolso (PDF, DOC ou DOCX). É o
-            documento que a IA usa para avaliar as despesas. Você também pode
-            enviar depois, na tela de Política.
+            documento que a IA usa para avaliar as despesas.
           </p>
 
           {politica ? (
