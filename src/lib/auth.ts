@@ -61,49 +61,17 @@ export interface ResetPasswordInput {
 let cachedUser: AuthUser | null = null;
 let sessionLoaded = false;
 
-function getMetadataText(authUser: User, key: string, fallback = ""): string {
-  const value = authUser.user_metadata?.[key];
-  return typeof value === "string" && value.trim() ? value.trim() : fallback;
-}
-
-async function ensureProfileRows(authUser: User): Promise<void> {
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", authUser.id)
-    .maybeSingle();
-
-  if (existingProfile) return;
-
-  const politicaArquivo = getMetadataText(authUser, "politica_reembolso_arquivo");
-  const { data: company, error: companyError } = await supabase
-    .from("companies")
-    .insert({
-      razao_social: getMetadataText(authUser, "razao_social", "Empresa"),
-      cnpj: getMetadataText(authUser, "cnpj"),
-      politica_reembolso_arquivo: politicaArquivo || null,
-    })
-    .select("id")
-    .single();
-
-  if (companyError) throw companyError;
-
-  const { error: profileError } = await supabase.from("profiles").insert({
-    id: authUser.id,
-    company_id: company.id,
-    nome: getMetadataText(authUser, "nome", authUser.email ?? "Usuário"),
-    email: authUser.email ?? getMetadataText(authUser, "email"),
-    whatsapp: getMetadataText(authUser, "whatsapp") || null,
-  });
-
-  if (profileError) throw profileError;
-
-  const { error: roleError } = await supabase.from("user_roles").insert({
-    user_id: authUser.id,
-    role: "admin",
-  });
-
-  if (roleError && roleError.code !== "23505") throw roleError;
+/**
+ * Garante que o usuário autenticado tenha empresa + perfil + papel admin.
+ *
+ * A criação acontece exclusivamente no servidor, via função SECURITY DEFINER
+ * `ensure_current_user_profile`, que só age sobre o próprio `auth.uid()` e
+ * apenas quando ainda não existe perfil. Isso impede que o cliente escolha um
+ * `company_id` arbitrário ou se conceda o papel admin diretamente.
+ */
+async function ensureProfileRows(_authUser: User): Promise<void> {
+  const { error } = await supabase.rpc("ensure_current_user_profile");
+  if (error) throw error;
 }
 
 /**
