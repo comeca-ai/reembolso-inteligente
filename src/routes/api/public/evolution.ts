@@ -308,7 +308,9 @@ export const Route = createFileRoute("/api/public/evolution")({
           let attachmentUrl: string | null = null;
 
           if (isUsableBase64(base64) && base64) {
-            attachmentUrl = toDataUrl(base64, mimetype);
+            // Imagem (data URL ou http) usada apenas em memória para a IA ler.
+            const imageForAi = toDataUrl(base64, mimetype);
+
             try {
               const provider = createLovableAiGatewayProvider(getLovableApiKey());
               const { object } = await generateObject({
@@ -328,7 +330,7 @@ export const Route = createFileRoute("/api/public/evolution")({
                           " (escolha 'outros' se não tiver certeza); " +
                           "(3) description = um resumo curto (ex.: nome do estabelecimento). Responda sempre preenchendo os três campos.",
                       },
-                      { type: "image", image: attachmentUrl },
+                      { type: "image", image: imageForAi },
                     ],
                   },
                 ],
@@ -339,6 +341,9 @@ export const Route = createFileRoute("/api/public/evolution")({
             } catch (e) {
               console.error("[evolution webhook] IA falhou:", e);
             }
+
+            // Persiste o comprovante no Storage (durável) e guarda só o caminho.
+            attachmentUrl = await uploadComprovante(companyId, imageForAi, mimetype);
           }
 
           // 5. Grava a mensagem recebida.
