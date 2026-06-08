@@ -15,6 +15,7 @@ import {
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
 import { matchCollaborator } from "@/lib/phone-match";
+import { extractJsonObject } from "@/lib/server-utils";
 
 export interface InboundReimbursementDTO {
   id: string;
