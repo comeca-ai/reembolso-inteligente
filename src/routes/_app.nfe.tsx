@@ -165,7 +165,106 @@ function StatCard({
   );
 }
 
-function NfeDashboard() {
+function CheckRow({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+        ok
+          ? "bg-success/10 text-success"
+          : "bg-destructive/10 text-destructive",
+      )}
+    >
+      {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Camada 1 — validação estrutural offline da chave. Mostra os campos
+ * desmembrados, as checagens (DV mod 11, CNPJ, UF, modelo) e os alertas.
+ */
+function NfeStructureDetails({
+  structure,
+}: {
+  structure: NfeChaveResultado;
+}) {
+  const { campos, checagens, alertas, veredito, estruturaOk } = structure;
+
+  return (
+    <div className="rounded-md bg-secondary/40 p-2.5 text-xs">
+      <div className="mb-1.5 flex items-center gap-2">
+        <span className="font-medium text-foreground">Estrutura da chave</span>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[11px] font-medium",
+            estruturaOk
+              ? "bg-success/10 text-success"
+              : "bg-destructive/10 text-destructive",
+          )}
+        >
+          {veredito}
+        </span>
+      </div>
+
+      {checagens && (
+        <div className="flex flex-wrap gap-1.5">
+          <CheckRow
+            ok={checagens.dvMod11.ok}
+            label={`DV mód.11 (${checagens.dvMod11.esperado})`}
+          />
+          <CheckRow ok={checagens.cnpjValido} label="CNPJ" />
+          <CheckRow ok={checagens.ufReconhecida} label="UF" />
+          <CheckRow ok={checagens.modeloReconhecido} label="Modelo" />
+        </div>
+      )}
+
+      {campos && (
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground sm:grid-cols-4">
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">UF</dt>
+            <dd className="text-foreground">{campos.uf.sigla}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">Modelo</dt>
+            <dd className="text-foreground">{campos.modelo.tipo}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">Emissão</dt>
+            <dd className="text-foreground">{campos.anoMesEmissao}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">Série/Nº</dt>
+            <dd className="text-foreground">
+              {campos.serie}/{campos.numero}
+            </dd>
+          </div>
+          <div className="col-span-2 sm:col-span-4">
+            <dt className="text-[10px] uppercase tracking-wide">CNPJ emitente</dt>
+            <dd className="font-mono text-foreground">{campos.cnpjEmitente}</dd>
+          </div>
+        </dl>
+      )}
+
+      {alertas.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {alertas.map((a, idx) => (
+            <li
+              key={idx}
+              className="flex items-start gap-1 text-warning-foreground"
+            >
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <span>{a}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+
   const queryClient = useQueryClient();
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
