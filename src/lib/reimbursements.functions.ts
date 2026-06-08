@@ -179,15 +179,7 @@ export const updateReimbursementStatus = createServerFn({ method: "POST" })
 
 const analyzeInput = z.object({ id: z.string().uuid() });
 
-function extractJsonObject(raw: string): any {
-  let txt = (raw ?? "").trim();
-  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) txt = fence[1].trim();
-  const first = txt.indexOf("{");
-  const last = txt.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) txt = txt.slice(first, last + 1);
-  return JSON.parse(txt);
-}
+// extractJsonObject vem de server-utils (compartilhado com policy.functions.ts).
 
 export interface ReimbursementAnalysis {
   verdict: "aprovar" | "revisar" | "recusar";
