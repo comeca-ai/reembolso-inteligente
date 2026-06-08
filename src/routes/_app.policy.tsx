@@ -14,6 +14,7 @@ import {
   type PolicyCategory,
 } from "@/lib/policy.functions";
 import { categoryLabels } from "@/lib/api";
+import { PolicyDraftStudio } from "@/components/policy/PolicyDraftStudio";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
