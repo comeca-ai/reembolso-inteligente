@@ -235,7 +235,7 @@ function ExpensesPage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por telefone, nome, categoria…"
+                placeholder="Buscar por telefone, nome, categoria, chave DANFE…"
                 className="h-9 pl-9"
               />
             </div>
