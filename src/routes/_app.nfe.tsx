@@ -165,7 +165,12 @@ function NfeDashboard() {
   const queryClient = useQueryClient();
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [sourceById, setSourceById] = useState<Record<string, string>>({});
+  const [testInput, setTestInput] = useState("");
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   const runVerifyNfe = useServerFn(verifyNfe);
+  const runVerifyNfeKey = useServerFn(verifyNfeKey);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: NFE_KEY,
