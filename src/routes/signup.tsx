@@ -82,6 +82,10 @@ function SignupPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<SignUpStep | null>(null);
+  const [failedStep, setFailedStep] = useState<SignUpStep | null>(null);
+  const [failedMessage, setFailedMessage] = useState<string>("");
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
