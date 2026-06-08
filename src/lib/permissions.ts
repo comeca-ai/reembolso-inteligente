@@ -20,6 +20,7 @@ export type Role = AuthUser["role"]; // "admin" | "approver" | "member"
 export const ROUTE_ACCESS: Record<string, Role[]> = {
   "/overview": ["admin", "approver"],
   "/expenses": ["admin", "approver", "member"],
+  "/nfe": ["admin", "approver"],
   "/reimbursements": ["admin", "approver"],
   "/policy": ["admin"],
   "/users": ["admin"],
