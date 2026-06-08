@@ -79,10 +79,21 @@ function mapRow(
     category: string | null;
     status: string;
     created_at: string;
+    policy_verdict?: string | null;
+    policy_summary?: string | null;
+    policy_cited_rule?: string | null;
+    policy_confidence?: number | null;
+    policy_analyzed_at?: string | null;
   },
   collaborators: { id: string; nome: string | null; whatsapp: string | null }[],
 ): InboundReimbursementDTO {
   const match = matchCollaborator(row.sender, collaborators);
+  const verdict =
+    row.policy_verdict === "aprovar" ||
+    row.policy_verdict === "revisar" ||
+    row.policy_verdict === "recusar"
+      ? row.policy_verdict
+      : null;
   return {
     id: row.id,
     channel: row.channel,
@@ -96,6 +107,14 @@ function mapRow(
     createdAt: row.created_at,
     collaboratorName: match?.nome ?? null,
     collaboratorId: match?.id ?? null,
+    policyVerdict: verdict,
+    policySummary: row.policy_summary ?? null,
+    policyCitedRule: row.policy_cited_rule ?? null,
+    policyConfidence:
+      row.policy_confidence === null || row.policy_confidence === undefined
+        ? null
+        : Number(row.policy_confidence),
+    policyAnalyzedAt: row.policy_analyzed_at ?? null,
   };
 }
 
