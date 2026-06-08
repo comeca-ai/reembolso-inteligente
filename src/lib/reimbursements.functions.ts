@@ -184,3 +184,124 @@ export const updateReimbursementStatus = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true, id: data.id, status: data.status };
   });
+
+// ---------------------------------------------------------------------------
+// Análise da IA: o comprovante recebido está em linha com a política?
+// ---------------------------------------------------------------------------
+
+const analyzeInput = z.object({ id: z.string().uuid() });
+
+function extractJsonObject(raw: string): any {
+  let txt = (raw ?? "").trim();
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) txt = fence[1].trim();
+  const first = txt.indexOf("{");
+  const last = txt.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) txt = txt.slice(first, last + 1);
+  return JSON.parse(txt);
+}
+
+export interface ReimbursementAnalysis {
+  verdict: "aprovar" | "revisar" | "recusar";
+  summary: string;
+  citedRule: string;
+  confidence: number;
+}
+
+export const analyzeReimbursement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => analyzeInput.parse(input))
+  .handler(async ({ data, context }): Promise<ReimbursementAnalysis> => {
+    const { supabase } = context;
+
+    const { data: row, error: rowErr } = await supabase
+      .from("inbound_reimbursements")
+      .select("id, sender, sender_name, message, amount, category, created_at")
+      .eq("id", data.id)
+      .single();
+    if (rowErr) throw rowErr;
+
+    // Regras da política ativa (escopo pela RLS do usuário).
+    const { data: active } = await supabase
+      .from("policies")
+      .select("id")
+      .eq("active", true)
+      .maybeSingle();
+
+    let rulesText = "";
+    if (active) {
+      const { data: rules } = await supabase
+        .from("policy_rules")
+        .select("code, title, category, rule_limit, rule_basis, rule_text")
+        .eq("policy_id", active.id)
+        .order("code");
+      rulesText = (rules ?? [])
+        .map(
+          (r) =>
+            `- [${r.code}] ${r.title} (categoria: ${r.category}; limite: ${r.rule_limit || "n/d"}; base: ${r.rule_basis || "n/d"}): ${r.rule_text}`,
+        )
+        .join("\n");
+    }
+
+    let analysis: ReimbursementAnalysis;
+
+    if (!rulesText) {
+      analysis = {
+        verdict: "revisar",
+        summary:
+          "Nenhuma política ativa com regras extraídas. Publique a política para a IA avaliar automaticamente.",
+        citedRule: "",
+        confidence: 0.3,
+      };
+    } else {
+      const gateway = createLovableAiGatewayProvider(getLovableApiKey());
+      const { text } = await generateText({
+        model: gateway("google/gemini-3-flash-preview"),
+        messages: [
+          {
+            role: "user",
+            content:
+              "Você avalia comprovantes de reembolso recebidos contra a política da empresa. " +
+              "Regras vigentes:\n" +
+              rulesText +
+              "\n\nComprovante recebido:\n" +
+              `- Remetente: ${row.sender_name || row.sender}\n` +
+              `- Categoria: ${row.category || "n/d"}\n` +
+              `- Valor: ${row.amount === null ? "n/d" : `R$ ${Number(row.amount).toFixed(2)}`}\n` +
+              `- Data: ${row.created_at || "n/d"}\n` +
+              `- Mensagem/descrição: ${row.message || "n/d"}\n\n` +
+              "Decida se o comprovante está EM LINHA com a política. " +
+              "verdict = 'aprovar' (em linha), 'revisar' (parcial/dúvida) ou 'recusar' (fora da política). " +
+              "Em summary, explique em 1-2 frases, em português do Brasil, por que está ou não em linha. " +
+              "citedRule = código da cláusula que justifica. Responda APENAS com JSON válido no formato: " +
+              '{ "verdict": "aprovar|revisar|recusar", "summary": string, "citedRule": string, "confidence": 0.8 }.',
+          },
+        ],
+      });
+      const parsed = extractJsonObject(text);
+      const v = String(parsed?.verdict ?? "revisar");
+      analysis = {
+        verdict:
+          v === "aprovar" || v === "revisar" || v === "recusar"
+            ? (v as ReimbursementAnalysis["verdict"])
+            : "revisar",
+        summary: String(parsed?.summary ?? "Comprovante marcado para revisão."),
+        citedRule: String(parsed?.citedRule ?? ""),
+        confidence: Math.min(1, Math.max(0, Number(parsed?.confidence ?? 0.5))),
+      };
+    }
+
+    const { error: updErr } = await supabase
+      .from("inbound_reimbursements")
+      .update({
+        policy_verdict: analysis.verdict,
+        policy_summary: analysis.summary,
+        policy_cited_rule: analysis.citedRule,
+        policy_confidence: analysis.confidence,
+        policy_analyzed_at: new Date().toISOString(),
+      } as never)
+      .eq("id", data.id);
+    if (updErr) throw updErr;
+
+    return analysis;
+  });
