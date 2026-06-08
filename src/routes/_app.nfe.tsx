@@ -448,6 +448,7 @@ function NfeDashboard() {
         )}
       </Card>
 
+      <Card>
         <div className="flex items-center justify-between border-b border-border p-4">
           <p className="text-sm font-medium text-foreground">
             {rows.length} {rows.length === 1 ? "nota" : "notas"} com chave DANFE
