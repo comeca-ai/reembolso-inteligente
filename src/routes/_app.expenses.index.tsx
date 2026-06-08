@@ -476,6 +476,7 @@ function ExpensesPage() {
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
+                      </td>
                       <td className="whitespace-nowrap px-5 py-4 align-top">
                         <span
                           className={cn(
