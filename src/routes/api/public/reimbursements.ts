@@ -131,6 +131,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
         let amount: number | null = null;
         let category: string | null = null;
         let aiDescription: string | null = null;
+        let danfeKey: string | null = null;
 
         try {
           const provider = createLovableAiGatewayProvider(getLovableApiKey());
@@ -143,7 +144,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
                 content: [
                   {
                     type: "text",
-                    text: "Analise este comprovante de despesa e extraia o valor total, a categoria e uma descrição curta. Responda em português.",
+                    text: "Analise este comprovante de despesa e extraia o valor total, a categoria, uma descrição curta e a chave de acesso da NF-e/DANFE (44 dígitos numéricos, geralmente sob o código de barras; use null se não houver). Responda em português.",
                   },
                   { type: "image", image: imageUrl },
                 ],
@@ -153,6 +154,8 @@ export const Route = createFileRoute("/api/public/reimbursements")({
           amount = object.amount;
           category = object.category;
           aiDescription = object.description;
+          const onlyDigits = (object.danfe_key ?? "").replace(/\D/g, "");
+          danfeKey = onlyDigits.length === 44 ? onlyDigits : null;
         } catch (e) {
           // Se a IA falhar, ainda gravamos a mensagem para análise manual.
           console.error("[reimbursements webhook] IA falhou:", e);
@@ -170,11 +173,12 @@ export const Route = createFileRoute("/api/public/reimbursements")({
             attachment_url: imageUrl,
             amount,
             category,
+            danfe_key: danfeKey,
             status: "recebido",
             raw_payload: {
               ...(raw as Record<string, unknown>),
               image_base64: "[omitido]", // já salvo em attachment_url
-              ai: { amount, category, description: aiDescription },
+              ai: { amount, category, description: aiDescription, danfe_key: danfeKey },
             } as never,
           })
           .select("id, created_at")
