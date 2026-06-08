@@ -39,28 +39,7 @@ export interface InboundReimbursementDTO {
   policyAnalyzedAt: string | null;
 }
 
-/** Mantém apenas os dígitos de um telefone para comparação robusta. */
-function digitsOnly(value: string | null | undefined): string {
-  return (value ?? "").replace(/\D/g, "");
-}
 
-/**
- * Casa um remetente (telefone) com um colaborador.
- * Compara os últimos 8 dígitos para tolerar DDI/DDD e formatação distintos.
- */
-function matchCollaborator(
-  sender: string,
-  profiles: { id: string; nome: string | null; whatsapp: string | null }[],
-): { id: string; nome: string } | null {
-  const senderDigits = digitsOnly(sender);
-  if (senderDigits.length < 8) return null;
-  const senderTail = senderDigits.slice(-8);
-  const found = profiles.find((p) => {
-    const pd = digitsOnly(p.whatsapp);
-    return pd.length >= 8 && pd.slice(-8) === senderTail;
-  });
-  return found ? { id: found.id, nome: found.nome ?? "Colaborador" } : null;
-}
 
 export interface ReimbursementsConfig {
   webhookToken: string | null;
