@@ -5,6 +5,7 @@ import { canAccess, landingForRole } from "@/lib/permissions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSuspenseQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { inviteApprover } from "@/lib/invites.functions";
+import { inviteEmployee } from "@/lib/employee-invite.functions";
 import { toast } from "sonner";
 import {
   api,
@@ -362,6 +363,7 @@ function FieldUserDrawer({
   approvers: Approver[];
 }) {
   const qc = useQueryClient();
+  const invite = useServerFn(inviteEmployee);
   const [form, setForm] = useState({
     name: "",
     cpfMasked: "",
@@ -371,19 +373,47 @@ function FieldUserDrawer({
     team: "",
     costCenter: "",
   });
+  const [sendInvite, setSendInvite] = useState(true);
 
-  const reset = () =>
+  const reset = () => {
     setForm({ name: "", cpfMasked: "", whatsapp: "", email: "", approverName: "", team: "", costCenter: "" });
+    setSendInvite(true);
+  };
 
   const mutation = useMutation({
-    mutationFn: () => api.createFieldUser(form),
-    onSuccess: (u) => {
+    mutationFn: async () => {
+      const created = await api.createFieldUser(form);
+      // Convite por e-mail é opcional: só dispara quando há e-mail e o admin
+      // mantém a opção marcada.
+      let invited = false;
+      if (sendInvite && form.email.trim()) {
+        await invite({
+          data: {
+            email: form.email.trim(),
+            nome: form.name.trim(),
+            whatsapp: form.whatsapp.trim() || undefined,
+            approverName: form.approverName.trim() || undefined,
+            origin: window.location.origin,
+          },
+        });
+        invited = true;
+      }
+      return { user: created, invited };
+    },
+    onSuccess: ({ user: u, invited }) => {
       qc.invalidateQueries({ queryKey: ["field-users"] });
       toast.success("Usuário de campo cadastrado", {
-        description: `${u.name} foi adicionado como pendente. Roteamento por ${u.whatsapp ?? u.email}.`,
+        description: invited
+          ? `${u.name} recebeu um e-mail com as instruções de envio de comprovantes.`
+          : `${u.name} foi adicionado como pendente. Roteamento por ${u.whatsapp ?? u.email}.`,
       });
       reset();
       onOpenChange(false);
+    },
+    onError: (err) => {
+      toast.error("Não foi possível concluir o cadastro", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
     },
   });
 
@@ -414,6 +444,20 @@ function FieldUserDrawer({
           <Field label="E-mail">
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="colaborador@empresa.com.br" />
           </Field>
+          {form.email.trim() && (
+            <label className="flex items-start gap-2.5 rounded-lg border border-border bg-accent/30 px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={sendInvite}
+                onChange={(e) => setSendInvite(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+              />
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">Enviar convite por e-mail</span> com as instruções de
+                envio de comprovantes por WhatsApp ou e-mail.
+              </span>
+            </label>
+          )}
           <Field label="Aprovador responsável" required>
             <Select value={form.approverName} onValueChange={(v) => setForm({ ...form, approverName: v })}>
               <SelectTrigger>
@@ -443,7 +487,13 @@ function FieldUserDrawer({
             Cancelar
           </Button>
           <Button onClick={() => mutation.mutate()} disabled={!canSubmit || mutation.isPending}>
-            {mutation.isPending ? "Cadastrando…" : "Cadastrar"}
+            {mutation.isPending
+              ? sendInvite && form.email.trim()
+                ? "Enviando convite…"
+                : "Cadastrando…"
+              : sendInvite && form.email.trim()
+                ? "Cadastrar e convidar"
+                : "Cadastrar"}
           </Button>
         </SheetFooter>
       </SheetContent>
