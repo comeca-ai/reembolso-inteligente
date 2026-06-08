@@ -561,7 +561,14 @@ function PolicyPage() {
               Essas regras entram no contexto de cada análise de despesa pela IA.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-2">
+          <form
+            id="rule-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!saveMutation.isPending) submitRule();
+            }}
+            className="grid gap-4 py-2"
+          >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="rule-code">Código</Label>
