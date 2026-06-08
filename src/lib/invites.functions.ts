@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const inviteSchema = z.object({
   email: z.string().email().max(255),
@@ -104,6 +103,7 @@ export const inviteApprover = createServerFn({ method: "POST" })
     const companyName = company?.razao_social ?? "Sua empresa";
 
     const email = data.email.trim().toLowerCase();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // 3) Gera o link de convite (cria o usuário em auth.users).
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
