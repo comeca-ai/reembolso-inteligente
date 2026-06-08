@@ -248,7 +248,13 @@ export const Route = createFileRoute("/api/public/evolution")({
         new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Webhook público sem token (qualquer chamada do Evolution é aceita).
+        // 1. Autentica pelo webhook_token e resolve a empresa correspondente.
+        const companyId = await resolveCompanyByWebhookToken(
+          extractWebhookToken(request),
+        );
+        if (!companyId) {
+          return json({ error: "Token de webhook inválido ou ausente." }, 401);
+        }
 
         // 2. Lê o corpo.
         let raw: any;
