@@ -233,6 +233,8 @@ export type Database = {
           id: string
           pages: number
           size_kb: number
+          source: string
+          source_text: string | null
           status: string
           updated_at: string
           uploaded_by: string | null
@@ -247,6 +249,8 @@ export type Database = {
           id?: string
           pages?: number
           size_kb?: number
+          source?: string
+          source_text?: string | null
           status?: string
           updated_at?: string
           uploaded_by?: string | null
@@ -261,6 +265,8 @@ export type Database = {
           id?: string
           pages?: number
           size_kb?: number
+          source?: string
+          source_text?: string | null
           status?: string
           updated_at?: string
           uploaded_by?: string | null
