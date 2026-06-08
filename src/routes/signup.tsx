@@ -334,7 +334,8 @@ function SignupPage() {
             <span className="text-xs text-muted-foreground">Opcional</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Envie o Cartão do CNPJ da empresa (PDF, JPG ou PNG). Usamos para
+            Envie o Cartão do CNPJ da empresa (imagem, PDF, PPT, XLS ou TXT).
+            Usamos para
             validar os dados cadastrais.
           </p>
 
@@ -368,7 +369,7 @@ function SignupPage() {
           <input
             id="cartaoCnpj"
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.ppt,.pptx,.xls,.xlsx,.txt,image/*"
             className="sr-only"
             onChange={handleCartaoCnpjChange}
           />
