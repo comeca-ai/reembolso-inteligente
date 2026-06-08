@@ -146,6 +146,8 @@ function ExpensesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const runVerifyNfe = useServerFn(verifyNfe);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: DESPESAS_KEY,
@@ -153,6 +155,44 @@ function ExpensesPage() {
   });
 
   const despesas = useMemo(() => data ?? [], [data]);
+
+  // Verifica a autenticidade da nota: principal via nfe.io, fallback portal SEFAZ.
+  async function handleVerify(d: RichDespesa) {
+    if (!d.danfeKey) return;
+    setVerifyingId(d.id);
+    try {
+      const result = await runVerifyNfe({ data: { id: d.id } });
+      // Atualiza a linha localmente.
+      queryClient.setQueryData<RichDespesa[]>(DESPESAS_KEY, (prev) =>
+        (prev ?? []).map((item) =>
+          item.id === d.id
+            ? {
+                ...item,
+                nfeStatus: result.status,
+                nfeVerifiedAt: result.verifiedAt,
+              }
+            : item,
+        ),
+      );
+      if (result.status === "autorizada") {
+        toast.success(result.message);
+      } else if (result.status === "manual") {
+        toast.warning(result.message, {
+          action: {
+            label: "Abrir SEFAZ",
+            onClick: () => window.open(result.sefazUrl, "_blank", "noopener"),
+          },
+        });
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Falha ao verificar a nota. Tente novamente.");
+    } finally {
+      setVerifyingId(null);
+    }
+  }
+
 
   // Abre o comprovante: links http/data abrem direto; caminhos do Storage
   // geram uma URL assinada temporária (bucket privado "comprovantes").
