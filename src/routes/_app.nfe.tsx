@@ -1,0 +1,444 @@
+import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  RefreshCw,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  ShieldQuestion,
+  ExternalLink,
+  Loader2,
+  FileSearch,
+} from "lucide-react";
+import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { verifyNfe, type NfeStatus, SEFAZ_PORTAL_URL } from "@/lib/nfe.functions";
+
+interface NfeRow {
+  id: string;
+  sender: string;
+  senderName: string | null;
+  amount: number | null;
+  danfeKey: string;
+  createdAt: string;
+  nfeStatus: NfeStatus | null;
+  nfeVerifiedAt: string | null;
+}
+
+const NFE_KEY = ["nfe-dashboard"] as const;
+
+const badge: Record<
+  NfeStatus,
+  { label: string; className: string; Icon: typeof ShieldCheck }
+> = {
+  autorizada: {
+    label: "Autorizada",
+    className: "bg-success/15 text-success ring-1 ring-success/30",
+    Icon: ShieldCheck,
+  },
+  cancelada: {
+    label: "Cancelada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  denegada: {
+    label: "Denegada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  inexistente: {
+    label: "Não encontrada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  erro: {
+    label: "Indeterminado",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    Icon: ShieldAlert,
+  },
+  manual: {
+    label: "Conferir manual",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    Icon: ShieldAlert,
+  },
+};
+
+async function fetchNfe(): Promise<NfeRow[]> {
+  const { data, error } = await supabase
+    .from("inbound_reimbursements")
+    .select(
+      "id, sender, sender_name, amount, danfe_key, created_at, nfe_status, nfe_verified_at",
+    )
+    .not("danfe_key", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(300);
+  if (error) throw error;
+  return (data ?? [])
+    .filter((r) => String(r.danfe_key ?? "").replace(/\D/g, "").length === 44)
+    .map((row) => ({
+      id: row.id,
+      sender: row.sender,
+      senderName: row.sender_name,
+      amount: row.amount === null ? null : Number(row.amount),
+      danfeKey: row.danfe_key as string,
+      createdAt: row.created_at,
+      nfeStatus: (row.nfe_status as NfeStatus | null) ?? null,
+      nfeVerifiedAt: (row.nfe_verified_at as string | null) ?? null,
+    }));
+}
+
+export const Route = createFileRoute("/_app/nfe")({
+  head: () => ({ meta: [{ title: "NF-e · reembolso.ia.br" }] }),
+  pendingComponent: () => (
+    <PageSkeleton>
+      <TableSkeleton rows={8} cols={5} />
+    </PageSkeleton>
+  ),
+  component: NfeDashboard,
+});
+
+function formatBRL(value: number | null) {
+  if (value === null) return "—";
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function StatCard({
+  label,
+  value,
+  className,
+  Icon,
+}: {
+  label: string;
+  value: number;
+  className?: string;
+  Icon: typeof ShieldCheck;
+}) {
+  return (
+    <Card className="flex items-center gap-4 p-5">
+      <span
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+          className,
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <div className="leading-tight">
+        <p className="text-2xl font-semibold tabular-nums text-foreground">
+          {value}
+        </p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </div>
+    </Card>
+  );
+}
+
+function NfeDashboard() {
+  const queryClient = useQueryClient();
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const runVerifyNfe = useServerFn(verifyNfe);
+
+  const { data, isLoading, refetch, isFetching } = useQuery({
+    queryKey: NFE_KEY,
+    queryFn: fetchNfe,
+  });
+
+  const rows = useMemo(() => data ?? [], [data]);
+
+  const stats = useMemo(() => {
+    const s = {
+      total: rows.length,
+      autorizada: 0,
+      problema: 0,
+      pendente: 0,
+      manual: 0,
+    };
+    for (const r of rows) {
+      if (!r.nfeStatus) s.pendente += 1;
+      else if (r.nfeStatus === "autorizada") s.autorizada += 1;
+      else if (r.nfeStatus === "manual" || r.nfeStatus === "erro") s.manual += 1;
+      else s.problema += 1;
+    }
+    return s;
+  }, [rows]);
+
+  function applyResult(id: string, status: NfeStatus, verifiedAt: string | null) {
+    queryClient.setQueryData<NfeRow[]>(NFE_KEY, (prev) =>
+      (prev ?? []).map((item) =>
+        item.id === id
+          ? { ...item, nfeStatus: status, nfeVerifiedAt: verifiedAt }
+          : item,
+      ),
+    );
+  }
+
+  async function handleVerify(r: NfeRow) {
+    setVerifyingId(r.id);
+    try {
+      const result = await runVerifyNfe({ data: { id: r.id } });
+      applyResult(r.id, result.status, result.verifiedAt);
+      if (result.status === "autorizada") toast.success(result.message);
+      else if (result.status === "manual")
+        toast.warning(result.message, {
+          action: {
+            label: "Abrir SEFAZ",
+            onClick: () => window.open(result.sefazUrl, "_blank", "noopener"),
+          },
+        });
+      else toast.error(result.message);
+    } catch {
+      toast.error("Falha ao verificar a nota. Tente novamente.");
+    } finally {
+      setVerifyingId(null);
+    }
+  }
+
+  async function handleVerifyPending() {
+    const pending = rows.filter((r) => !r.nfeStatus);
+    if (pending.length === 0) {
+      toast.info("Nenhuma nota pendente para verificar.");
+      return;
+    }
+    setBulkRunning(true);
+    let ok = 0;
+    for (const r of pending) {
+      try {
+        const result = await runVerifyNfe({ data: { id: r.id } });
+        applyResult(r.id, result.status, result.verifiedAt);
+        ok += 1;
+      } catch {
+        /* segue para a próxima */
+      }
+    }
+    setBulkRunning(false);
+    toast.success(`Verificação concluída para ${ok} de ${pending.length} notas.`);
+  }
+
+  // Realtime: novas notas aparecem automaticamente.
+  useEffect(() => {
+    const channel = supabase
+      .channel("nfe-dashboard-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "inbound_reimbursements" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: NFE_KEY });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  if (isLoading) {
+    return (
+      <PageSkeleton>
+        <TableSkeleton rows={8} cols={5} />
+      </PageSkeleton>
+    );
+  }
+
+  return (
+    <div className="animate-fade-rise space-y-8">
+      <PageHeader
+        eyebrow="Fiscal"
+        title="Verificação de NF-e"
+        description="Autenticidade das notas fiscais recebidas, conferidas junto à SEFAZ pela chave de acesso (DANFE)."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
+            <Button
+              className="gap-2"
+              onClick={handleVerifyPending}
+              disabled={bulkRunning || stats.pendente === 0}
+            >
+              {bulkRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSearch className="h-4 w-4" />
+              )}
+              Verificar pendentes ({stats.pendente})
+            </Button>
+          </div>
+        }
+      />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          label="Autorizadas"
+          value={stats.autorizada}
+          Icon={ShieldCheck}
+          className="bg-success/15 text-success"
+        />
+        <StatCard
+          label="Com problema"
+          value={stats.problema}
+          Icon={ShieldX}
+          className="bg-destructive/10 text-destructive"
+        />
+        <StatCard
+          label="Conferir manual"
+          value={stats.manual}
+          Icon={ShieldAlert}
+          className="bg-warning/15 text-warning-foreground"
+        />
+        <StatCard
+          label="Pendentes"
+          value={stats.pendente}
+          Icon={ShieldQuestion}
+          className="bg-muted text-muted-foreground"
+        />
+      </div>
+
+      <Card>
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <p className="text-sm font-medium text-foreground">
+            {rows.length} {rows.length === 1 ? "nota" : "notas"} com chave DANFE
+          </p>
+        </div>
+
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={FileSearch}
+            title="Nenhuma nota com chave DANFE"
+            description="Assim que um comprovante com chave de acesso (44 dígitos) for recebido, ele aparece aqui para verificação na SEFAZ."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <th className="px-5 py-3 font-medium">Remetente</th>
+                  <th className="px-5 py-3 font-medium">Valor</th>
+                  <th className="px-5 py-3 font-medium">Chave DANFE</th>
+                  <th className="px-5 py-3 font-medium">Situação</th>
+                  <th className="px-5 py-3 font-medium">Verificado em</th>
+                  <th className="px-5 py-3 text-right font-medium">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {rows.map((r) => (
+                  <tr
+                    key={r.id}
+                    className="transition-colors hover:bg-secondary/40"
+                  >
+                    <td className="whitespace-nowrap px-5 py-4 align-top">
+                      <span className="font-medium text-foreground">
+                        {r.senderName || r.sender}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {r.sender}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 align-top tabular-nums font-medium text-foreground">
+                      {formatBRL(r.amount)}
+                    </td>
+                    <td className="px-5 py-4 align-top">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(r.danfeKey);
+                          toast.success("Chave DANFE copiada");
+                        }}
+                        title={`${r.danfeKey} (clique para copiar)`}
+                        className="font-mono text-xs tabular-nums text-foreground hover:text-primary"
+                      >
+                        …{r.danfeKey.slice(-12)}
+                      </button>
+                    </td>
+                    <td className="px-5 py-4 align-top">
+                      {r.nfeStatus ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                            badge[r.nfeStatus].className,
+                          )}
+                        >
+                          {(() => {
+                            const Icon = badge[r.nfeStatus].Icon;
+                            return <Icon className="h-3 w-3" />;
+                          })()}
+                          {badge[r.nfeStatus].label}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border">
+                          <ShieldQuestion className="h-3 w-3" />
+                          Pendente
+                        </span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
+                      {formatDateTime(r.nfeVerifiedAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 text-right align-top">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1.5 px-2 text-xs"
+                          disabled={verifyingId === r.id || bulkRunning}
+                          onClick={() => handleVerify(r)}
+                        >
+                          {verifyingId === r.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <FileSearch className="h-3 w-3" />
+                          )}
+                          Verificar
+                        </Button>
+                        <a
+                          href={SEFAZ_PORTAL_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground ring-1 ring-border transition-colors hover:text-primary"
+                          title="Abrir portal da SEFAZ"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          SEFAZ
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Veja todas as despesas na página de{" "}
+        <Link to="/expenses" className="font-medium text-primary hover:underline">
+          Despesas
+        </Link>
+        .
+      </p>
+    </div>
+  );
+}

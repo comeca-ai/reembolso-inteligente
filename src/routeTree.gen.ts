@@ -23,6 +23,7 @@ import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppReimbursementsRouteImport } from './routes/_app.reimbursements'
 import { Route as AppPolicyRouteImport } from './routes/_app.policy'
 import { Route as AppOverviewRouteImport } from './routes/_app.overview'
+import { Route as AppNfeRouteImport } from './routes/_app.nfe'
 import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
 import { Route as ApiPublicReimbursementsRouteImport } from './routes/api/public/reimbursements'
 import { Route as ApiPublicEvolutionRouteImport } from './routes/api/public/evolution'
@@ -101,6 +102,11 @@ const AppOverviewRoute = AppOverviewRouteImport.update({
   path: '/overview',
   getParentRoute: () => AppRoute,
 } as any)
+const AppNfeRoute = AppNfeRouteImport.update({
+  id: '/nfe',
+  path: '/nfe',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppExpensesIndexRoute = AppExpensesIndexRouteImport.update({
   id: '/expenses/',
   path: '/expenses/',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teste-webhook': typeof TesteWebhookRoute
+  '/nfe': typeof AppNfeRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
   '/reimbursements': typeof AppReimbursementsRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teste-webhook': typeof TesteWebhookRoute
+  '/nfe': typeof AppNfeRoute
   '/overview': typeof AppOverviewRoute
   '/policy': typeof AppPolicyRoute
   '/reimbursements': typeof AppReimbursementsRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/teste-webhook': typeof TesteWebhookRoute
+  '/_app/nfe': typeof AppNfeRoute
   '/_app/overview': typeof AppOverviewRoute
   '/_app/policy': typeof AppPolicyRoute
   '/_app/reimbursements': typeof AppReimbursementsRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/teste-webhook'
+    | '/nfe'
     | '/overview'
     | '/policy'
     | '/reimbursements'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/teste-webhook'
+    | '/nfe'
     | '/overview'
     | '/policy'
     | '/reimbursements'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/sitemap.xml'
     | '/teste-webhook'
+    | '/_app/nfe'
     | '/_app/overview'
     | '/_app/policy'
     | '/_app/reimbursements'
@@ -405,6 +417,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOverviewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/nfe': {
+      id: '/_app/nfe'
+      path: '/nfe'
+      fullPath: '/nfe'
+      preLoaderRoute: typeof AppNfeRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/expenses/': {
       id: '/_app/expenses/'
       path: '/expenses'
@@ -465,6 +484,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppNfeRoute: typeof AppNfeRoute
   AppOverviewRoute: typeof AppOverviewRoute
   AppPolicyRoute: typeof AppPolicyRoute
   AppReimbursementsRoute: typeof AppReimbursementsRoute
@@ -475,6 +495,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppNfeRoute: AppNfeRoute,
   AppOverviewRoute: AppOverviewRoute,
   AppPolicyRoute: AppPolicyRoute,
   AppReimbursementsRoute: AppReimbursementsRoute,
