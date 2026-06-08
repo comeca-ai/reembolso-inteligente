@@ -57,6 +57,12 @@ const ExtractionSchema = z.object({
     .string()
     .max(280)
     .describe("Resumo curto do que foi a despesa (ex.: estabelecimento)."),
+  danfe_key: z
+    .string()
+    .nullable()
+    .describe(
+      "Chave de acesso da NF-e/DANFE: exatamente 44 dígitos numéricos impressos no comprovante (normalmente sob o código de barras). Retorne apenas os 44 dígitos, sem espaços, ou null se não houver.",
+    ),
 });
 
 const corsHeaders = {
