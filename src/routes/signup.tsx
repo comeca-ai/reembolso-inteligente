@@ -152,7 +152,7 @@ function SignupPage() {
       if (/weak|pwned|password/i.test(message)) {
         description =
           "Essa senha é muito comum ou apareceu em vazamentos. Crie uma senha mais forte e única.";
-      } else if (/already registered|already been registered|user already/i.test(message)) {
+      } else if (/already registered|already been registered|user already|já possui conta/i.test(message)) {
         description = "Este e-mail já possui conta. Tente entrar ou recuperar a senha.";
       } else if (/network|fetch|failed to fetch/i.test(message)) {
         description = "Falha de conexão. Verifique sua internet e tente novamente.";
