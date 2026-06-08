@@ -193,7 +193,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
             ok: true,
             id: inserted.id,
             received_at: inserted.created_at,
-            ai: { amount, category, description: aiDescription },
+            ai: { amount, category, description: aiDescription, danfe_key: danfeKey },
           },
           201,
         );
