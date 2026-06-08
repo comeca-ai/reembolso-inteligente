@@ -302,7 +302,7 @@ function SignupPage() {
         onRetry={() => {
           setFailedStep(null);
           setFailedMessage("");
-          void handleSubmit(new Event("submit") as unknown as React.FormEvent);
+          void runSignup();
         }}
       />
     </AuthLayout>
