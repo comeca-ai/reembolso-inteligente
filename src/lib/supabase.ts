@@ -24,18 +24,19 @@ import { supabase } from "@/integrations/supabase/client";
 export { supabase };
 
 /**
- * `true` quando a camada de DADOS está apontada para um backend real.
+ * `true` quando a camada de DADOS está apontada para um backend real e pronto.
  *
- * Mantemos o gate na `VITE_SUPABASE_ANON_KEY` (variável de dados, separada da
- * chave de auth). Enquanto ela não estiver definida, a aplicação continua
- * usando os dados de demonstração (mock) — exatamente como antes desta
- * refatoração. O importante aqui é que a AUTENTICAÇÃO já usa o cliente único
- * (reexportado acima), eliminando a duplicação de GoTrueClient.
+ * IMPORTANTE: a AUTENTICAÇÃO sempre usa o backend real (cliente único
+ * reexportado acima). Esta flag controla apenas a camada de DADOS de negócio
+ * (`api.ts`).
+ *
+ * Hoje as tabelas esperadas por `api.ts` (`expenses`, `user_accounts`,
+ * `field_users`, ...) ainda NÃO existem no banco. Se apontássemos a camada de
+ * dados para o backend, toda tela pós-login quebraria com
+ * "Could not find the table public.expenses". Por isso mantemos os dados de
+ * demonstração (mock) até que o schema de dados seja criado e mapeado.
  */
-export const isSupabaseConfigured = Boolean(
-  (import.meta.env.VITE_SUPABASE_URL as string | undefined) &&
-    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined),
-);
+export const isSupabaseConfigured = false;
 
 /** `true` quando a aplicação está rodando com dados de demonstração (mock). */
 export const isUsingMockData = !isSupabaseConfigured;
