@@ -13,6 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { validarChave, type NfeChaveResultado } from "@/lib/nfe-chave";
 
 /** Portal nacional de consulta pública de NF-e (resumo, com captcha). */
 export const SEFAZ_PORTAL_URL =
