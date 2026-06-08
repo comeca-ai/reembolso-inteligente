@@ -363,6 +363,7 @@ function FieldUserDrawer({
   approvers: Approver[];
 }) {
   const qc = useQueryClient();
+  const invite = useServerFn(inviteEmployee);
   const [form, setForm] = useState({
     name: "",
     cpfMasked: "",
@@ -372,19 +373,47 @@ function FieldUserDrawer({
     team: "",
     costCenter: "",
   });
+  const [sendInvite, setSendInvite] = useState(true);
 
-  const reset = () =>
+  const reset = () => {
     setForm({ name: "", cpfMasked: "", whatsapp: "", email: "", approverName: "", team: "", costCenter: "" });
+    setSendInvite(true);
+  };
 
   const mutation = useMutation({
-    mutationFn: () => api.createFieldUser(form),
-    onSuccess: (u) => {
+    mutationFn: async () => {
+      const created = await api.createFieldUser(form);
+      // Convite por e-mail é opcional: só dispara quando há e-mail e o admin
+      // mantém a opção marcada.
+      let invited = false;
+      if (sendInvite && form.email.trim()) {
+        await invite({
+          data: {
+            email: form.email.trim(),
+            nome: form.name.trim(),
+            whatsapp: form.whatsapp.trim() || undefined,
+            approverName: form.approverName.trim() || undefined,
+            origin: window.location.origin,
+          },
+        });
+        invited = true;
+      }
+      return { user: created, invited };
+    },
+    onSuccess: ({ user: u, invited }) => {
       qc.invalidateQueries({ queryKey: ["field-users"] });
       toast.success("Usuário de campo cadastrado", {
-        description: `${u.name} foi adicionado como pendente. Roteamento por ${u.whatsapp ?? u.email}.`,
+        description: invited
+          ? `${u.name} recebeu um e-mail com as instruções de envio de comprovantes.`
+          : `${u.name} foi adicionado como pendente. Roteamento por ${u.whatsapp ?? u.email}.`,
       });
       reset();
       onOpenChange(false);
+    },
+    onError: (err) => {
+      toast.error("Não foi possível concluir o cadastro", {
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
     },
   });
 
