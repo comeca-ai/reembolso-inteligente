@@ -15,6 +15,7 @@ import {
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
 import { matchCollaborator } from "@/lib/phone-match";
+import { extractJsonObject } from "@/lib/server-utils";
 
 export interface InboundReimbursementDTO {
   id: string;
@@ -156,11 +157,19 @@ export const updateReimbursementStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => statusInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    // Escopo defensivo por empresa (além da RLS).
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!profile?.company_id) throw new Error("Empresa não encontrada.");
     const { error } = await supabase
       .from("inbound_reimbursements")
       .update({ status: data.status })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("company_id", profile.company_id);
     if (error) throw error;
     return { ok: true, id: data.id, status: data.status };
   });
@@ -171,15 +180,7 @@ export const updateReimbursementStatus = createServerFn({ method: "POST" })
 
 const analyzeInput = z.object({ id: z.string().uuid() });
 
-function extractJsonObject(raw: string): any {
-  let txt = (raw ?? "").trim();
-  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) txt = fence[1].trim();
-  const first = txt.indexOf("{");
-  const last = txt.lastIndexOf("}");
-  if (first !== -1 && last !== -1 && last > first) txt = txt.slice(first, last + 1);
-  return JSON.parse(txt);
-}
+// extractJsonObject vem de server-utils (compartilhado com policy.functions.ts).
 
 export interface ReimbursementAnalysis {
   verdict: "aprovar" | "revisar" | "recusar";
@@ -258,16 +259,22 @@ export const analyzeReimbursement = createServerFn({ method: "POST" })
           },
         ],
       });
-      const parsed = extractJsonObject(text);
-      const v = String(parsed?.verdict ?? "revisar");
+      // JSON malformado da IA não deve derrubar a requisição (vira "revisar").
+      let parsed: Record<string, unknown> = {};
+      try {
+        parsed = (extractJsonObject(text) as Record<string, unknown>) ?? {};
+      } catch (e) {
+        console.error("[analyzeReimbursement] JSON inválido da IA:", e);
+      }
+      const v = String(parsed.verdict ?? "revisar");
       analysis = {
         verdict:
           v === "aprovar" || v === "revisar" || v === "recusar"
             ? (v as ReimbursementAnalysis["verdict"])
             : "revisar",
-        summary: String(parsed?.summary ?? "Comprovante marcado para revisão."),
-        citedRule: String(parsed?.citedRule ?? ""),
-        confidence: Math.min(1, Math.max(0, Number(parsed?.confidence ?? 0.5))),
+        summary: String(parsed.summary ?? "Comprovante marcado para revisão."),
+        citedRule: String(parsed.citedRule ?? ""),
+        confidence: Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.5))),
       };
     }
 

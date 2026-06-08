@@ -1,10 +1,26 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState, useRef, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
 import { Upload, Send, Loader2, CheckCircle, XCircle, ImageIcon } from "lucide-react";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
+import { landingForRole } from "@/lib/permissions";
+import { getReimbursementsConfig } from "@/lib/reimbursements.functions";
 
 export const Route = createFileRoute("/teste-webhook")({
+  // Página de debug: só admin autenticado pode acessar (e ela envia o
+  // webhook_token da empresa para o endpoint, que agora exige autenticação).
+  ssr: false,
+  beforeLoad: async () => {
+    if (!(await isAuthenticated())) {
+      throw redirect({ to: "/login" });
+    }
+    const role = getCurrentUser()?.role;
+    if (role !== "admin") {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Teste do Webhook — reembolso.ia.br" },
@@ -21,7 +37,17 @@ function TesteWebhookPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [webhookToken, setWebhookToken] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const loadConfig = useServerFn(getReimbursementsConfig);
+
+  // Busca o webhook_token da empresa para autenticar a chamada de teste.
+  useEffect(() => {
+    loadConfig({})
+      .then((cfg) => setWebhookToken(cfg.webhookToken))
+      .catch(() => setWebhookToken(null));
+  }, [loadConfig]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -41,6 +67,10 @@ function TesteWebhookPage() {
 
   const handleSend = async () => {
     if (!base64) return;
+    if (!webhookToken) {
+      setError("Token do webhook indisponível para esta empresa.");
+      return;
+    }
     setLoading(true);
     setResult(null);
     setError(null);
@@ -48,7 +78,10 @@ function TesteWebhookPage() {
     try {
       const res = await fetch("/api/public/reimbursements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${webhookToken}`,
+        },
         body: JSON.stringify({
           image_base64: base64,
           sender: "teste@reembolso.ia.br",

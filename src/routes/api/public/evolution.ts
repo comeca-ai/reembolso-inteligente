@@ -6,6 +6,10 @@ import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
+import {
+  extractWebhookToken,
+  resolveCompanyByWebhookToken,
+} from "@/lib/webhook-auth.server";
 
 /**
  * Webhook do Evolution API (WhatsApp).
@@ -14,12 +18,12 @@ import {
  * Evolution e habilite o evento `MESSAGES_UPSERT`. Recomendado também ligar
  * "Webhook Base64" para que a imagem do comprovante venha embutida.
  *
- *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution
- *   (opcional) proteção por token:
- *     - querystring:  ...?token=SEU_TOKEN
- *     - ou header:    apikey: SEU_TOKEN
- *     - ou header:    Authorization: Bearer SEU_TOKEN
- *   O token comparado é o secret DESPESAS_WEBHOOK_TOKEN (se definido).
+ *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution?token=<webhook_token>
+ *   Autenticação obrigatória por token (o `webhook_token` da empresa):
+ *     - querystring:  ...?token=<webhook_token>
+ *     - ou header:    apikey: <webhook_token>
+ *     - ou header:    Authorization: Bearer <webhook_token>
+ *   A empresa é resolvida a partir desse token (não da "primeira empresa").
  *
  * O Evolution envia algo como:
  *   {
@@ -244,7 +248,13 @@ export const Route = createFileRoute("/api/public/evolution")({
         new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Webhook público sem token (qualquer chamada do Evolution é aceita).
+        // 1. Autentica pelo webhook_token e resolve a empresa correspondente.
+        const companyId = await resolveCompanyByWebhookToken(
+          extractWebhookToken(request),
+        );
+        if (!companyId) {
+          return json({ error: "Token de webhook inválido ou ausente." }, 401);
+        }
 
         // 2. Lê o corpo.
         let raw: any;
@@ -294,18 +304,7 @@ export const Route = createFileRoute("/api/public/evolution")({
             }
           }
 
-          // 3. Resolve a empresa (primeira empresa cadastrada).
-          const { data: company, error: companyError } = await supabaseAdmin
-            .from("companies")
-            .select("id")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (companyError || !company?.id) {
-            results.push({ status: "erro", reason: "empresa não encontrada" });
-            continue;
-          }
-          const companyId = company.id;
+          // 3. Empresa já resolvida pelo token (acima).
 
           // 4. IA analisa o comprovante quando há imagem utilizável.
           let amount: number | null = null;
