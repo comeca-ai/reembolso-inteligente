@@ -170,8 +170,11 @@ export const inviteApprover = createServerFn({ method: "POST" })
 
     if (!res.ok || !result?.data?.succeeded) {
       console.error(`[SMTP2GO] ${res.status}: ${JSON.stringify(result)}`);
+      // Rollback: remove o usuário recém-criado para não deixar conta órfã
+      // (sem credenciais entregues). O admin pode então reenviar o convite.
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id).catch(() => {});
       throw new Error(
-        "Acesso criado, mas o e-mail não pôde ser enviado. Verifique a API key do SMTP2GO e o domínio do remetente.",
+        "O e-mail de convite não pôde ser enviado e o cadastro foi desfeito. Verifique o SMTP2GO e tente novamente.",
       );
     }
 
