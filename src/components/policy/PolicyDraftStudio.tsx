@@ -51,6 +51,23 @@ function formatSeconds(total: number) {
   return `${m}:${s}`;
 }
 
+const POLICY_TEMPLATE_TOPICS: { label: string; hint: string }[] = [
+  { label: "Refeições", hint: "limite por dia/refeição, exige nota fiscal?" },
+  { label: "Combustível", hint: "valor por km ou por abastecimento, exige cupom?" },
+  { label: "Hospedagem", hint: "limite por diária, precisa de aprovação prévia?" },
+  { label: "Transporte / apps", hint: "táxi, Uber, ônibus — quando é permitido?" },
+  { label: "Pedágio e estacionamento", hint: "reembolsável? exige comprovante?" },
+  { label: "Materiais e outros", hint: "o que entra, limites e exceções" },
+  { label: "Documentos obrigatórios", hint: "nota fiscal, recibo, data, CNPJ…" },
+  { label: "Prazos e aprovação", hint: "prazo para enviar e quem aprova" },
+];
+
+const POLICY_TEMPLATE_TEXT = `Política de reembolso — versão zero
+
+${POLICY_TEMPLATE_TOPICS.map((t, i) => `${i + 1}. ${t.label}: (${t.hint})`).join("\n")}
+
+Observações gerais: (regras que valem para todas as categorias)`;
+
 interface Props {
   draft: PolicyVersionDTO | null;
   draftRules: PolicyRuleDTO[];
