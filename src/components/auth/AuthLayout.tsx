@@ -61,8 +61,8 @@ export function AuthLayout({
       </aside>
 
       {/* Formulário */}
-      <main className="flex min-h-screen items-start justify-center px-5 py-8 sm:px-8 sm:py-10">
-        <div className="w-full max-w-md py-2 lg:my-auto">
+      <main className="flex min-h-screen items-start justify-center px-5 py-6 sm:px-8 sm:py-8">
+        <div className="w-full max-w-xl py-2 lg:my-auto">
           <div className="mb-6 lg:hidden">
             <Logo />
           </div>
