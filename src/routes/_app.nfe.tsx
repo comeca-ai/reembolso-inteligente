@@ -422,33 +422,37 @@ function NfeDashboard() {
               return (
                 <div
                   key={`${res.inputKey}-${i}`}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border p-3"
+                  className="space-y-2 rounded-lg border border-border p-3"
                 >
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                      meta.className,
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {meta.label}
-                  </span>
-                  <span className="font-mono text-xs text-foreground">
-                    …{res.inputKey.slice(-12)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {res.message}
-                  </span>
-                  <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    <ExternalLink className="h-3 w-3" />
-                    Fonte: {res.source}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                        meta.className,
+                      )}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {meta.label}
+                    </span>
+                    <span className="font-mono text-xs text-foreground">
+                      …{res.inputKey.slice(-12)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {res.message}
+                    </span>
+                    <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <ExternalLink className="h-3 w-3" />
+                      Fonte: {res.source}
+                    </span>
+                  </div>
+                  <NfeStructureDetails structure={res.structure} />
                 </div>
               );
             })}
           </div>
         )}
       </Card>
+
 
       <Card>
         <div className="flex items-center justify-between border-b border-border p-4">
