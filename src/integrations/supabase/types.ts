@@ -160,6 +160,7 @@ export type Database = {
           channel: string
           company_id: string
           created_at: string
+          danfe_key: string | null
           id: string
           message: string | null
           policy_analyzed_at: string | null
@@ -180,6 +181,7 @@ export type Database = {
           channel?: string
           company_id: string
           created_at?: string
+          danfe_key?: string | null
           id?: string
           message?: string | null
           policy_analyzed_at?: string | null
@@ -200,6 +202,7 @@ export type Database = {
           channel?: string
           company_id?: string
           created_at?: string
+          danfe_key?: string | null
           id?: string
           message?: string | null
           policy_analyzed_at?: string | null
