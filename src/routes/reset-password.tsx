@@ -22,6 +22,29 @@ function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  // "checking" enquanto validamos o link; "ready" se há sessão de recuperação; "invalid" se o link expirou/foi consumido.
+  const [linkState, setLinkState] = useState<"checking" | "ready" | "invalid">("checking");
+
+  useEffect(() => {
+    let active = true;
+    // O link de recuperação/convite cria uma sessão temporária ao abrir a página.
+    // Se ela não existir, não há token consumido e não devemos permitir trocar a senha.
+    async function verify() {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      setLinkState(data.session ? "ready" : "invalid");
+    }
+    // onAuthStateChange dispara o evento PASSWORD_RECOVERY quando o token do hash é processado.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      if (session) setLinkState("ready");
+    });
+    void verify();
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
