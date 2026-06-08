@@ -198,6 +198,8 @@ function ExpensesPage() {
               danfeKey: (nova.danfe_key as string | null) ?? null,
               status: String(nova.status ?? "recebido"),
               createdAt: String(nova.created_at ?? new Date().toISOString()),
+              nfeStatus: (nova.nfe_status as NfeStatus | null) ?? null,
+              nfeVerifiedAt: (nova.nfe_verified_at as string | null) ?? null,
             };
             return [mapped, ...list];
           });
