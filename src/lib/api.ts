@@ -1404,7 +1404,12 @@ function buildReportCsv(list: Expense[]): { fileName: string; content: string; r
 
 function db() {
   if (!supabase) throw new Error("Supabase não configurado.");
-  return supabase;
+  // O cliente é tipado com o schema gerado; esta camada de dados usa nomes de
+  // tabela próprios (ainda não refletidos nos tipos), então acessamos sem o
+  // tipo estrito para manter o comportamento de runtime existente.
+  return supabase as unknown as {
+    from: (table: string) => any;
+  };
 }
 
 const supabaseApi: DataProvider = {
