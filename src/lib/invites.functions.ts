@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const inviteSchema = z.object({
   email: z.string().email().max(255),
@@ -40,8 +39,8 @@ function inviteEmailHtml(params: {
       <div style="background-color:#f3f7f6;border-radius:10px;padding:16px 18px;margin:20px 0;">
         <p style="font-size:14px;line-height:1.6;margin:0 0 8px;font-weight:bold;">Como começar</p>
         <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">1. Acesse <a href="https://reeembolsa-ai-landing.lovable.app/" style="color:#0f2e2e;text-decoration:underline;">https://reeembolsa-ai-landing.lovable.app/</a></p>
-        <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">2. Clique em <strong>Entrar</strong> e crie sua conta com este e-mail.</p>
-        <p style="font-size:14px;line-height:1.6;margin:0;">3. Complete o onboarding para começar a aprovar despesas.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">2. Para ativar seu acesso, use o botão <strong>Ativar meu acesso</strong> abaixo e crie sua senha.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;">3. Depois, entre no painel e complete o onboarding para começar a aprovar despesas.</p>
       </div>
       <p style="text-align:center;margin:28px 0;">
         <a href="${actionLink}"
@@ -104,6 +103,7 @@ export const inviteApprover = createServerFn({ method: "POST" })
     const companyName = company?.razao_social ?? "Sua empresa";
 
     const email = data.email.trim().toLowerCase();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // 3) Gera o link de convite (cria o usuário em auth.users).
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -116,7 +116,7 @@ export const inviteApprover = createServerFn({ method: "POST" })
           nome: data.nome.trim(),
           whatsapp: data.whatsapp?.trim() ?? "",
         },
-        redirectTo: `${data.origin.replace(/\/$/, "")}/overview`,
+        redirectTo: `${data.origin.replace(/\/$/, "")}/reset-password?mode=invite`,
       },
     });
 
