@@ -14,6 +14,7 @@ import {
   type PolicyCategory,
 } from "@/lib/policy.functions";
 import { categoryLabels } from "@/lib/api";
+import { PolicyDraftStudio } from "@/components/policy/PolicyDraftStudio";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ const CATEGORY_OPTIONS: PolicyCategory[] = [
 
 type RuleDraft = {
   id?: string;
+  policyId?: string;
   code: string;
   title: string;
   category: PolicyCategory;
@@ -98,6 +100,7 @@ const emptyDraft: RuleDraft = {
   basis: "",
   text: "",
 };
+
 
 
 export const Route = createFileRoute("/_app/policy")({
@@ -166,6 +169,8 @@ function PolicyPage() {
 
   const versions: PolicyVersionDTO[] = data?.versions ?? [];
   const rules: PolicyRuleDTO[] = data?.rules ?? [];
+  const policyDraft: PolicyVersionDTO | null = data?.draft ?? null;
+  const policyDraftRules: PolicyRuleDTO[] = data?.draftRules ?? [];
   const active = versions.find((p) => p.active);
 
   const mutation = useMutation({
