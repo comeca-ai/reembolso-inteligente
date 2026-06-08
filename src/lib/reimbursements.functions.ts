@@ -14,6 +14,7 @@ import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
+import { matchCollaborator } from "@/lib/phone-match";
 
 export interface InboundReimbursementDTO {
   id: string;
