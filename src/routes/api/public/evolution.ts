@@ -311,6 +311,7 @@ export const Route = createFileRoute("/api/public/evolution")({
           let amount: number | null = null;
           let category: string | null = null;
           let aiDescription: string | null = null;
+          let danfeKey: string | null = null;
           let attachmentUrl: string | null = null;
 
           if (isUsableBase64(base64) && base64) {
@@ -334,7 +335,9 @@ export const Route = createFileRoute("/api/public/evolution")({
                           "(2) category = uma destas opções: " +
                           CATEGORIES.join(", ") +
                           " (escolha 'outros' se não tiver certeza); " +
-                          "(3) description = um resumo curto (ex.: nome do estabelecimento). Responda sempre preenchendo os três campos.",
+                          "(3) description = um resumo curto (ex.: nome do estabelecimento); " +
+                          "(4) danfe_key = a CHAVE DE ACESSO da NF-e/DANFE, que são exatamente 44 dígitos numéricos (geralmente impressos sob o código de barras, podendo aparecer em grupos de 4). Junte todos os dígitos sem espaços. Use null se o comprovante não for uma nota fiscal ou se a chave não estiver legível. " +
+                          "Responda sempre preenchendo todos os campos.",
                       },
                       { type: "image", image: imageForAi },
                     ],
@@ -344,6 +347,9 @@ export const Route = createFileRoute("/api/public/evolution")({
               amount = object.amount;
               category = object.category ?? "outros";
               aiDescription = object.description;
+              // Mantém apenas os dígitos e valida o tamanho de 44 (chave NF-e).
+              const onlyDigits = (object.danfe_key ?? "").replace(/\D/g, "");
+              danfeKey = onlyDigits.length === 44 ? onlyDigits : null;
             } catch (e) {
               console.error("[evolution webhook] IA falhou:", e);
             }
@@ -364,13 +370,14 @@ export const Route = createFileRoute("/api/public/evolution")({
               attachment_url: attachmentUrl,
               amount,
               category,
+              danfe_key: danfeKey,
               status: "recebido",
               raw_payload: {
                 event: evt?.event ?? null,
                 instance: evt?.instance ?? null,
                 key,
                 pushName: senderName,
-                ai: { amount, category, description: aiDescription },
+                ai: { amount, category, description: aiDescription, danfe_key: danfeKey },
               } as never,
             })
             .select("id")
