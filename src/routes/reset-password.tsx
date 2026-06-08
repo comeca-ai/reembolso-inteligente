@@ -77,6 +77,33 @@ function ResetPasswordPage() {
     }
   }
 
+  if (linkState === "checking") {
+    return (
+      <AuthLayout eyebrow="Recuperação de acesso" title="Validando link" subtitle="Aguarde um instante…">
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  if (linkState === "invalid") {
+    return (
+      <AuthLayout
+        eyebrow="Recuperação de acesso"
+        title="Link inválido ou expirado"
+        subtitle="Este link de recuperação já foi usado ou expirou. Solicite um novo para continuar."
+      >
+        <Link
+          to="/login"
+          className="block w-full rounded-md bg-brand px-4 py-2.5 text-center text-sm font-semibold text-brand-foreground hover:opacity-90"
+        >
+          Voltar para o login
+        </Link>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
       eyebrow="Recuperação de acesso"
