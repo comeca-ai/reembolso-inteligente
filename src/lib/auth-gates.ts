@@ -20,3 +20,21 @@ export function shouldRequirePolicyOnboarding(
 ): boolean {
   return user?.role === "admin" && !user.company.politica_reembolso_arquivo;
 }
+
+const SKIP_KEY = "skipPolicyOnboarding";
+
+/**
+ * Marca que o admin optou por entrar sem enviar a política/pré-cadastro agora.
+ * Persiste na sessão do navegador para não voltar a travar no onboarding.
+ */
+export function skipPolicyOnboarding(): void {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(SKIP_KEY, "1");
+  }
+}
+
+/** Indica se o admin pediu para entrar sem concluir o pré-cadastro. */
+export function policyOnboardingSkipped(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(SKIP_KEY) === "1";
+}
