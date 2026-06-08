@@ -52,7 +52,7 @@ export const uploadCartaoCnpj = createServerFn({ method: "POST" })
     const fromName = data.fileName.includes(".")
       ? data.fileName.slice(data.fileName.lastIndexOf(".") + 1).toLowerCase()
       : "";
-    const ext = EXT_BY_TYPE[data.contentType] ?? fromName || "bin";
+    const ext = EXT_BY_TYPE[data.contentType] ?? (fromName || "bin");
     const path = `${companyId}/cartao-cnpj.${ext}`;
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
