@@ -153,7 +153,7 @@ function SignupPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await signUpCompany({
+      const result = await signUpCompany({
         razaoSocial: form.razaoSocial,
         cnpj: form.cnpj,
         nomeResponsavel: form.nomeResponsavel,
@@ -163,14 +163,31 @@ function SignupPage() {
         politicaReembolsoArquivo: politica?.name,
         cartaoCnpjArquivo: cartaoCnpj?.name,
       });
+
+      if (result.status === "confirmation_required") {
+        toast.success("Quase lá! Confirme seu e-mail", {
+          description: `Enviamos um link de confirmação para ${form.email.trim()}. Confirme para acessar o painel.`,
+        });
+        navigate({ to: "/login" });
+        return;
+      }
+
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
       });
       navigate({ to: "/overview" });
-    } catch {
-      toast.error("Não foi possível criar a conta", {
-        description: "Tente novamente em instantes.",
-      });
+    } catch (err) {
+      const message = (err as { message?: string })?.message ?? "";
+      let description = "Tente novamente em instantes.";
+      if (/weak|pwned|password/i.test(message)) {
+        description =
+          "Essa senha é muito comum ou apareceu em vazamentos. Crie uma senha mais forte e única.";
+      } else if (/already registered|already been registered|user already/i.test(message)) {
+        description = "Este e-mail já possui conta. Tente entrar ou recuperar a senha.";
+      } else if (/network|fetch|failed to fetch/i.test(message)) {
+        description = "Falha de conexão. Verifique sua internet e tente novamente.";
+      }
+      toast.error("Não foi possível criar a conta", { description });
     } finally {
       setLoading(false);
     }
