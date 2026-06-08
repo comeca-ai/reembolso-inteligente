@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { isAuthenticated, hasPolicyUploaded, markPolicyUploaded, getCurrentUser } from "@/lib/auth";
 import { landingForRole } from "@/lib/permissions";
+import { skipPolicyOnboarding } from "@/lib/auth-gates";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/button";
