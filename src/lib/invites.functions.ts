@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { escapeHtml, generateTempPassword } from "@/lib/server-utils";
 
 const inviteSchema = z.object({
   email: z.string().email().max(255),
@@ -10,28 +11,6 @@ const inviteSchema = z.object({
   whatsapp: z.string().max(40).optional(),
   origin: z.string().url().max(255),
 });
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-/**
- * Gera uma senha temporária forte (web crypto, disponível no runtime do
- * servidor). Sem caracteres ambíguos para facilitar a digitação.
- */
-function generateTempPassword(length = 14): string {
-  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#%*";
-  const bytes = new Uint32Array(length);
-  crypto.getRandomValues(bytes);
-  let out = "";
-  for (let i = 0; i < length; i++) out += charset[bytes[i] % charset.length];
-  return out;
-}
 
 function inviteEmailHtml(params: {
   nome: string;
