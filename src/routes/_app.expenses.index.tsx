@@ -30,6 +30,7 @@ export interface RichDespesa {
   attachmentUrl: string | null;
   amount: number | null;
   category: string | null;
+  danfeKey: string | null;
   status: string;
   createdAt: string;
 }
