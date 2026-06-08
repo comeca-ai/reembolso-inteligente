@@ -527,6 +527,9 @@ function NfeDashboard() {
                       )}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
+                      {sourceById[r.id] ?? "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
                       {formatDateTime(r.nfeVerifiedAt)}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-right align-top">
