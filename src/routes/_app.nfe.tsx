@@ -282,6 +282,7 @@ function NfeDashboard() {
           verifiedAt: null,
           sefazUrl: SEFAZ_PORTAL_URL,
           source: "Erro de rede",
+          structure: validarChave(key),
         });
       }
       setTestResults([...collected]);
