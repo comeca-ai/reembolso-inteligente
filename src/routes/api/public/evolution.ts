@@ -304,18 +304,7 @@ export const Route = createFileRoute("/api/public/evolution")({
             }
           }
 
-          // 3. Resolve a empresa (primeira empresa cadastrada).
-          const { data: company, error: companyError } = await supabaseAdmin
-            .from("companies")
-            .select("id")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (companyError || !company?.id) {
-            results.push({ status: "erro", reason: "empresa não encontrada" });
-            continue;
-          }
-          const companyId = company.id;
+          // 3. Empresa já resolvida pelo token (acima).
 
           // 4. IA analisa o comprovante quando há imagem utilizável.
           let amount: number | null = null;
