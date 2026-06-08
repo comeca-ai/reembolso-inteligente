@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   LogOut,
   Inbox,
+  FileSearch,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
