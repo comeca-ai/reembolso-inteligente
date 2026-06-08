@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -15,11 +16,17 @@ import {
   MessageCircle,
   Mail,
   Filter,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { verifyNfe, type NfeStatus } from "@/lib/nfe.functions";
 
 export interface RichDespesa {
   id: string;
@@ -33,7 +40,42 @@ export interface RichDespesa {
   danfeKey: string | null;
   status: string;
   createdAt: string;
+  nfeStatus: NfeStatus | null;
+  nfeVerifiedAt: string | null;
 }
+
+const nfeBadge: Record<NfeStatus, { label: string; className: string; Icon: typeof ShieldCheck }> = {
+  autorizada: {
+    label: "Autorizada",
+    className: "bg-success/15 text-success ring-1 ring-success/30",
+    Icon: ShieldCheck,
+  },
+  cancelada: {
+    label: "Cancelada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  denegada: {
+    label: "Denegada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  inexistente: {
+    label: "Não encontrada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  erro: {
+    label: "Indeterminado",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    Icon: ShieldAlert,
+  },
+  manual: {
+    label: "Conferir manual",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    Icon: ShieldAlert,
+  },
+};
 
 const DESPESAS_KEY = ["despesas-rich"] as const;
 
@@ -55,7 +97,7 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
   const { data, error } = await supabase
     .from("inbound_reimbursements")
     .select(
-      "id, channel, sender, sender_name, message, attachment_url, amount, category, danfe_key, status, created_at",
+      "id, channel, sender, sender_name, message, attachment_url, amount, category, danfe_key, status, created_at, nfe_status, nfe_verified_at",
     )
     .order("created_at", { ascending: false })
     .limit(300);
@@ -72,6 +114,8 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
     danfeKey: row.danfe_key,
     status: row.status,
     createdAt: row.created_at,
+    nfeStatus: (row.nfe_status as NfeStatus | null) ?? null,
+    nfeVerifiedAt: (row.nfe_verified_at as string | null) ?? null,
   }));
 }
 
@@ -102,6 +146,8 @@ function ExpensesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const runVerifyNfe = useServerFn(verifyNfe);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: DESPESAS_KEY,
@@ -109,6 +155,44 @@ function ExpensesPage() {
   });
 
   const despesas = useMemo(() => data ?? [], [data]);
+
+  // Verifica a autenticidade da nota: principal via nfe.io, fallback portal SEFAZ.
+  async function handleVerify(d: RichDespesa) {
+    if (!d.danfeKey) return;
+    setVerifyingId(d.id);
+    try {
+      const result = await runVerifyNfe({ data: { id: d.id } });
+      // Atualiza a linha localmente.
+      queryClient.setQueryData<RichDespesa[]>(DESPESAS_KEY, (prev) =>
+        (prev ?? []).map((item) =>
+          item.id === d.id
+            ? {
+                ...item,
+                nfeStatus: result.status,
+                nfeVerifiedAt: result.verifiedAt,
+              }
+            : item,
+        ),
+      );
+      if (result.status === "autorizada") {
+        toast.success(result.message);
+      } else if (result.status === "manual") {
+        toast.warning(result.message, {
+          action: {
+            label: "Abrir SEFAZ",
+            onClick: () => window.open(result.sefazUrl, "_blank", "noopener"),
+          },
+        });
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Falha ao verificar a nota. Tente novamente.");
+    } finally {
+      setVerifyingId(null);
+    }
+  }
+
 
   // Abre o comprovante: links http/data abrem direto; caminhos do Storage
   // geram uma URL assinada temporária (bucket privado "comprovantes").
@@ -154,6 +238,8 @@ function ExpensesPage() {
               danfeKey: (nova.danfe_key as string | null) ?? null,
               status: String(nova.status ?? "recebido"),
               createdAt: String(nova.created_at ?? new Date().toISOString()),
+              nfeStatus: (nova.nfe_status as NfeStatus | null) ?? null,
+              nfeVerifiedAt: (nova.nfe_verified_at as string | null) ?? null,
             };
             return [mapped, ...list];
           });
@@ -281,13 +367,14 @@ function ExpensesPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1020px] text-sm">
+            <table className="w-full min-w-[1180px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-3 font-medium">Remetente</th>
                   <th className="px-5 py-3 font-medium">Descrição / Categoria</th>
                   <th className="px-5 py-3 font-medium">Valor</th>
                   <th className="px-5 py-3 font-medium">Chave DANFE</th>
+                  <th className="px-5 py-3 font-medium">Verificação</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Comprovante</th>
                   <th className="whitespace-nowrap px-5 py-3 text-right font-medium">
@@ -339,6 +426,53 @@ function ExpensesPage() {
                           >
                             …{d.danfeKey.slice(-12)}
                           </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        {d.danfeKey ? (
+                          <div className="flex flex-col items-start gap-1.5">
+                            {d.nfeStatus && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                                  nfeBadge[d.nfeStatus].className,
+                                )}
+                              >
+                                {(() => {
+                                  const Icon = nfeBadge[d.nfeStatus].Icon;
+                                  return <Icon className="h-3 w-3" />;
+                                })()}
+                                {nfeBadge[d.nfeStatus].label}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs"
+                                disabled={verifyingId === d.id}
+                                onClick={() => handleVerify(d)}
+                              >
+                                {verifyingId === d.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <ShieldCheck className="h-3 w-3" />
+                                )}
+                                {d.nfeStatus ? "Reverificar" : "Verificar"}
+                              </Button>
+                              <a
+                                href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Conferir manualmente no portal da SEFAZ"
+                                className="inline-flex items-center text-muted-foreground hover:text-primary"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </div>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
