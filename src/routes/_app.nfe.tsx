@@ -491,9 +491,11 @@ function NfeDashboard() {
             </p>
             <p className="text-xs text-muted-foreground">
               Cole uma ou mais chaves DANFE (44 dígitos) — uma por linha. Cada
-              chave é consultada na fonte oficial e o resultado mostra a origem
-              da verificação.
+              chave passa por duas camadas: validação estrutural offline
+              (dígito verificador, CNPJ, UF, modelo e campos da chave) e a
+              consulta da situação na fonte oficial (SEFAZ).
             </p>
+
           </div>
         </div>
 
