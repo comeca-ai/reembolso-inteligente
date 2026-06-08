@@ -184,6 +184,19 @@ function OnboardingPage() {
               </>
             )}
           </Button>
+          <button
+            type="button"
+            onClick={() => {
+              skipPolicyOnboarding();
+              toast.info("Você entrou sem enviar a política", {
+                description: "Pode enviá-la depois na tela de Política para liberar a análise automática.",
+              });
+              navigate({ to: landingForRole(user?.role) });
+            }}
+            className="mt-4 w-full text-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Entrar sem enviar agora
+          </button>
           <p className="mt-3 text-center text-xs text-muted-foreground">
             Você poderá publicar novas versões a qualquer momento na tela de Política.
           </p>
