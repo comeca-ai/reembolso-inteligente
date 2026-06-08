@@ -265,6 +265,26 @@ export async function updatePassword(senha: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Conclui a troca obrigatória da senha temporária no primeiro acesso:
+ * atualiza a senha no Auth, zera a flag no perfil e recarrega a sessão.
+ */
+export async function completeMandatoryPasswordChange(senha: string): Promise<AuthUser | null> {
+  const { error: pwError } = await supabase.auth.updateUser({ password: senha });
+  if (pwError) throw pwError;
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData.user) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ must_change_password: false })
+      .eq("id", userData.user.id);
+    if (error) throw error;
+  }
+
+  return loadSession();
+}
+
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
   cachedUser = null;
