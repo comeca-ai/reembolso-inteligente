@@ -218,6 +218,11 @@ function PolicyPage() {
     setEditorOpen(true);
   };
 
+  const openNewDraftRule = (policyId: string) => {
+    setDraft({ ...emptyDraft, policyId });
+    setEditorOpen(true);
+  };
+
   const openEditRule = (r: PolicyRuleDTO) => {
     setDraft({
       id: r.id,
@@ -401,6 +406,17 @@ function PolicyPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Estúdio: criar política versão zero por áudio ou texto (sem PDF) */}
+      <PolicyDraftStudio
+        draft={policyDraft}
+        draftRules={policyDraftRules}
+        onEditRule={openEditRule}
+        onDeleteRule={setDeleteTarget}
+        onAddRule={openNewDraftRule}
+      />
+
+
 
       {/* Preview de regras estruturadas */}
       <Card className="shadow-sm">
