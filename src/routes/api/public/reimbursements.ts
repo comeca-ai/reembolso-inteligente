@@ -6,23 +6,30 @@ import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
+import {
+  extractWebhookToken,
+  resolveCompanyByWebhookToken,
+} from "@/lib/webhook-auth.server";
 
 /**
- * Webhook público e simples para receber comprovantes de reembolso.
+ * Webhook público para receber comprovantes de reembolso.
  *
- * Sem autenticação: o integrador (WhatsApp, e-mail, etc.) envia a imagem do
- * comprovante em base64 e a IA (Lovable AI) extrai valor, categoria e uma
- * descrição automaticamente antes de gravar em inbound_reimbursements.
+ * Autenticação: cada empresa tem um `webhook_token` (UUID). O integrador
+ * (WhatsApp, e-mail, etc.) envia esse token (querystring `?token=`, header
+ * `apikey` ou `Authorization: Bearer`) — é por ele que resolvemos a empresa,
+ * nunca por um `company_id` vindo do corpo (evita injeção cross-tenant).
  *
- *   POST /api/public/reimbursements
+ * A imagem do comprovante chega em base64 e a IA (Lovable AI) extrai valor,
+ * categoria e descrição antes de gravar em inbound_reimbursements.
+ *
+ *   POST /api/public/reimbursements?token=<webhook_token>
  *   Body (JSON):
  *     {
  *       "image_base64": "data:image/jpeg;base64,...", // obrigatório
  *       "sender": "+5511999999999",  // opcional (telefone ou e-mail)
  *       "sender_name": "João Silva", // opcional
  *       "channel": "whatsapp",       // whatsapp | email (default whatsapp)
- *       "message": "Almoço",         // opcional (legenda enviada)
- *       "company_id": "uuid"         // opcional (usa a 1ª empresa se ausente)
+ *       "message": "Almoço"          // opcional (legenda enviada)
  *     }
  */
 
@@ -32,7 +39,6 @@ const PayloadSchema = z.object({
   sender_name: z.string().min(1).max(255).optional(),
   channel: z.enum(["whatsapp", "email"]).default("whatsapp"),
   message: z.string().max(5000).optional(),
-  company_id: z.string().uuid().optional(),
 });
 
 const CATEGORIES = [
