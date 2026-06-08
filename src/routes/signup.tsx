@@ -323,7 +323,7 @@ function SignupProgressDialog({
   onRetry: () => void;
 }) {
   // Etapas exibidas (sem "concluido", que vira o estado final de sucesso).
-  const steps = SIGN_UP_STEPS.filter((s) => s !== "concluido");
+  const steps: SignUpStep[] = SIGN_UP_STEPS.filter((s) => s !== "concluido");
   const failedIndex = failedStep ? steps.indexOf(failedStep) : -1;
   const currentIndex = currentStep ? steps.indexOf(currentStep) : -1;
 
