@@ -40,34 +40,30 @@ export interface NfeVerifyResult {
 
 const verifyInput = z.object({ id: z.string().uuid() });
 
-/** Mapeia o cStat da SEFAZ/nfe.io para um status simples. */
-function mapCStat(cStat: string | number | null | undefined): {
+/**
+ * Mapeia o `currentStatus` retornado pela Consulta Irrestrita do nfe.io
+ * (authorized | canceled | unknown) para um status simples.
+ */
+function mapCurrentStatus(current: string | null | undefined): {
   status: NfeStatus;
   message: string;
 } {
-  const code = String(cStat ?? "");
-  switch (code) {
-    case "100":
+  switch (String(current ?? "").toLowerCase()) {
+    case "authorized":
       return { status: "autorizada", message: "Nota autorizada pela SEFAZ." };
-    case "101":
-    case "151":
-    case "135":
+    case "canceled":
+    case "cancelled":
       return { status: "cancelada", message: "Nota cancelada na SEFAZ." };
-    case "110":
-    case "301":
-    case "302":
-    case "303":
-      return { status: "denegada", message: "Uso da nota foi denegado pela SEFAZ." };
-    case "217":
-    case "":
+    case "denied":
+    case "denegada":
       return {
-        status: "inexistente",
-        message: "Nota não encontrada na base da SEFAZ.",
+        status: "denegada",
+        message: "Uso da nota foi denegado pela SEFAZ.",
       };
     default:
       return {
-        status: "erro",
-        message: `Situação retornada pela SEFAZ: ${code}.`,
+        status: "inexistente",
+        message: "Nota não encontrada na base nacional da SEFAZ.",
       };
   }
 }
