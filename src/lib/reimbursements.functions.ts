@@ -9,6 +9,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { generateText } from "ai";
+import {
+  createLovableAiGatewayProvider,
+  getLovableApiKey,
+} from "@/lib/ai-gateway.server";
 
 export interface InboundReimbursementDTO {
   id: string;
@@ -25,6 +30,12 @@ export interface InboundReimbursementDTO {
   collaboratorName: string | null;
   /** Id do perfil do colaborador casado pelo telefone (ou null). */
   collaboratorId: string | null;
+  /** Observação da IA sobre conformidade com a política. */
+  policyVerdict: "aprovar" | "revisar" | "recusar" | null;
+  policySummary: string | null;
+  policyCitedRule: string | null;
+  policyConfidence: number | null;
+  policyAnalyzedAt: string | null;
 }
 
 /** Mantém apenas os dígitos de um telefone para comparação robusta. */
