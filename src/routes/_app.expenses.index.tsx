@@ -326,6 +326,23 @@ function ExpensesPage() {
                       <td className="whitespace-nowrap px-5 py-4 align-top tabular-nums font-medium text-foreground">
                         {formatBRL(d.amount)}
                       </td>
+                      <td className="px-5 py-4 align-top">
+                        {d.danfeKey ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard?.writeText(d.danfeKey!);
+                              toast.success("Chave DANFE copiada");
+                            }}
+                            title={`${d.danfeKey} (clique para copiar)`}
+                            className="font-mono text-xs tabular-nums text-foreground hover:text-primary"
+                          >
+                            …{d.danfeKey.slice(-12)}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="whitespace-nowrap px-5 py-4 align-top">
                         <span
                           className={cn(
