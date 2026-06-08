@@ -15,6 +15,9 @@ import {
   ExternalLink,
   Loader2,
   FileSearch,
+  Check,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
