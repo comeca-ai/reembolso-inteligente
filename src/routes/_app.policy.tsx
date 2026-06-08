@@ -218,6 +218,11 @@ function PolicyPage() {
     setEditorOpen(true);
   };
 
+  const openNewDraftRule = (policyId: string) => {
+    setDraft({ ...emptyDraft, policyId });
+    setEditorOpen(true);
+  };
+
   const openEditRule = (r: PolicyRuleDTO) => {
     setDraft({
       id: r.id,
