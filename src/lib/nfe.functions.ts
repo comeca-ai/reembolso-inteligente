@@ -41,6 +41,8 @@ export interface NfeVerifyResult {
   source: string;
   /** Chave consultada (44 dígitos), quando válida. */
   key: string | null;
+  /** Validação estrutural offline (camada 1) — sempre presente. */
+  structure: NfeChaveResultado;
 }
 
 const verifyInput = z.object({ id: z.string().uuid() });
