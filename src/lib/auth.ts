@@ -59,6 +59,13 @@ export interface SignInInput {
   senha: string;
 }
 
+/** Resultado do cadastro: ou cria sessão na hora, ou pede confirmação de e-mail. */
+export interface SignUpResult {
+  /** "active" = já logado; "confirmation_required" = precisa confirmar o e-mail. */
+  status: "active" | "confirmation_required";
+  user: AuthUser | null;
+}
+
 export interface ResetPasswordInput {
   email: string;
 }
