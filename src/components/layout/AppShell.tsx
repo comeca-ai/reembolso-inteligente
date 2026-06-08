@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { SidebarNav } from "./SidebarNav";
 import { Logo } from "@/components/brand/Logo";
+import { ForcePasswordChangeDialog } from "@/components/auth/ForcePasswordChangeDialog";
 
 import { TrustChips } from "@/components/shared/TrustStrip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -49,6 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen w-full bg-background">
+      <ForcePasswordChangeDialog />
       {/* Sidebar fixa (desktop) */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">
         <SidebarNav />

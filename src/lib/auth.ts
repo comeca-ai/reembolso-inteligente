@@ -37,6 +37,8 @@ export interface AuthUser {
   whatsapp?: string;
   role: "admin" | "approver" | "member";
   company: AuthCompany;
+  /** Senha ainda é a temporária do convite — troca obrigatória no 1º acesso. */
+  mustChangePassword: boolean;
 }
 
 export interface SignUpInput {
@@ -94,7 +96,7 @@ export async function loadSession(): Promise<AuthUser | null> {
 
   let { data: profile } = await supabase
     .from("profiles")
-    .select("id, nome, email, whatsapp, company_id")
+    .select("id, nome, email, whatsapp, company_id, must_change_password")
     .eq("id", authUser.id)
     .maybeSingle();
 
@@ -102,7 +104,7 @@ export async function loadSession(): Promise<AuthUser | null> {
     await ensureProfileRows(authUser);
     const { data: repairedProfile } = await supabase
       .from("profiles")
-      .select("id, nome, email, whatsapp, company_id")
+      .select("id, nome, email, whatsapp, company_id, must_change_password")
       .eq("id", authUser.id)
       .maybeSingle();
     profile = repairedProfile;
@@ -154,6 +156,7 @@ export async function loadSession(): Promise<AuthUser | null> {
     whatsapp: profile?.whatsapp ?? undefined,
     role,
     company,
+    mustChangePassword: profile?.must_change_password ?? false,
   };
   sessionLoaded = true;
   return cachedUser;
@@ -260,6 +263,26 @@ export async function sendPasswordReset(input: ResetPasswordInput): Promise<void
 export async function updatePassword(senha: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password: senha });
   if (error) throw error;
+}
+
+/**
+ * Conclui a troca obrigatória da senha temporária no primeiro acesso:
+ * atualiza a senha no Auth, zera a flag no perfil e recarrega a sessão.
+ */
+export async function completeMandatoryPasswordChange(senha: string): Promise<AuthUser | null> {
+  const { error: pwError } = await supabase.auth.updateUser({ password: senha });
+  if (pwError) throw pwError;
+
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData.user) {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ must_change_password: false })
+      .eq("id", userData.user.id);
+    if (error) throw error;
+  }
+
+  return loadSession();
 }
 
 export async function signOut(): Promise<void> {
