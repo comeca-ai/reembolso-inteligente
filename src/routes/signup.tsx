@@ -114,6 +114,10 @@ function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
+    await runSignup();
+  }
+
+  async function runSignup() {
     setLoading(true);
     setFailedStep(null);
     setFailedMessage("");
