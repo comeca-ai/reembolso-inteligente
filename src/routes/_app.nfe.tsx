@@ -28,7 +28,7 @@ import {
   type NfeVerifyResult,
   SEFAZ_PORTAL_URL,
 } from "@/lib/nfe.functions";
-import { validarChave } from "@/lib/nfe-chave";
+import { validarChave, type NfeChaveResultado } from "@/lib/nfe-chave";
 
 interface NfeRow {
   id: string;
