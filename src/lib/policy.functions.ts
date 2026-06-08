@@ -554,25 +554,40 @@ export const savePolicyRule = createServerFn({ method: "POST" })
       return { ok: true, id: data.id };
     }
 
-    const { data: active, error: actErr } = await supabase
-      .from("policies")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("active", true)
-      .maybeSingle();
-    if (actErr) throw actErr;
-    if (!active) {
-      throw new Error("Publique uma política ativa antes de adicionar regras.");
+    // Permite anexar a regra a um rascunho específico, ou à política ativa.
+    let targetPolicyId = data.policyId;
+    if (targetPolicyId) {
+      const { data: pol, error: polErr } = await supabase
+        .from("policies")
+        .select("id")
+        .eq("id", targetPolicyId)
+        .eq("company_id", companyId)
+        .maybeSingle();
+      if (polErr) throw polErr;
+      if (!pol) throw new Error("Política não encontrada para esta empresa.");
+    } else {
+      const { data: active, error: actErr } = await supabase
+        .from("policies")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .maybeSingle();
+      if (actErr) throw actErr;
+      if (!active) {
+        throw new Error("Publique uma política ativa antes de adicionar regras.");
+      }
+      targetPolicyId = active.id;
     }
 
     const { data: inserted, error } = await supabase
       .from("policy_rules")
-      .insert({ ...payload, policy_id: active.id, company_id: companyId })
+      .insert({ ...payload, policy_id: targetPolicyId, company_id: companyId })
       .select("id")
       .single();
     if (error) throw error;
     return { ok: true, id: inserted.id };
   });
+
 
 const deleteInput = z.object({ id: z.string().uuid() });
 
