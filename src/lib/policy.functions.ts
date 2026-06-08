@@ -169,18 +169,18 @@ export const getPolicyState = createServerFn({ method: "GET" })
       pages: p.pages ?? 0,
       sizeKb: p.size_kb ?? 0,
       status: p.status ?? "ativa",
+      source: (p as { source?: string }).source ?? "upload",
+      sourceText: (p as { source_text?: string }).source_text ?? "",
     }));
 
-    const active = (policies ?? []).find((p) => p.active);
-    let rules: PolicyRuleDTO[] = [];
-    if (active) {
+    const loadRules = async (policyId: string): Promise<PolicyRuleDTO[]> => {
       const { data: r, error: rErr } = await supabase
         .from("policy_rules")
         .select("*")
-        .eq("policy_id", active.id)
+        .eq("policy_id", policyId)
         .order("code");
       if (rErr) throw rErr;
-      rules = (r ?? []).map((row) => ({
+      return (r ?? []).map((row) => ({
         id: row.id,
         code: row.code,
         title: row.title,
@@ -189,10 +189,25 @@ export const getPolicyState = createServerFn({ method: "GET" })
         basis: row.rule_basis ?? "",
         text: row.rule_text ?? "",
       }));
-    }
+    };
 
-    return { versions, rules, activePolicyId: active?.id ?? null };
+    const active = (policies ?? []).find((p) => p.active);
+    const rules = active ? await loadRules(active.id) : [];
+
+    // Rascunho mais recente (gerado por áudio/texto), ainda não publicado.
+    const draftRow = (policies ?? []).find((p) => !p.active && p.status === "rascunho");
+    const draft = draftRow ? versions.find((v) => v.id === draftRow.id) ?? null : null;
+    const draftRules = draftRow ? await loadRules(draftRow.id) : [];
+
+    return {
+      versions,
+      rules,
+      activePolicyId: active?.id ?? null,
+      draft,
+      draftRules,
+    };
   });
+
 
 // ---------------------------------------------------------------------------
 // Upload do PDF + extração das regras pela IA
