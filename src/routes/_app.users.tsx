@@ -487,7 +487,13 @@ function FieldUserDrawer({
             Cancelar
           </Button>
           <Button onClick={() => mutation.mutate()} disabled={!canSubmit || mutation.isPending}>
-            {mutation.isPending ? "Cadastrando…" : "Cadastrar"}
+            {mutation.isPending
+              ? sendInvite && form.email.trim()
+                ? "Enviando convite…"
+                : "Cadastrando…"
+              : sendInvite && form.email.trim()
+                ? "Cadastrar e convidar"
+                : "Cadastrar"}
           </Button>
         </SheetFooter>
       </SheetContent>
