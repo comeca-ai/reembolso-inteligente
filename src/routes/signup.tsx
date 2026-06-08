@@ -115,17 +115,25 @@ function SignupPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
+    setFailedStep(null);
+    setFailedMessage("");
+    setCurrentStep("validando");
+    setProgressOpen(true);
     try {
-      const result = await signUpCompany({
-        razaoSocial: form.razaoSocial,
-        cnpj: form.cnpj,
-        nomeResponsavel: form.nomeResponsavel,
-        email: form.email,
-        whatsapp: form.whatsapp,
-        senha: form.senha,
-      });
+      const result = await signUpCompany(
+        {
+          razaoSocial: form.razaoSocial,
+          cnpj: form.cnpj,
+          nomeResponsavel: form.nomeResponsavel,
+          email: form.email,
+          whatsapp: form.whatsapp,
+          senha: form.senha,
+        },
+        (step) => setCurrentStep(step),
+      );
 
       if (result.status === "confirmation_required") {
+        setProgressOpen(false);
         toast.success("Quase lá! Confirme seu e-mail", {
           description: `Enviamos um link de confirmação para ${form.email.trim()}. Confirme para acessar o painel.`,
         });
@@ -133,6 +141,7 @@ function SignupPage() {
         return;
       }
 
+      setProgressOpen(false);
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
       });
@@ -148,11 +157,20 @@ function SignupPage() {
       } else if (/network|fetch|failed to fetch/i.test(message)) {
         description = "Falha de conexão. Verifique sua internet e tente novamente.";
       }
-      toast.error("Não foi possível criar a conta", { description });
+
+      // Marca a etapa em que o processo parou, para o usuário ver "até onde foi".
+      if (err instanceof SignUpStepError) {
+        setFailedStep(err.step);
+      } else {
+        setFailedStep(currentStep);
+      }
+      setFailedMessage(description);
+      toast.error("Não foi possível concluir o pré-cadastro", { description });
     } finally {
       setLoading(false);
     }
   }
+
 
   return (
     <AuthLayout
