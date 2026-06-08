@@ -6,8 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Eye, EyeOff } from "lucide-react";
-import { signUpCompany, isAuthenticated } from "@/lib/auth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Eye, EyeOff, Check, X, Circle } from "lucide-react";
+import {
+  signUpCompany,
+  isAuthenticated,
+  SIGN_UP_STEPS,
+  SIGN_UP_STEP_LABELS,
+  SignUpStepError,
+  type SignUpStep,
+} from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
@@ -68,6 +82,10 @@ function SignupPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<SignUpStep | null>(null);
+  const [failedStep, setFailedStep] = useState<SignUpStep | null>(null);
+  const [failedMessage, setFailedMessage] = useState<string>("");
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -97,17 +115,25 @@ function SignupPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
+    setFailedStep(null);
+    setFailedMessage("");
+    setCurrentStep("validando");
+    setProgressOpen(true);
     try {
-      const result = await signUpCompany({
-        razaoSocial: form.razaoSocial,
-        cnpj: form.cnpj,
-        nomeResponsavel: form.nomeResponsavel,
-        email: form.email,
-        whatsapp: form.whatsapp,
-        senha: form.senha,
-      });
+      const result = await signUpCompany(
+        {
+          razaoSocial: form.razaoSocial,
+          cnpj: form.cnpj,
+          nomeResponsavel: form.nomeResponsavel,
+          email: form.email,
+          whatsapp: form.whatsapp,
+          senha: form.senha,
+        },
+        (step) => setCurrentStep(step),
+      );
 
       if (result.status === "confirmation_required") {
+        setProgressOpen(false);
         toast.success("Quase lá! Confirme seu e-mail", {
           description: `Enviamos um link de confirmação para ${form.email.trim()}. Confirme para acessar o painel.`,
         });
@@ -115,6 +141,7 @@ function SignupPage() {
         return;
       }
 
+      setProgressOpen(false);
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
       });
@@ -130,11 +157,20 @@ function SignupPage() {
       } else if (/network|fetch|failed to fetch/i.test(message)) {
         description = "Falha de conexão. Verifique sua internet e tente novamente.";
       }
-      toast.error("Não foi possível criar a conta", { description });
+
+      // Marca a etapa em que o processo parou, para o usuário ver "até onde foi".
+      if (err instanceof SignUpStepError) {
+        setFailedStep(err.step);
+      } else {
+        setFailedStep(currentStep);
+      }
+      setFailedMessage(description);
+      toast.error("Não foi possível concluir o pré-cadastro", { description });
     } finally {
       setLoading(false);
     }
   }
+
 
   return (
     <AuthLayout
@@ -251,9 +287,117 @@ function SignupPage() {
           Entrar
         </Link>
       </p>
+
+      <SignupProgressDialog
+        open={progressOpen}
+        loading={loading}
+        currentStep={currentStep}
+        failedStep={failedStep}
+        failedMessage={failedMessage}
+        onClose={() => setProgressOpen(false)}
+        onRetry={() => {
+          setFailedStep(null);
+          setFailedMessage("");
+          void handleSubmit(new Event("submit") as unknown as React.FormEvent);
+        }}
+      />
     </AuthLayout>
   );
 }
+
+function SignupProgressDialog({
+  open,
+  loading,
+  currentStep,
+  failedStep,
+  failedMessage,
+  onClose,
+  onRetry,
+}: {
+  open: boolean;
+  loading: boolean;
+  currentStep: SignUpStep | null;
+  failedStep: SignUpStep | null;
+  failedMessage: string;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  // Etapas exibidas (sem "concluido", que vira o estado final de sucesso).
+  const steps: SignUpStep[] = SIGN_UP_STEPS.filter((s) => s !== "concluido");
+  const failedIndex = failedStep ? steps.indexOf(failedStep) : -1;
+  const currentIndex = currentStep ? steps.indexOf(currentStep) : -1;
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => (!v && !loading ? onClose() : undefined)}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {failedStep ? "O pré-cadastro foi interrompido" : "Processando pré-cadastro"}
+          </DialogTitle>
+          <DialogDescription>
+            {failedStep
+              ? "Veja abaixo até onde o processo chegou antes de falhar."
+              : "Aguarde enquanto criamos sua conta piloto."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <ul className="space-y-2">
+          {steps.map((step, i) => {
+            const isFailed = failedStep !== null && i === failedIndex;
+            const isDone =
+              failedStep !== null ? i < failedIndex : currentIndex > i || (!loading && !failedStep);
+            const isActive =
+              failedStep === null && loading && i === currentIndex;
+            return (
+              <li key={step} className="flex items-center gap-3 text-sm">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                  {isFailed ? (
+                    <X className="h-4 w-4 text-destructive" />
+                  ) : isDone ? (
+                    <Check className="h-4 w-4 text-brand" />
+                  ) : isActive ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-brand" />
+                  ) : (
+                    <Circle className="h-3.5 w-3.5 text-muted-foreground/40" />
+                  )}
+                </span>
+                <span
+                  className={
+                    isFailed
+                      ? "text-destructive font-medium"
+                      : isDone
+                        ? "text-foreground"
+                        : isActive
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground"
+                  }
+                >
+                  {SIGN_UP_STEP_LABELS[step]}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+
+        {failedStep && (
+          <div className="space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+            <p className="text-sm text-destructive">{failedMessage}</p>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" onClick={onRetry} disabled={loading}>
+                {loading && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+                Tentar novamente
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={onClose} disabled={loading}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 
 function Field({
   label,
