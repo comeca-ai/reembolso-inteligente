@@ -5,6 +5,7 @@ import { canAccess, landingForRole } from "@/lib/permissions";
 import { useServerFn } from "@tanstack/react-start";
 import { useSuspenseQuery, useMutation, useQueryClient, queryOptions } from "@tanstack/react-query";
 import { inviteApprover } from "@/lib/invites.functions";
+import { inviteEmployee } from "@/lib/employee-invite.functions";
 import { toast } from "sonner";
 import {
   api,
