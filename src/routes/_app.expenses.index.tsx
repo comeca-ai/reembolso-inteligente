@@ -151,6 +151,7 @@ function ExpensesPage() {
               attachmentUrl: (nova.attachment_url as string | null) ?? null,
               amount: nova.amount === null ? null : Number(nova.amount),
               category: (nova.category as string | null) ?? null,
+              danfeKey: (nova.danfe_key as string | null) ?? null,
               status: String(nova.status ?? "recebido"),
               createdAt: String(nova.created_at ?? new Date().toISOString()),
             };
