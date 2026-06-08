@@ -18,9 +18,16 @@ import {
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { verifyNfe, type NfeStatus, SEFAZ_PORTAL_URL } from "@/lib/nfe.functions";
+import {
+  verifyNfe,
+  verifyNfeKey,
+  type NfeStatus,
+  type NfeVerifyResult,
+  SEFAZ_PORTAL_URL,
+} from "@/lib/nfe.functions";
 
 interface NfeRow {
   id: string;
@@ -31,6 +38,11 @@ interface NfeRow {
   createdAt: string;
   nfeStatus: NfeStatus | null;
   nfeVerifiedAt: string | null;
+  nfeSource?: string | null;
+}
+
+interface TestResult extends NfeVerifyResult {
+  inputKey: string;
 }
 
 const NFE_KEY = ["nfe-dashboard"] as const;
