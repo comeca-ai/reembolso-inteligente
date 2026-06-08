@@ -290,6 +290,19 @@ export async function signUpCompany(
   if (error) {
     throw new SignUpStepError(error.message, "criando_conta", [...completed]);
   }
+
+  // E-mail já cadastrado: por segurança (anti-enumeração) o Auth devolve
+  // "sucesso" sem erro e sem sessão, mas com a lista de identidades vazia.
+  // Sem este tratamento o usuário recebia "confirme seu e-mail" e ficava
+  // preso esperando um e-mail que nunca chega. Detectamos e orientamos certo.
+  const identities = data.user?.identities;
+  if (data.user && Array.isArray(identities) && identities.length === 0) {
+    throw new SignUpStepError(
+      "Este e-mail já possui conta. Tente entrar ou recuperar a senha.",
+      "criando_conta",
+      [...completed],
+    );
+  }
   completed.push("criando_conta");
 
   // Quando a confirmação de e-mail está exigida, o signUp NÃO devolve sessão.
