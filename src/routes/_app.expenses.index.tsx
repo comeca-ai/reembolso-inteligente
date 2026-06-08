@@ -30,6 +30,7 @@ export interface RichDespesa {
   attachmentUrl: string | null;
   amount: number | null;
   category: string | null;
+  danfeKey: string | null;
   status: string;
   createdAt: string;
 }
@@ -54,7 +55,7 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
   const { data, error } = await supabase
     .from("inbound_reimbursements")
     .select(
-      "id, channel, sender, sender_name, message, attachment_url, amount, category, status, created_at",
+      "id, channel, sender, sender_name, message, attachment_url, amount, category, danfe_key, status, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(300);
@@ -68,6 +69,7 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
     attachmentUrl: row.attachment_url,
     amount: row.amount === null ? null : Number(row.amount),
     category: row.category,
+    danfeKey: row.danfe_key,
     status: row.status,
     createdAt: row.created_at,
   }));
@@ -149,6 +151,7 @@ function ExpensesPage() {
               attachmentUrl: (nova.attachment_url as string | null) ?? null,
               amount: nova.amount === null ? null : Number(nova.amount),
               category: (nova.category as string | null) ?? null,
+              danfeKey: (nova.danfe_key as string | null) ?? null,
               status: String(nova.status ?? "recebido"),
               createdAt: String(nova.created_at ?? new Date().toISOString()),
             };
@@ -178,7 +181,9 @@ function ExpensesPage() {
         (d.sender ?? "").toLowerCase().includes(q) ||
         (d.senderName ?? "").toLowerCase().includes(q) ||
         (d.message ?? "").toLowerCase().includes(q) ||
-        (d.category ?? "").toLowerCase().includes(q),
+        (d.category ?? "").toLowerCase().includes(q) ||
+        (d.danfeKey ?? "").toLowerCase().includes(q.replace(/\D/g, "")) ||
+        (d.danfeKey ?? "").toLowerCase().includes(q),
     );
   }, [despesas, search, statusFilter]);
 
@@ -230,7 +235,7 @@ function ExpensesPage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por telefone, nome, categoria…"
+                placeholder="Buscar por telefone, nome, categoria, chave DANFE…"
                 className="h-9 pl-9"
               />
             </div>
@@ -276,12 +281,13 @@ function ExpensesPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[1020px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-3 font-medium">Remetente</th>
                   <th className="px-5 py-3 font-medium">Descrição / Categoria</th>
                   <th className="px-5 py-3 font-medium">Valor</th>
+                  <th className="px-5 py-3 font-medium">Chave DANFE</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Comprovante</th>
                   <th className="whitespace-nowrap px-5 py-3 text-right font-medium">
@@ -319,6 +325,23 @@ function ExpensesPage() {
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 align-top tabular-nums font-medium text-foreground">
                         {formatBRL(d.amount)}
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        {d.danfeKey ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard?.writeText(d.danfeKey!);
+                              toast.success("Chave DANFE copiada");
+                            }}
+                            title={`${d.danfeKey} (clique para copiar)`}
+                            className="font-mono text-xs tabular-nums text-foreground hover:text-primary"
+                          >
+                            …{d.danfeKey.slice(-12)}
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="whitespace-nowrap px-5 py-4 align-top">
                         <span
