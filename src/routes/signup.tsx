@@ -182,7 +182,7 @@ function SignupPage() {
       title="Criar conta piloto"
       subtitle="Cadastre sua empresa e o primeiro administrador para começar a testar."
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-3" noValidate>
         <Field label="Razão social" error={errors.razaoSocial}>
           <Input
             placeholder="Sua Empresa Ltda."
