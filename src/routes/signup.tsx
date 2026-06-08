@@ -1,28 +1,13 @@
 import { useState } from "react";
 import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Eye, EyeOff, Paperclip, FileText, X } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { signUpCompany, isAuthenticated } from "@/lib/auth";
-import { uploadCartaoCnpj } from "@/lib/cartao-cnpj.functions";
-
-/** Lê um File e devolve apenas o conteúdo base64 (sem o prefixo data:). */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? "");
-      resolve(result.slice(result.indexOf(",") + 1));
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
@@ -70,7 +55,6 @@ type Errors = Partial<Record<keyof FormState, string>>;
 
 function SignupPage() {
   const navigate = useNavigate();
-  const enviarCartaoCnpj = useServerFn(uploadCartaoCnpj);
   const [form, setForm] = useState<FormState>({
     razaoSocial: "",
     cnpj: "",
@@ -84,68 +68,6 @@ function SignupPage() {
   const [errors, setErrors] = useState<Errors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [politica, setPolitica] = useState<File | null>(null);
-  const [politicaErro, setPoliticaErro] = useState<string | undefined>(undefined);
-  const [cartaoCnpj, setCartaoCnpj] = useState<File | null>(null);
-  const [cartaoCnpjErro, setCartaoCnpjErro] = useState<string | undefined>(undefined);
-
-  const MAX_POLITICA_MB = 10;
-  const TIPOS_ACEITOS = [".pdf", ".doc", ".docx"];
-  const TIPOS_CARTAO = [
-    ".pdf",
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".webp",
-    ".gif",
-    ".ppt",
-    ".pptx",
-    ".xls",
-    ".xlsx",
-    ".txt",
-  ];
-
-  function handlePoliticaChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setPoliticaErro(undefined);
-    if (!file) {
-      setPolitica(null);
-      return;
-    }
-    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (!TIPOS_ACEITOS.includes(ext)) {
-      setPoliticaErro("Envie um arquivo PDF, DOC ou DOCX.");
-      e.target.value = "";
-      return;
-    }
-    if (file.size > MAX_POLITICA_MB * 1024 * 1024) {
-      setPoliticaErro(`Arquivo muito grande (máx. ${MAX_POLITICA_MB} MB).`);
-      e.target.value = "";
-      return;
-    }
-    setPolitica(file);
-  }
-
-  function handleCartaoCnpjChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
-    setCartaoCnpjErro(undefined);
-    if (!file) {
-      setCartaoCnpj(null);
-      return;
-    }
-    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (!TIPOS_CARTAO.includes(ext)) {
-      setCartaoCnpjErro("Envie imagem, PDF, PPT, XLS ou TXT.");
-      e.target.value = "";
-      return;
-    }
-    if (file.size > MAX_POLITICA_MB * 1024 * 1024) {
-      setCartaoCnpjErro(`Arquivo muito grande (máx. ${MAX_POLITICA_MB} MB).`);
-      e.target.value = "";
-      return;
-    }
-    setCartaoCnpj(file);
-  }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -168,12 +90,7 @@ function SignupPage() {
       next.confirmarSenha = "As senhas não conferem.";
     if (!form.aceite) next.aceite = "É necessário aceitar os termos.";
     setErrors(next);
-    let politicaOk = true;
-    if (!politica) {
-      setPoliticaErro("Envie a política de reembolso.");
-      politicaOk = false;
-    }
-    return Object.keys(next).length === 0 && politicaOk;
+    return Object.keys(next).length === 0;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -188,8 +105,6 @@ function SignupPage() {
         email: form.email,
         whatsapp: form.whatsapp,
         senha: form.senha,
-        politicaReembolsoArquivo: politica?.name,
-        cartaoCnpjArquivo: cartaoCnpj?.name,
       });
 
       if (result.status === "confirmation_required") {
@@ -198,26 +113,6 @@ function SignupPage() {
         });
         navigate({ to: "/login" });
         return;
-      }
-
-      // Com sessão ativa, sobe o arquivo do Cartão do CNPJ para o armazenamento.
-      if (cartaoCnpj) {
-        try {
-          const fileBase64 = await fileToBase64(cartaoCnpj);
-          await enviarCartaoCnpj({
-            data: {
-              fileName: cartaoCnpj.name,
-              fileBase64,
-              contentType: cartaoCnpj.type || "application/octet-stream",
-            },
-          });
-        } catch (uploadErr) {
-          // Não bloqueia o cadastro: avisamos para reenviar depois.
-          console.error("[signup] falha ao enviar Cartão do CNPJ:", uploadErr);
-          toast.warning("Conta criada, mas o Cartão do CNPJ não subiu", {
-            description: "Você pode reenviá-lo depois nas configurações.",
-          });
-        }
       }
 
       toast.success("Conta piloto criada!", {
@@ -327,103 +222,6 @@ function SignupPage() {
             aria-invalid={!!errors.confirmarSenha}
           />
         </Field>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="cartaoCnpj">Cartão do CNPJ</Label>
-            <span className="text-xs text-muted-foreground">Opcional</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Envie o Cartão do CNPJ da empresa (imagem, PDF, PPT, XLS ou TXT).
-            Usamos para
-            validar os dados cadastrais.
-          </p>
-
-          {cartaoCnpj ? (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-              <span className="flex min-w-0 items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 shrink-0 text-brand" />
-                <span className="truncate">{cartaoCnpj.name}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setCartaoCnpj(null);
-                  setCartaoCnpjErro(undefined);
-                }}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-                aria-label="Remover arquivo"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <label
-              htmlFor="cartaoCnpj"
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
-            >
-              <Paperclip className="h-4 w-4" />
-              Selecionar arquivo (até {MAX_POLITICA_MB} MB)
-            </label>
-          )}
-          <input
-            id="cartaoCnpj"
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.ppt,.pptx,.xls,.xlsx,.txt,image/*"
-            className="sr-only"
-            onChange={handleCartaoCnpjChange}
-          />
-          {cartaoCnpjErro && <p className="text-xs text-destructive">{cartaoCnpjErro}</p>}
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="politica">Política de reembolso</Label>
-            <span className="text-xs text-destructive">Obrigatório</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Envie o seu plano/política de reembolso (PDF, DOC ou DOCX). É o
-            documento que a IA usa para avaliar as despesas.
-          </p>
-
-          {politica ? (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
-              <span className="flex min-w-0 items-center gap-2 text-sm">
-                <FileText className="h-4 w-4 shrink-0 text-brand" />
-                <span className="truncate">{politica.name}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setPolitica(null);
-                  setPoliticaErro(undefined);
-                }}
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-                aria-label="Remover arquivo"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
-            <label
-              htmlFor="politica"
-              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-brand hover:text-foreground"
-            >
-              <Paperclip className="h-4 w-4" />
-              Selecionar arquivo (até {MAX_POLITICA_MB} MB)
-            </label>
-          )}
-          <input
-            id="politica"
-            type="file"
-            accept=".pdf,.doc,.docx"
-            className="sr-only"
-            onChange={handlePoliticaChange}
-          />
-          {politicaErro && <p className="text-xs text-destructive">{politicaErro}</p>}
-        </div>
-
-
 
         <div className="space-y-1.5">
           <div className="flex items-start gap-2.5">

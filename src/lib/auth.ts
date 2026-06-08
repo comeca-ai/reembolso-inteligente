@@ -48,10 +48,6 @@ export interface SignUpInput {
   email: string;
   whatsapp: string;
   senha: string;
-  /** Nome do arquivo da política de reembolso (opcional). */
-  politicaReembolsoArquivo?: string;
-  /** Nome do arquivo do Cartão do CNPJ (obrigatório). */
-  cartaoCnpjArquivo?: string;
 }
 
 export interface SignInInput {
@@ -232,8 +228,6 @@ export async function signUpCompany(input: SignUpInput): Promise<SignUpResult> {
         cnpj: input.cnpj.trim(),
         nome: input.nomeResponsavel.trim(),
         whatsapp: input.whatsapp.trim(),
-        politica_reembolso_arquivo: input.politicaReembolsoArquivo?.trim() || "",
-        cartao_cnpj_arquivo: input.cartaoCnpjArquivo?.trim() || "",
       },
     },
   });
