@@ -407,6 +407,17 @@ function PolicyPage() {
         </Card>
       </div>
 
+      {/* Estúdio: criar política versão zero por áudio ou texto (sem PDF) */}
+      <PolicyDraftStudio
+        draft={policyDraft}
+        draftRules={policyDraftRules}
+        onEditRule={openEditRule}
+        onDeleteRule={setDeleteTarget}
+        onAddRule={openNewDraftRule}
+      />
+
+
+
       {/* Preview de regras estruturadas */}
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
