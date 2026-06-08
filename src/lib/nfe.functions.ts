@@ -87,11 +87,15 @@ async function checkKey(key: string): Promise<{
   /** Corpo bruto retornado pela fonte (para gravar histórico). */
   raw: unknown;
 }> {
+  // Camada 1 — validação estrutural offline (sempre roda, não depende de rede).
+  const structure = validarChave(key);
+
   const base = {
     code: null as string | null,
     verifiedAt: null as string | null,
     sefazUrl: SEFAZ_PORTAL_URL,
     key,
+    structure,
   };
 
   if (key.length !== 44) {
