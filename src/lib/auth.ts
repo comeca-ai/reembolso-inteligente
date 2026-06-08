@@ -163,7 +163,7 @@ export async function loadSession(): Promise<AuthUser | null> {
   if (profile?.company_id) {
     const { data: companyRow } = await supabase
       .from("companies")
-      .select("id, razao_social, cnpj, politica_reembolso_arquivo")
+      .select("id, razao_social, cnpj, politica_reembolso_arquivo, cartao_cnpj_arquivo")
       .eq("id", profile.company_id)
       .maybeSingle();
     if (companyRow) {
@@ -172,6 +172,7 @@ export async function loadSession(): Promise<AuthUser | null> {
         razao_social: companyRow.razao_social,
         cnpj: companyRow.cnpj,
         politica_reembolso_arquivo: companyRow.politica_reembolso_arquivo ?? undefined,
+        cartao_cnpj_arquivo: companyRow.cartao_cnpj_arquivo ?? undefined,
       };
     }
   }
