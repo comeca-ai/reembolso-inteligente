@@ -1,42 +1,36 @@
 ## Objetivo
 
-Transformar a tela de Política de mock em real: ao publicar o PDF, a IA (Lovable AI / Gemini) lê o documento, extrai os **pontos-chave/regras estruturadas**, salva no banco e exibe na seção **"Regras estruturadas extraídas da política"** que já existe. Em seguida, disponibilizar a **avaliação de reembolsos** contra essas regras.
+Trocar o fluxo de convite por **e-mail + senha temporária**. Ao convidar, o sistema já cria o login da pessoa e envia as credenciais por e-mail. No **primeiro acesso**, abre um modal obrigatório (não fechável) forçando a troca da senha temporária antes de usar o painel. Vale para aprovadores e colaboradores de campo.
 
-## Situação atual
+## Mudanças
 
-- Auth é real (banco), mas dados do app são **mock** (`VITE_SUPABASE_ANON_KEY` não existe → `isSupabaseConfigured = false`).
-- `uploadPolicy()` é fake; as regras da tela são fixas no código.
-- Não existe tabela de políticas/regras, nem bucket de storage, nem função de IA.
+### 1. Banco de dados (migração)
+- Adicionar a coluna `must_change_password` (verdadeiro/falso, padrão falso) na tabela de perfis. Ela indica que a senha ainda é a temporária e precisa ser trocada.
 
-## Fase 1 — Extração da política (foco principal)
+### 2. Convite de aprovador (`src/lib/invites.functions.ts`)
+- Em vez de gerar link de ativação, criar o usuário já com **senha temporária** (e-mail confirmado), papel "aprovador", vinculado à empresa do admin.
+- Marcar o perfil com `must_change_password = verdadeiro`.
+- E-mail passa a conter: e-mail de acesso, a senha temporária, o link de login do painel e o aviso de que a senha deve ser trocada no primeiro acesso.
 
-**Banco (migração):**
-- Tabela `policies` (versão, arquivo, página/tamanho, ativa, `company_id`, quem publicou).
-- Tabela `policy_rules` (código, título, categoria, limite, base, texto, `policy_id`, `company_id`).
-- RLS por empresa (membros leem; admin grava), GRANTs.
-- Bucket de storage **privado** `policies` para guardar o PDF original, com políticas de acesso por empresa.
+### 3. Convite de colaborador de campo (`src/lib/employee-invite.functions.ts`)
+- Passar a criar login com **senha temporária**, papel "membro", vinculado à empresa.
+- Marcar `must_change_password = verdadeiro`.
+- E-mail mantém as instruções de envio por WhatsApp/e-mail e ganha o bloco de credenciais (e-mail + senha temporária + link de login) para quem quiser acompanhar pelo painel.
 
-**Servidor (TanStack `createServerFn`, sem edge function):**
-- `uploadPolicy`: recebe o PDF (upload do cliente para o storage), registra a versão e dispara a extração.
-- `extractPolicyRules`: baixa o PDF (cliente admin), envia o arquivo direto ao **Gemini** (multimodal lê PDF), recebe JSON estruturado das regras, grava em `policy_rules` e marca a versão como ativa.
+### 4. Camada de auth (`src/lib/auth.ts`)
+- Carregar `must_change_password` na sessão e expor no usuário (`mustChangePassword`).
+- Helper para concluir a troca: atualiza a senha, zera a flag no perfil e recarrega a sessão.
 
-**Frontend:**
-- Trocar o upload mock por upload real do PDF + chamada da função.
-- A seção "Regras estruturadas extraídas da política" passa a ler do banco (regras da versão ativa).
-- Estados de carregando/erro (429/402 da IA tratados na UI).
-
-## Fase 2 — Avaliação de reembolsos
-
-- `evaluateExpense`: recebe os dados de uma despesa (valor, categoria, estabelecimento, comprovante) + regras vigentes e retorna veredito (aprovar/revisar/recusar) citando a cláusula.
-- **Observação:** hoje as despesas são 100% mock (não há tabela `expenses` no banco). Posso (a) entregar a função de avaliação pronta e aplicá-la sobre os dados mock para já mostrar o veredito na tela de despesas, ou (b) construir antes o backend real de despesas. Sugiro (a) agora e (b) num passo seguinte.
+### 5. Modal de troca obrigatória (novo componente + `AppShell`)
+- Novo `ForcePasswordChangeDialog`: aparece automaticamente quando `mustChangePassword` é verdadeiro, **não pode ser fechado** e exige nova senha + confirmação (mínimo 8 caracteres).
+- Renderizado dentro do `AppShell`, então cobre todas as telas internas até a senha ser trocada.
 
 ## Detalhes técnicos
+- Geração da senha temporária no servidor (aleatória, forte, ~12 caracteres) usando `crypto`.
+- Criação via `supabaseAdmin.auth.admin.createUser({ email_confirm: true, password, user_metadata })`; o gatilho `handle_new_user` cria perfil/papel a partir do metadata (`invited_company_id`, `invite_role`).
+- Logo após, `supabaseAdmin` atualiza `profiles.must_change_password = true` pelo id retornado.
+- A flag é limpa pelo próprio usuário (RLS já permite update do próprio perfil; o trigger só bloqueia mudança de `company_id`).
+- E-mails continuam pelo SMTP2GO.
 
-- IA via **Lovable AI Gateway** + AI SDK (`google/gemini-3-flash-preview`), helper em `src/lib/ai-gateway.server.ts`. Gemini aceita o PDF como file part — sem precisar de parser de PDF no runtime Worker.
-- Saída estruturada com `Output.object` (Zod) para garantir o schema das regras.
-- Funções de servidor em `src/lib/policy.functions.ts`; leitura de storage/admin via `await import("@/integrations/supabase/client.server")` dentro do handler.
-- A camada de política deixa de usar o mock e passa a chamar as server functions diretamente (não vou virar o app inteiro para dados reais, para não quebrar despesas/usuários que ainda não têm tabela).
-
-## Entregável da Fase 1
-
-PDF publicado → IA extrai e grava as regras → tela mostra as regras reais da política, com o arquivo guardado no storage e versionado.
+## Observação
+Isso passa a dar acesso ao painel para colaboradores de campo (antes sem login). Se preferir manter colaboradores sem login e aplicar a senha temporária só a aprovadores, me avise antes de eu implementar.
