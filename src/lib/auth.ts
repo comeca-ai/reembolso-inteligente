@@ -37,6 +37,8 @@ export interface AuthUser {
   whatsapp?: string;
   role: "admin" | "approver" | "member";
   company: AuthCompany;
+  /** Senha ainda é a temporária do convite — troca obrigatória no 1º acesso. */
+  mustChangePassword: boolean;
 }
 
 export interface SignUpInput {
