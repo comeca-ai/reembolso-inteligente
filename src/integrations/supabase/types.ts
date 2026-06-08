@@ -406,6 +406,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_reimbursement: { Args: { _sender: string }; Returns: boolean }
       current_company_id: { Args: never; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
