@@ -211,15 +211,18 @@ function NfeDashboard() {
     try {
       const result = await runVerifyNfe({ data: { id: r.id } });
       applyResult(r.id, result.status, result.verifiedAt);
-      if (result.status === "autorizada") toast.success(result.message);
+      setSourceById((prev) => ({ ...prev, [r.id]: result.source }));
+      if (result.status === "autorizada")
+        toast.success(`${result.message} (fonte: ${result.source})`);
       else if (result.status === "manual")
         toast.warning(result.message, {
+          description: `Fonte: ${result.source}`,
           action: {
             label: "Abrir SEFAZ",
             onClick: () => window.open(result.sefazUrl, "_blank", "noopener"),
           },
         });
-      else toast.error(result.message);
+      else toast.error(`${result.message} (fonte: ${result.source})`);
     } catch {
       toast.error("Falha ao verificar a nota. Tente novamente.");
     } finally {
@@ -239,6 +242,7 @@ function NfeDashboard() {
       try {
         const result = await runVerifyNfe({ data: { id: r.id } });
         applyResult(r.id, result.status, result.verifiedAt);
+        setSourceById((prev) => ({ ...prev, [r.id]: result.source }));
         ok += 1;
       } catch {
         /* segue para a próxima */
@@ -247,6 +251,44 @@ function NfeDashboard() {
     setBulkRunning(false);
     toast.success(`Verificação concluída para ${ok} de ${pending.length} notas.`);
   }
+
+  async function handleTest() {
+    const keys = Array.from(
+      new Set(
+        testInput
+          .split(/[\s,;]+/)
+          .map((k) => k.replace(/\D/g, ""))
+          .filter((k) => k.length > 0),
+      ),
+    );
+    if (keys.length === 0) {
+      toast.info("Cole ao menos uma chave DANFE (44 dígitos) para testar.");
+      return;
+    }
+    setTestRunning(true);
+    setTestResults([]);
+    const collected: TestResult[] = [];
+    for (const key of keys) {
+      try {
+        const result = await runVerifyNfeKey({ data: { key } });
+        collected.push({ ...result, inputKey: key });
+      } catch {
+        collected.push({
+          inputKey: key,
+          key: key.length === 44 ? key : null,
+          status: "erro",
+          message: "Falha ao consultar esta chave.",
+          code: null,
+          verifiedAt: null,
+          sefazUrl: SEFAZ_PORTAL_URL,
+          source: "Erro de rede",
+        });
+      }
+      setTestResults([...collected]);
+    }
+    setTestRunning(false);
+  }
+
 
   // Realtime: novas notas aparecem automaticamente.
   useEffect(() => {
