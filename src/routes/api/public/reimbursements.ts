@@ -97,7 +97,15 @@ export const Route = createFileRoute("/api/public/reimbursements")({
         new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Valida o corpo
+        // 1. Autentica pelo webhook_token e resolve a empresa correspondente.
+        const companyId = await resolveCompanyByWebhookToken(
+          extractWebhookToken(request),
+        );
+        if (!companyId) {
+          return json({ error: "Token de webhook inválido ou ausente." }, 401);
+        }
+
+        // 2. Valida o corpo
         let raw: unknown;
         try {
           raw = await request.json();
@@ -113,24 +121,6 @@ export const Route = createFileRoute("/api/public/reimbursements")({
           );
         }
         const data = parsed.data;
-
-        // 2. Resolve a empresa: usa o company_id informado ou a primeira empresa.
-        let companyId = data.company_id ?? null;
-        if (!companyId) {
-          const { data: company, error: companyError } = await supabaseAdmin
-            .from("companies")
-            .select("id")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (companyError) {
-            return json({ error: "Erro ao resolver a empresa." }, 500);
-          }
-          companyId = company?.id ?? null;
-        }
-        if (!companyId) {
-          return json({ error: "Nenhuma empresa encontrada." }, 400);
-        }
 
         // 3. IA analisa o comprovante (valor, categoria, descrição)
         const imageUrl = toDataUrl(data.image_base64);
