@@ -1,28 +1,13 @@
 import { useState } from "react";
 import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Eye, EyeOff, Paperclip, FileText, X } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { signUpCompany, isAuthenticated } from "@/lib/auth";
-import { uploadCartaoCnpj } from "@/lib/cartao-cnpj.functions";
-
-/** Lê um File e devolve apenas o conteúdo base64 (sem o prefixo data:). */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result ?? "");
-      resolve(result.slice(result.indexOf(",") + 1));
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
