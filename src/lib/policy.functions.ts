@@ -51,12 +51,16 @@ export interface PolicyVersionDTO {
   pages: number;
   sizeKb: number;
   status: string;
+  source: string;
+  sourceText: string;
 }
 
 export interface PolicyState {
   versions: PolicyVersionDTO[];
   rules: PolicyRuleDTO[];
   activePolicyId: string | null;
+  draft: PolicyVersionDTO | null;
+  draftRules: PolicyRuleDTO[];
 }
 
 const ruleSchema = z.object({
