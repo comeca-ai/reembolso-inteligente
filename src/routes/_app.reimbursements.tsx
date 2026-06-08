@@ -8,25 +8,28 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   getReimbursementsConfig,
   updateReimbursementStatus,
+  analyzeReimbursement,
   type InboundReimbursementDTO,
 } from "@/lib/reimbursements.functions";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import {
   Inbox,
-  Copy,
-  Check,
   MessageCircle,
   Mail,
-  Link2,
   RefreshCw,
   Paperclip,
   UserCheck,
   UserX,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -41,8 +44,6 @@ export const Route = createFileRoute("/_app/reimbursements")({
   },
   component: ReimbursementsPage,
 });
-
-const WEBHOOK_PATH = "/api/public/reimbursements";
 
 const statusConfig: Record<string, string> = {
   recebido: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
@@ -60,6 +61,30 @@ const statusLabels: Record<string, string> = {
 
 const STATUS_FLOW = ["recebido", "em_analise", "processado", "arquivado"] as const;
 
+const verdictConfig: Record<
+  string,
+  { label: string; icon: typeof CheckCircle2; box: string; chip: string }
+> = {
+  aprovar: {
+    label: "Em linha com a política",
+    icon: CheckCircle2,
+    box: "border-success/30 bg-success/10",
+    chip: "bg-success/15 text-success ring-1 ring-success/30",
+  },
+  revisar: {
+    label: "Requer revisão",
+    icon: AlertTriangle,
+    box: "border-warning/30 bg-warning/10",
+    chip: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+  },
+  recusar: {
+    label: "Fora da política",
+    icon: XCircle,
+    box: "border-destructive/30 bg-destructive/10",
+    chip: "bg-destructive/15 text-destructive ring-1 ring-destructive/30",
+  },
+};
+
 function formatBRL(value: number | null) {
   if (value === null) return "—";
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -73,34 +98,10 @@ function formatDateTime(value: string) {
   });
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      className="gap-1.5 shrink-0"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(value);
-          setCopied(true);
-          toast.success(`${label} copiado`);
-          setTimeout(() => setCopied(false), 1500);
-        } catch {
-          toast.error("Não foi possível copiar.");
-        }
-      }}
-    >
-      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      Copiar
-    </Button>
-  );
-}
-
 function ReimbursementsPage() {
   const fetchConfig = useServerFn(getReimbursementsConfig);
   const updateStatus = useServerFn(updateReimbursementStatus);
+  const analyze = useServerFn(analyzeReimbursement);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
@@ -116,6 +117,15 @@ function ReimbursementsPage() {
       queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
     },
     onError: () => toast.error("Não foi possível atualizar o status."),
+  });
+
+  const analysisMutation = useMutation({
+    mutationFn: (vars: { id: string }) => analyze({ data: vars }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+      toast.success("Análise da IA concluída.");
+    },
+    onError: () => toast.error("Não foi possível analisar com a IA."),
   });
 
   // Atualização em tempo real: novos comprovantes vindos do WhatsApp aparecem
@@ -141,9 +151,6 @@ function ReimbursementsPage() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
-
-  const webhookUrl =
-    typeof window !== "undefined" ? `${window.location.origin}${WEBHOOK_PATH}` : WEBHOOK_PATH;
 
   const messages = data?.messages ?? [];
   const filtered = useMemo(() => {
@@ -171,7 +178,7 @@ function ReimbursementsPage() {
       <PageHeader
         eyebrow="Integração"
         title="Reembolsos recebidos"
-        description="Mensagens enviadas pelos colaboradores via webhook (WhatsApp, e-mail ou outro canal) chegam aqui para triagem."
+        description="Comprovantes enviados pelos colaboradores (WhatsApp, e-mail ou outro canal) chegam aqui. A IA analisa se cada um está em linha com a política."
         actions={
           <Button
             variant="outline"
@@ -184,50 +191,6 @@ function ReimbursementsPage() {
           </Button>
         }
       />
-
-      {data?.isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Link2 className="h-4 w-4 text-primary" />
-              Endpoint do webhook
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                URL (POST)
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="block w-full overflow-x-auto rounded-md bg-muted px-3 py-2 text-sm">
-                  {webhookUrl}
-                </code>
-                <CopyButton value={webhookUrl} label="URL" />
-              </div>
-            </div>
-            <div>
-              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Token da empresa (header <code>x-webhook-token</code>)
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="block w-full overflow-x-auto rounded-md bg-muted px-3 py-2 text-sm">
-                  {data.webhookToken ?? "—"}
-                </code>
-                {data.webhookToken && (
-                  <CopyButton value={data.webhookToken} label="Token" />
-                )}
-              </div>
-            </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Envie um <span className="font-medium text-foreground">POST</span> com o cabeçalho{" "}
-              <code>x-webhook-token</code> e um corpo JSON contendo ao menos{" "}
-              <code>sender</code>. Campos opcionais: <code>sender_name</code>,{" "}
-              <code>channel</code>, <code>message</code>, <code>attachment_url</code>,{" "}
-              <code>amount</code>, <code>category</code>.
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -252,7 +215,7 @@ function ReimbursementsPage() {
             description={
               search
                 ? "Nada encontrado com esse termo. Tente outra busca."
-                : "Assim que um colaborador enviar um comprovante pelo webhook, ele aparece aqui automaticamente."
+                : "Assim que um colaborador enviar um comprovante, ele aparece aqui automaticamente."
             }
             action={
               search ? (
@@ -269,7 +232,11 @@ function ReimbursementsPage() {
                 key={m.id}
                 item={m}
                 pending={mutation.isPending && mutation.variables?.id === m.id}
+                analyzing={
+                  analysisMutation.isPending && analysisMutation.variables?.id === m.id
+                }
                 onAdvance={(status) => mutation.mutate({ id: m.id, status })}
+                onAnalyze={() => analysisMutation.mutate({ id: m.id })}
               />
             ))}
           </div>
@@ -288,15 +255,20 @@ function ReimbursementsPage() {
 function ReimbursementRow({
   item,
   pending,
+  analyzing,
   onAdvance,
+  onAnalyze,
 }: {
   item: InboundReimbursementDTO;
   pending: boolean;
+  analyzing: boolean;
   onAdvance: (status: (typeof STATUS_FLOW)[number]) => void;
+  onAnalyze: () => void;
 }) {
   const ChannelIcon = item.channel === "email" ? Mail : MessageCircle;
   const idx = STATUS_FLOW.indexOf(item.status as (typeof STATUS_FLOW)[number]);
   const next = idx >= 0 && idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
+  const verdict = item.policyVerdict ? verdictConfig[item.policyVerdict] : null;
 
   return (
     <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-secondary/40 sm:flex-row sm:items-start sm:justify-between">
@@ -328,6 +300,17 @@ function ReimbursementRow({
               Sem colaborador
             </span>
           )}
+          {verdict && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                verdict.chip,
+              )}
+            >
+              <verdict.icon className="h-3.5 w-3.5" />
+              {verdict.label}
+            </span>
+          )}
         </div>
         {item.message && (
           <p className="mt-1.5 text-sm text-muted-foreground">{item.message}</p>
@@ -352,19 +335,54 @@ function ReimbursementRow({
             </a>
           )}
         </div>
+
+        {/* Observação da IA sobre conformidade com a política */}
+        {verdict ? (
+          <div className={cn("mt-3 rounded-lg border p-3", verdict.box)}>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Observação da IA
+              {item.policyCitedRule && (
+                <span className="font-normal text-muted-foreground">
+                  · cláusula {item.policyCitedRule}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-foreground/90">{item.policySummary}</p>
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            A IA ainda não avaliou este comprovante.
+          </p>
+        )}
       </div>
 
-      {next && (
+      <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
         <Button
-          variant="outline"
+          variant={verdict ? "ghost" : "secondary"}
           size="sm"
-          className="shrink-0"
-          disabled={pending}
-          onClick={() => onAdvance(next)}
+          className="gap-1.5"
+          disabled={analyzing}
+          onClick={onAnalyze}
         >
-          Marcar como {statusLabels[next]}
+          {analyzing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {verdict ? "Reanalisar" : "Analisar com IA"}
         </Button>
-      )}
+        {next && (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pending}
+            onClick={() => onAdvance(next)}
+          >
+            Marcar como {statusLabels[next]}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
