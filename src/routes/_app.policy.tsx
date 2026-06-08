@@ -169,6 +169,8 @@ function PolicyPage() {
 
   const versions: PolicyVersionDTO[] = data?.versions ?? [];
   const rules: PolicyRuleDTO[] = data?.rules ?? [];
+  const draft: PolicyVersionDTO | null = data?.draft ?? null;
+  const draftRules: PolicyRuleDTO[] = data?.draftRules ?? [];
   const active = versions.find((p) => p.active);
 
   const mutation = useMutation({
