@@ -162,6 +162,11 @@ export type Database = {
           created_at: string
           id: string
           message: string | null
+          policy_analyzed_at: string | null
+          policy_cited_rule: string | null
+          policy_confidence: number | null
+          policy_summary: string | null
+          policy_verdict: string | null
           raw_payload: Json
           sender: string
           sender_name: string | null
@@ -177,6 +182,11 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
+          policy_analyzed_at?: string | null
+          policy_cited_rule?: string | null
+          policy_confidence?: number | null
+          policy_summary?: string | null
+          policy_verdict?: string | null
           raw_payload?: Json
           sender: string
           sender_name?: string | null
@@ -192,6 +202,11 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string | null
+          policy_analyzed_at?: string | null
+          policy_cited_rule?: string | null
+          policy_confidence?: number | null
+          policy_summary?: string | null
+          policy_verdict?: string | null
           raw_payload?: Json
           sender?: string
           sender_name?: string | null
