@@ -606,3 +606,178 @@ export const deletePolicyRule = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+// ---------------------------------------------------------------------------
+// Política versão zero por áudio + texto (rascunho até revisão)
+// ---------------------------------------------------------------------------
+
+const draftInput = z
+  .object({
+    audioBase64: z.string().min(1).max(20_000_000).optional(),
+    audioMime: z.string().min(1).max(100).optional(),
+    notes: z.string().trim().max(8000).optional().default(""),
+  })
+  .refine((d) => !!d.audioBase64 || (d.notes ?? "").length > 0, {
+    message: "Envie um áudio ou cole um texto com os pontos da política.",
+  });
+
+export const draftPolicyFromInput = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => draftInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: profile, error: profErr } = await supabase
+      .from("profiles")
+      .select("company_id, nome")
+      .eq("id", userId)
+      .single();
+    if (profErr) throw profErr;
+    const companyId = profile?.company_id as string | undefined;
+    if (!companyId) throw new Error("Empresa não encontrada para o usuário.");
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+    if (!isAdmin) {
+      throw new Error("Apenas administradores podem gerar a política.");
+    }
+
+    const hasAudio = !!data.audioBase64;
+    const notes = (data.notes ?? "").trim();
+
+    const instruction =
+      "Você é um analista de políticas de reembolso corporativo. " +
+      "A pessoa responsável pela área descreveu, por áudio e/ou texto, os pontos " +
+      "mais importantes da política de reembolso da empresa. " +
+      "Sua tarefa é transformar essa descrição informal em um rascunho de regras " +
+      "estruturadas (versão zero), que depois será revisado por um humano.\n\n" +
+      (hasAudio ? "Primeiro transcreva o áudio fielmente em português do Brasil.\n" : "") +
+      (notes ? `Anotações coladas pela responsável:\n"""${notes}"""\n\n` : "") +
+      "Responda APENAS com um objeto JSON válido (sem markdown, sem ```), no formato:\n" +
+      '{ "transcript": string, "rules": [ { "code": string, "title": string, ' +
+      '"category": string, "limit": string, "basis": string, "text": string } ] }\n\n' +
+      'Em "transcript" coloque a transcrição do áudio (ou repita as anotações se não houver áudio). ' +
+      "Para cada regra: code = numeração sequencial (ex.: '1', '2'); title = título curto; " +
+      `category = uma de [${CATEGORIES.join(", ")}]; limit = valor/condição (ex.: 'R$ 80,00'); ` +
+      "basis = base do limite (ex.: 'por refeição'); text = a regra redigida de forma clara e formal. " +
+      "Se um campo não existir, use string vazia. Seja fiel ao que foi dito, sem inventar limites. " +
+      "Responda em português do Brasil.";
+
+    type ContentPart =
+      | { type: "text"; text: string }
+      | { type: "file"; data: Buffer; mediaType: string };
+    const content: ContentPart[] = [{ type: "text", text: instruction }];
+    if (data.audioBase64) {
+      content.push({
+        type: "file",
+        data: Buffer.from(data.audioBase64, "base64"),
+        mediaType: data.audioMime || "audio/webm",
+      });
+    }
+
+    let draftResult: { transcript: string; rules: z.infer<typeof ruleSchema>[] };
+    try {
+      const gateway = createLovableAiGatewayProvider(getLovableApiKey());
+      const { text } = await generateText({
+        model: gateway("google/gemini-3-flash-preview"),
+        messages: [{ role: "user", content }],
+      });
+      draftResult = parseDraft(text);
+      if (draftResult.rules.length === 0) {
+        throw new Error("Nenhuma regra identificada na descrição.");
+      }
+    } catch (err) {
+      console.error("[policy] falha ao gerar rascunho por áudio/texto:", err);
+      throw new Error(
+        "Não foi possível gerar o rascunho da política. Tente gravar um áudio mais claro ou detalhar melhor o texto.",
+      );
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const policyId = crypto.randomUUID();
+    const { data: existing } = await supabaseAdmin
+      .from("policies")
+      .select("id")
+      .eq("company_id", companyId);
+    const versionLabel = `v${(existing?.length ?? 0) + 1}.0`;
+    const source = hasAudio ? (notes ? "audio+text" : "audio") : "text";
+    const fileName = hasAudio
+      ? notes
+        ? "Política por áudio + texto (rascunho)"
+        : "Política por áudio (rascunho)"
+      : "Política por texto (rascunho)";
+    const sourceText = [draftResult.transcript, notes ? `\n\n[Anotações]\n${notes}` : ""]
+      .join("")
+      .trim();
+
+    const { error: insErr } = await supabaseAdmin.from("policies").insert({
+      id: policyId,
+      company_id: companyId,
+      version: versionLabel,
+      file_name: fileName,
+      file_path: null,
+      uploaded_by: profile?.nome ?? "",
+      size_kb: 0,
+      pages: 0,
+      status: "rascunho",
+      active: false,
+      source,
+      source_text: sourceText,
+    });
+    if (insErr) throw insErr;
+
+    const { error: rulesErr } = await supabaseAdmin.from("policy_rules").insert(
+      draftResult.rules.map((r, i) => ({
+        policy_id: policyId,
+        company_id: companyId,
+        code: r.code || String(i + 1),
+        title: r.title,
+        category: r.category,
+        rule_limit: r.limit,
+        rule_basis: r.basis,
+        rule_text: r.text,
+      })),
+    );
+    if (rulesErr) throw rulesErr;
+
+    return {
+      ok: true,
+      policyId,
+      rulesCount: draftResult.rules.length,
+      transcript: draftResult.transcript,
+    };
+  });
+
+const publishDraftInput = z.object({ policyId: z.string().uuid() });
+
+export const publishDraftPolicy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => publishDraftInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const companyId = await assertAdmin(supabase, userId);
+
+    const { data: draftRow, error: dErr } = await supabase
+      .from("policies")
+      .select("id, status")
+      .eq("id", data.policyId)
+      .eq("company_id", companyId)
+      .maybeSingle();
+    if (dErr) throw dErr;
+    if (!draftRow) throw new Error("Rascunho não encontrado para esta empresa.");
+
+    await supabase.from("policies").update({ active: false }).eq("company_id", companyId);
+    const { error: upErr } = await supabase
+      .from("policies")
+      .update({ active: true, status: "ativa" })
+      .eq("id", data.policyId)
+      .eq("company_id", companyId);
+    if (upErr) throw upErr;
+
+    return { ok: true, policyId: data.policyId };
+  });
+
