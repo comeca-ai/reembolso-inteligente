@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -15,11 +16,17 @@ import {
   MessageCircle,
   Mail,
   Filter,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { verifyNfe, type NfeStatus } from "@/lib/nfe.functions";
 
 export interface RichDespesa {
   id: string;
