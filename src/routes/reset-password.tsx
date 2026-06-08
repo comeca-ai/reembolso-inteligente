@@ -15,6 +15,7 @@ export const Route = createFileRoute("/reset-password")({
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const isInviteFlow = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "invite";
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -37,9 +38,9 @@ function ResetPasswordPage() {
     try {
       await updatePassword(senha);
       toast.success("Senha alterada", {
-        description: "Entre novamente com a nova senha.",
+        description: isInviteFlow ? "Seu acesso foi ativado." : "Entre novamente com a nova senha.",
       });
-      navigate({ to: "/login" });
+      navigate({ to: isInviteFlow ? "/overview" : "/login" });
     } catch {
       toast.error("Não foi possível alterar a senha", {
         description: "Abra novamente o link de recuperação e tente outra vez.",
@@ -51,8 +52,8 @@ function ResetPasswordPage() {
   return (
     <AuthLayout
       eyebrow="Recuperação de acesso"
-      title="Criar nova senha"
-      subtitle="Defina uma senha nova para voltar ao painel."
+      title={isInviteFlow ? "Ativar acesso" : "Criar nova senha"}
+      subtitle={isInviteFlow ? "Crie sua senha para entrar no painel e concluir o onboarding." : "Defina uma senha nova para voltar ao painel."}
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div className="space-y-2">
