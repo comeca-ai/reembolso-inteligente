@@ -13,6 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { validarChave, type NfeChaveResultado } from "@/lib/nfe-chave";
 
 /** Portal nacional de consulta pública de NF-e (resumo, com captcha). */
 export const SEFAZ_PORTAL_URL =
@@ -40,6 +41,8 @@ export interface NfeVerifyResult {
   source: string;
   /** Chave consultada (44 dígitos), quando válida. */
   key: string | null;
+  /** Validação estrutural offline (camada 1) — sempre presente. */
+  structure: NfeChaveResultado;
 }
 
 const verifyInput = z.object({ id: z.string().uuid() });
@@ -84,11 +87,15 @@ async function checkKey(key: string): Promise<{
   /** Corpo bruto retornado pela fonte (para gravar histórico). */
   raw: unknown;
 }> {
+  // Camada 1 — validação estrutural offline (sempre roda, não depende de rede).
+  const structure = validarChave(key);
+
   const base = {
     code: null as string | null,
     verifiedAt: null as string | null,
     sefazUrl: SEFAZ_PORTAL_URL,
     key,
+    structure,
   };
 
   if (key.length !== 44) {

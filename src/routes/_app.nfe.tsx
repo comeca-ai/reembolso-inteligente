@@ -15,6 +15,9 @@ import {
   ExternalLink,
   Loader2,
   FileSearch,
+  Check,
+  X,
+  AlertTriangle,
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -28,6 +31,7 @@ import {
   type NfeVerifyResult,
   SEFAZ_PORTAL_URL,
 } from "@/lib/nfe.functions";
+import { validarChave, type NfeChaveResultado } from "@/lib/nfe-chave";
 
 interface NfeRow {
   id: string;
@@ -161,6 +165,105 @@ function StatCard({
   );
 }
 
+function CheckRow({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium",
+        ok
+          ? "bg-success/10 text-success"
+          : "bg-destructive/10 text-destructive",
+      )}
+    >
+      {ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Camada 1 — validação estrutural offline da chave. Mostra os campos
+ * desmembrados, as checagens (DV mod 11, CNPJ, UF, modelo) e os alertas.
+ */
+function NfeStructureDetails({
+  structure,
+}: {
+  structure: NfeChaveResultado;
+}) {
+  const { campos, checagens, alertas, veredito, estruturaOk } = structure;
+
+  return (
+    <div className="rounded-md bg-secondary/40 p-2.5 text-xs">
+      <div className="mb-1.5 flex items-center gap-2">
+        <span className="font-medium text-foreground">Estrutura da chave</span>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[11px] font-medium",
+            estruturaOk
+              ? "bg-success/10 text-success"
+              : "bg-destructive/10 text-destructive",
+          )}
+        >
+          {veredito}
+        </span>
+      </div>
+
+      {checagens && (
+        <div className="flex flex-wrap gap-1.5">
+          <CheckRow
+            ok={checagens.dvMod11.ok}
+            label={`DV mód.11 (${checagens.dvMod11.esperado})`}
+          />
+          <CheckRow ok={checagens.cnpjValido} label="CNPJ" />
+          <CheckRow ok={checagens.ufReconhecida} label="UF" />
+          <CheckRow ok={checagens.modeloReconhecido} label="Modelo" />
+        </div>
+      )}
+
+      {campos && (
+        <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground sm:grid-cols-4">
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">UF</dt>
+            <dd className="text-foreground">{campos.uf.sigla}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">Modelo</dt>
+            <dd className="text-foreground">{campos.modelo.tipo}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">Emissão</dt>
+            <dd className="text-foreground">{campos.anoMesEmissao}</dd>
+          </div>
+          <div>
+            <dt className="text-[10px] uppercase tracking-wide">Série/Nº</dt>
+            <dd className="text-foreground">
+              {campos.serie}/{campos.numero}
+            </dd>
+          </div>
+          <div className="col-span-2 sm:col-span-4">
+            <dt className="text-[10px] uppercase tracking-wide">CNPJ emitente</dt>
+            <dd className="font-mono text-foreground">{campos.cnpjEmitente}</dd>
+          </div>
+        </dl>
+      )}
+
+      {alertas.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {alertas.map((a, idx) => (
+            <li
+              key={idx}
+              className="flex items-start gap-1 text-warning-foreground"
+            >
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <span>{a}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function NfeDashboard() {
   const queryClient = useQueryClient();
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
@@ -282,6 +385,7 @@ function NfeDashboard() {
           verifiedAt: null,
           sefazUrl: SEFAZ_PORTAL_URL,
           source: "Erro de rede",
+          structure: validarChave(key),
         });
       }
       setTestResults([...collected]);
@@ -387,9 +491,11 @@ function NfeDashboard() {
             </p>
             <p className="text-xs text-muted-foreground">
               Cole uma ou mais chaves DANFE (44 dígitos) — uma por linha. Cada
-              chave é consultada na fonte oficial e o resultado mostra a origem
-              da verificação.
+              chave passa por duas camadas: validação estrutural offline
+              (dígito verificador, CNPJ, UF, modelo e campos da chave) e a
+              consulta da situação na fonte oficial (SEFAZ).
             </p>
+
           </div>
         </div>
 
@@ -420,33 +526,37 @@ function NfeDashboard() {
               return (
                 <div
                   key={`${res.inputKey}-${i}`}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border p-3"
+                  className="space-y-2 rounded-lg border border-border p-3"
                 >
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                      meta.className,
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                    {meta.label}
-                  </span>
-                  <span className="font-mono text-xs text-foreground">
-                    …{res.inputKey.slice(-12)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {res.message}
-                  </span>
-                  <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    <ExternalLink className="h-3 w-3" />
-                    Fonte: {res.source}
-                  </span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                        meta.className,
+                      )}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {meta.label}
+                    </span>
+                    <span className="font-mono text-xs text-foreground">
+                      …{res.inputKey.slice(-12)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {res.message}
+                    </span>
+                    <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <ExternalLink className="h-3 w-3" />
+                      Fonte: {res.source}
+                    </span>
+                  </div>
+                  <NfeStructureDetails structure={res.structure} />
                 </div>
               );
             })}
           </div>
         )}
       </Card>
+
 
       <Card>
         <div className="flex items-center justify-between border-b border-border p-4">
@@ -504,7 +614,33 @@ function NfeDashboard() {
                       >
                         …{r.danfeKey.slice(-12)}
                       </button>
+                      {(() => {
+                        const st = validarChave(r.danfeKey);
+                        return (
+                          <span
+                            className={cn(
+                              "mt-1 flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+                              st.estruturaOk
+                                ? "bg-success/10 text-success"
+                                : "bg-destructive/10 text-destructive",
+                            )}
+                            title={st.veredito}
+                          >
+                            {st.estruturaOk ? (
+                              <Check className="h-2.5 w-2.5" />
+                            ) : (
+                              <X className="h-2.5 w-2.5" />
+                            )}
+                            {st.estruturaOk
+                              ? st.alertas.length > 0
+                                ? "Estrutura ok · alertas"
+                                : "Estrutura válida"
+                              : "Estrutura inválida"}
+                          </span>
+                        );
+                      })()}
                     </td>
+
                     <td className="px-5 py-4 align-top">
                       {r.nfeStatus ? (
                         <span
