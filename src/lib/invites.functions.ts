@@ -35,8 +35,14 @@ function inviteEmailHtml(params: {
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Olá, ${escapeHtml(nome)}!</p>
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">
         Você foi convidado por <strong>${escapeHtml(companyName)}</strong> para aprovar despesas
-        na plataforma reembolso.ia.br. Clique no botão abaixo para ativar seu acesso.
+        na plataforma reembolso.ia.br.
       </p>
+      <div style="background-color:#f3f7f6;border-radius:10px;padding:16px 18px;margin:20px 0;">
+        <p style="font-size:14px;line-height:1.6;margin:0 0 8px;font-weight:bold;">Como começar</p>
+        <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">1. Acesse <a href="https://reeembolsa-ai-landing.lovable.app/" style="color:#0f2e2e;text-decoration:underline;">https://reeembolsa-ai-landing.lovable.app/</a></p>
+        <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">2. Clique em <strong>Entrar</strong> e crie sua conta com este e-mail.</p>
+        <p style="font-size:14px;line-height:1.6;margin:0;">3. Complete o onboarding para começar a aprovar despesas.</p>
+      </div>
       <p style="text-align:center;margin:28px 0;">
         <a href="${actionLink}"
            style="display:inline-block;background-color:#0f2e2e;color:#ffffff;text-decoration:none;
