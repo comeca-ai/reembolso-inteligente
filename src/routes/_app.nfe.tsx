@@ -264,7 +264,7 @@ function NfeStructureDetails({
   );
 }
 
-
+function NfeDashboard() {
   const queryClient = useQueryClient();
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
