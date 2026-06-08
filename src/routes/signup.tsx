@@ -6,8 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Eye, EyeOff } from "lucide-react";
-import { signUpCompany, isAuthenticated } from "@/lib/auth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Eye, EyeOff, Check, X, Circle } from "lucide-react";
+import {
+  signUpCompany,
+  isAuthenticated,
+  SIGN_UP_STEPS,
+  SIGN_UP_STEP_LABELS,
+  SignUpStepError,
+  type SignUpStep,
+} from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
