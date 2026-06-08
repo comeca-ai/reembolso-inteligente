@@ -444,6 +444,20 @@ function FieldUserDrawer({
           <Field label="E-mail">
             <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="colaborador@empresa.com.br" />
           </Field>
+          {form.email.trim() && (
+            <label className="flex items-start gap-2.5 rounded-lg border border-border bg-accent/30 px-3 py-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={sendInvite}
+                onChange={(e) => setSendInvite(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-border accent-primary"
+              />
+              <span className="text-muted-foreground">
+                <span className="font-medium text-foreground">Enviar convite por e-mail</span> com as instruções de
+                envio de comprovantes por WhatsApp ou e-mail.
+              </span>
+            </label>
+          )}
           <Field label="Aprovador responsável" required>
             <Select value={form.approverName} onValueChange={(v) => setForm({ ...form, approverName: v })}>
               <SelectTrigger>
