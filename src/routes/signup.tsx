@@ -91,7 +91,19 @@ function SignupPage() {
 
   const MAX_POLITICA_MB = 10;
   const TIPOS_ACEITOS = [".pdf", ".doc", ".docx"];
-  const TIPOS_CARTAO = [".pdf", ".jpg", ".jpeg", ".png"];
+  const TIPOS_CARTAO = [
+    ".pdf",
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+    ".gif",
+    ".ppt",
+    ".pptx",
+    ".xls",
+    ".xlsx",
+    ".txt",
+  ];
 
   function handlePoliticaChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -123,7 +135,7 @@ function SignupPage() {
     }
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     if (!TIPOS_CARTAO.includes(ext)) {
-      setCartaoCnpjErro("Envie um arquivo PDF, JPG ou PNG.");
+      setCartaoCnpjErro("Envie imagem, PDF, PPT, XLS ou TXT.");
       e.target.value = "";
       return;
     }
@@ -322,7 +334,8 @@ function SignupPage() {
             <span className="text-xs text-muted-foreground">Opcional</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Envie o Cartão do CNPJ da empresa (PDF, JPG ou PNG). Usamos para
+            Envie o Cartão do CNPJ da empresa (imagem, PDF, PPT, XLS ou TXT).
+            Usamos para
             validar os dados cadastrais.
           </p>
 
@@ -356,7 +369,7 @@ function SignupPage() {
           <input
             id="cartaoCnpj"
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.ppt,.pptx,.xls,.xlsx,.txt,image/*"
             className="sr-only"
             onChange={handleCartaoCnpjChange}
           />
