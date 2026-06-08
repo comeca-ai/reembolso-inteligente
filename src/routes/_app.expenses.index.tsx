@@ -367,13 +367,14 @@ function ExpensesPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1020px] text-sm">
+            <table className="w-full min-w-[1180px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-3 font-medium">Remetente</th>
                   <th className="px-5 py-3 font-medium">Descrição / Categoria</th>
                   <th className="px-5 py-3 font-medium">Valor</th>
                   <th className="px-5 py-3 font-medium">Chave DANFE</th>
+                  <th className="px-5 py-3 font-medium">Verificação</th>
                   <th className="px-5 py-3 font-medium">Status</th>
                   <th className="px-5 py-3 font-medium">Comprovante</th>
                   <th className="whitespace-nowrap px-5 py-3 text-right font-medium">
