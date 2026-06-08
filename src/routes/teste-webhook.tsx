@@ -1,10 +1,26 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState, useRef, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/Logo";
 import { Upload, Send, Loader2, CheckCircle, XCircle, ImageIcon } from "lucide-react";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
+import { landingForRole } from "@/lib/permissions";
+import { getReimbursementsConfig } from "@/lib/reimbursements.functions";
 
 export const Route = createFileRoute("/teste-webhook")({
+  // Página de debug: só admin autenticado pode acessar (e ela envia o
+  // webhook_token da empresa para o endpoint, que agora exige autenticação).
+  ssr: false,
+  beforeLoad: async () => {
+    if (!(await isAuthenticated())) {
+      throw redirect({ to: "/login" });
+    }
+    const role = getCurrentUser()?.role;
+    if (role !== "admin") {
+      throw redirect({ to: landingForRole(role) });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Teste do Webhook — reembolso.ia.br" },
