@@ -40,7 +40,42 @@ export interface RichDespesa {
   danfeKey: string | null;
   status: string;
   createdAt: string;
+  nfeStatus: NfeStatus | null;
+  nfeVerifiedAt: string | null;
 }
+
+const nfeBadge: Record<NfeStatus, { label: string; className: string; Icon: typeof ShieldCheck }> = {
+  autorizada: {
+    label: "Autorizada",
+    className: "bg-success/15 text-success ring-1 ring-success/30",
+    Icon: ShieldCheck,
+  },
+  cancelada: {
+    label: "Cancelada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  denegada: {
+    label: "Denegada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  inexistente: {
+    label: "Não encontrada",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+    Icon: ShieldX,
+  },
+  erro: {
+    label: "Indeterminado",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    Icon: ShieldAlert,
+  },
+  manual: {
+    label: "Conferir manual",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    Icon: ShieldAlert,
+  },
+};
 
 const DESPESAS_KEY = ["despesas-rich"] as const;
 
