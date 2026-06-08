@@ -70,6 +70,7 @@ type Errors = Partial<Record<keyof FormState, string>>;
 
 function SignupPage() {
   const navigate = useNavigate();
+  const enviarCartaoCnpj = useServerFn(uploadCartaoCnpj);
   const [form, setForm] = useState<FormState>({
     razaoSocial: "",
     cnpj: "",
