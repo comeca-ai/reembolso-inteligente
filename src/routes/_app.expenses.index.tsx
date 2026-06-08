@@ -55,7 +55,7 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
   const { data, error } = await supabase
     .from("inbound_reimbursements")
     .select(
-      "id, channel, sender, sender_name, message, attachment_url, amount, category, status, created_at",
+      "id, channel, sender, sender_name, message, attachment_url, amount, category, danfe_key, status, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(300);
@@ -69,6 +69,7 @@ async function fetchDespesas(): Promise<RichDespesa[]> {
     attachmentUrl: row.attachment_url,
     amount: row.amount === null ? null : Number(row.amount),
     category: row.category,
+    danfeKey: row.danfe_key,
     status: row.status,
     createdAt: row.created_at,
   }));
