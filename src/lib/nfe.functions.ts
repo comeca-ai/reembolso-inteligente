@@ -110,15 +110,16 @@ export const verifyNfe = createServerFn({ method: "POST" })
       };
     }
 
-    // 3. Principal — consulta no nfe.io pela chave de acesso.
+    // 3. Principal — Consulta Irrestrita do nfe.io pela chave de acesso.
+    //    Host e header conforme a doc: Authorization recebe a chave SEM prefixo.
     let result: NfeVerifyResult;
     try {
       const resp = await fetch(
-        `https://api.nfe.io/v2/dfes/consult/${key}`,
+        `https://nfe.api.nfe.io/v2/productinvoices/serpro/${key}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Basic ${apiKey}`,
+            Authorization: apiKey,
             Accept: "application/json",
           },
         },
@@ -133,15 +134,26 @@ export const verifyNfe = createServerFn({ method: "POST" })
       }
 
       if (resp.status === 404) {
-        const mapped = mapCStat("217");
         result = {
-          ...mapped,
-          code: "217",
+          status: "inexistente",
+          message: "Nota não encontrada na base nacional da SEFAZ.",
+          code: "404",
           verifiedAt: new Date().toISOString(),
           sefazUrl: SEFAZ_PORTAL_URL,
         };
+      } else if (resp.status === 401 || resp.status === 403) {
+        // Chave válida porém sem o produto de consulta habilitado, ou chave
+        // inválida → fallback manual, sem gravar status falso.
+        return {
+          status: "manual",
+          message:
+            "Consulta automática indisponível (produto de Consulta de NF-e não habilitado na conta nfe.io). Confira no portal da SEFAZ.",
+          code: null,
+          verifiedAt: null,
+          sefazUrl: SEFAZ_PORTAL_URL,
+        };
       } else if (!resp.ok) {
-        // Erro do serviço → cai no fallback manual, sem gravar status falso.
+        // Outro erro do serviço → fallback manual.
         return {
           status: "manual",
           message:
@@ -151,19 +163,16 @@ export const verifyNfe = createServerFn({ method: "POST" })
           sefazUrl: SEFAZ_PORTAL_URL,
         };
       } else {
-        // Procura o código de situação na resposta (cStat / status).
+        // 200 — usa currentStatus (authorized | canceled | unknown).
         const b = (body ?? {}) as Record<string, unknown>;
-        const cStat =
-          (b.cStat as string | undefined) ??
+        const current =
+          (b.currentStatus as string | undefined) ??
           (b.status as string | undefined) ??
-          ((b.protocol as Record<string, unknown> | undefined)?.cStat as
-            | string
-            | undefined) ??
           null;
-        const mapped = mapCStat(cStat);
+        const mapped = mapCurrentStatus(current);
         result = {
           ...mapped,
-          code: cStat ? String(cStat) : null,
+          code: current ? String(current) : null,
           verifiedAt: new Date().toISOString(),
           sefazUrl: SEFAZ_PORTAL_URL,
         };
