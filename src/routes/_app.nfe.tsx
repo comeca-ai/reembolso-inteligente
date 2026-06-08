@@ -18,9 +18,16 @@ import {
 } from "lucide-react";
 import { PageSkeleton, TableSkeleton } from "@/components/shared/Skeletons";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { verifyNfe, type NfeStatus, SEFAZ_PORTAL_URL } from "@/lib/nfe.functions";
+import {
+  verifyNfe,
+  verifyNfeKey,
+  type NfeStatus,
+  type NfeVerifyResult,
+  SEFAZ_PORTAL_URL,
+} from "@/lib/nfe.functions";
 
 interface NfeRow {
   id: string;
@@ -31,6 +38,11 @@ interface NfeRow {
   createdAt: string;
   nfeStatus: NfeStatus | null;
   nfeVerifiedAt: string | null;
+  nfeSource?: string | null;
+}
+
+interface TestResult extends NfeVerifyResult {
+  inputKey: string;
 }
 
 const NFE_KEY = ["nfe-dashboard"] as const;
@@ -153,7 +165,12 @@ function NfeDashboard() {
   const queryClient = useQueryClient();
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
+  const [sourceById, setSourceById] = useState<Record<string, string>>({});
+  const [testInput, setTestInput] = useState("");
+  const [testRunning, setTestRunning] = useState(false);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   const runVerifyNfe = useServerFn(verifyNfe);
+  const runVerifyNfeKey = useServerFn(verifyNfeKey);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: NFE_KEY,
@@ -194,15 +211,18 @@ function NfeDashboard() {
     try {
       const result = await runVerifyNfe({ data: { id: r.id } });
       applyResult(r.id, result.status, result.verifiedAt);
-      if (result.status === "autorizada") toast.success(result.message);
+      setSourceById((prev) => ({ ...prev, [r.id]: result.source }));
+      if (result.status === "autorizada")
+        toast.success(`${result.message} (fonte: ${result.source})`);
       else if (result.status === "manual")
         toast.warning(result.message, {
+          description: `Fonte: ${result.source}`,
           action: {
             label: "Abrir SEFAZ",
             onClick: () => window.open(result.sefazUrl, "_blank", "noopener"),
           },
         });
-      else toast.error(result.message);
+      else toast.error(`${result.message} (fonte: ${result.source})`);
     } catch {
       toast.error("Falha ao verificar a nota. Tente novamente.");
     } finally {
@@ -222,6 +242,7 @@ function NfeDashboard() {
       try {
         const result = await runVerifyNfe({ data: { id: r.id } });
         applyResult(r.id, result.status, result.verifiedAt);
+        setSourceById((prev) => ({ ...prev, [r.id]: result.source }));
         ok += 1;
       } catch {
         /* segue para a próxima */
@@ -230,6 +251,44 @@ function NfeDashboard() {
     setBulkRunning(false);
     toast.success(`Verificação concluída para ${ok} de ${pending.length} notas.`);
   }
+
+  async function handleTest() {
+    const keys = Array.from(
+      new Set(
+        testInput
+          .split(/[\s,;]+/)
+          .map((k) => k.replace(/\D/g, ""))
+          .filter((k) => k.length > 0),
+      ),
+    );
+    if (keys.length === 0) {
+      toast.info("Cole ao menos uma chave DANFE (44 dígitos) para testar.");
+      return;
+    }
+    setTestRunning(true);
+    setTestResults([]);
+    const collected: TestResult[] = [];
+    for (const key of keys) {
+      try {
+        const result = await runVerifyNfeKey({ data: { key } });
+        collected.push({ ...result, inputKey: key });
+      } catch {
+        collected.push({
+          inputKey: key,
+          key: key.length === 44 ? key : null,
+          status: "erro",
+          message: "Falha ao consultar esta chave.",
+          code: null,
+          verifiedAt: null,
+          sefazUrl: SEFAZ_PORTAL_URL,
+          source: "Erro de rede",
+        });
+      }
+      setTestResults([...collected]);
+    }
+    setTestRunning(false);
+  }
+
 
   // Realtime: novas notas aparecem automaticamente.
   useEffect(() => {
@@ -316,6 +375,79 @@ function NfeDashboard() {
         />
       </div>
 
+      {/* Teste rápido por chave — verifica qualquer DANFE sem precisar cadastrar. */}
+      <Card className="space-y-4 p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <FileSearch className="h-5 w-5" />
+          </span>
+          <div className="leading-tight">
+            <p className="text-sm font-semibold text-foreground">
+              Testar chaves de acesso
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Cole uma ou mais chaves DANFE (44 dígitos) — uma por linha. Cada
+              chave é consultada na fonte oficial e o resultado mostra a origem
+              da verificação.
+            </p>
+          </div>
+        </div>
+
+        <Textarea
+          value={testInput}
+          onChange={(e) => setTestInput(e.target.value)}
+          rows={3}
+          placeholder={"3525...  (cole aqui — várias chaves, uma por linha)"}
+          className="font-mono text-xs"
+        />
+
+        <div className="flex items-center justify-end">
+          <Button className="gap-2" onClick={handleTest} disabled={testRunning}>
+            {testRunning ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSearch className="h-4 w-4" />
+            )}
+            Verificar chaves
+          </Button>
+        </div>
+
+        {testResults.length > 0 && (
+          <div className="space-y-2 border-t border-border pt-4">
+            {testResults.map((res, i) => {
+              const meta = badge[res.status];
+              const Icon = meta.Icon;
+              return (
+                <div
+                  key={`${res.inputKey}-${i}`}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-border p-3"
+                >
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                      meta.className,
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {meta.label}
+                  </span>
+                  <span className="font-mono text-xs text-foreground">
+                    …{res.inputKey.slice(-12)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {res.message}
+                  </span>
+                  <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <ExternalLink className="h-3 w-3" />
+                    Fonte: {res.source}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+
       <Card>
         <div className="flex items-center justify-between border-b border-border p-4">
           <p className="text-sm font-medium text-foreground">
@@ -338,6 +470,7 @@ function NfeDashboard() {
                   <th className="px-5 py-3 font-medium">Valor</th>
                   <th className="px-5 py-3 font-medium">Chave DANFE</th>
                   <th className="px-5 py-3 font-medium">Situação</th>
+                  <th className="px-5 py-3 font-medium">Fonte</th>
                   <th className="px-5 py-3 font-medium">Verificado em</th>
                   <th className="px-5 py-3 text-right font-medium">Ações</th>
                 </tr>
@@ -392,6 +525,9 @@ function NfeDashboard() {
                           Pendente
                         </span>
                       )}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
+                      {sourceById[r.id] ?? "—"}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
                       {formatDateTime(r.nfeVerifiedAt)}
