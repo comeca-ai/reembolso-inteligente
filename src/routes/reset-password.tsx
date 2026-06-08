@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updatePassword } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -21,9 +22,36 @@ function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  // "checking" enquanto validamos o link; "ready" se há sessão de recuperação; "invalid" se o link expirou/foi consumido.
+  const [linkState, setLinkState] = useState<"checking" | "ready" | "invalid">("checking");
+
+  useEffect(() => {
+    let active = true;
+    // O link de recuperação/convite cria uma sessão temporária ao abrir a página.
+    // Se ela não existir, não há token consumido e não devemos permitir trocar a senha.
+    async function verify() {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      setLinkState(data.session ? "ready" : "invalid");
+    }
+    // onAuthStateChange dispara o evento PASSWORD_RECOVERY quando o token do hash é processado.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      if (session) setLinkState("ready");
+    });
+    void verify();
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (linkState !== "ready") {
+      setError("O link de recuperação expirou ou já foi usado. Solicite um novo.");
+      return;
+    }
     if (senha.length < 8) {
       setError("A senha precisa ter no mínimo 8 caracteres.");
       return;
@@ -47,6 +75,33 @@ function ResetPasswordPage() {
       });
       setLoading(false);
     }
+  }
+
+  if (linkState === "checking") {
+    return (
+      <AuthLayout eyebrow="Recuperação de acesso" title="Validando link" subtitle="Aguarde um instante…">
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-6 w-6 animate-spin text-brand" />
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  if (linkState === "invalid") {
+    return (
+      <AuthLayout
+        eyebrow="Recuperação de acesso"
+        title="Link inválido ou expirado"
+        subtitle="Este link de recuperação já foi usado ou expirou. Solicite um novo para continuar."
+      >
+        <Link
+          to="/login"
+          className="block w-full rounded-md bg-brand px-4 py-2.5 text-center text-sm font-semibold text-brand-foreground hover:opacity-90"
+        >
+          Voltar para o login
+        </Link>
+      </AuthLayout>
+    );
   }
 
   return (

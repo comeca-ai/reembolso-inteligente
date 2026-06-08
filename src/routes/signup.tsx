@@ -114,6 +114,10 @@ function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
+    await runSignup();
+  }
+
+  async function runSignup() {
     setLoading(true);
     setFailedStep(null);
     setFailedMessage("");
@@ -298,7 +302,7 @@ function SignupPage() {
         onRetry={() => {
           setFailedStep(null);
           setFailedMessage("");
-          void handleSubmit(new Event("submit") as unknown as React.FormEvent);
+          void runSignup();
         }}
       />
     </AuthLayout>
