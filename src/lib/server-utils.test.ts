@@ -31,10 +31,12 @@ describe("escapeHtml", () => {
 });
 
 describe("generateTempPassword", () => {
-  it("respects the requested length and uses only the safe charset", () => {
+  it("respects the requested length and avoids ambiguous characters", () => {
     const pw = generateTempPassword(20);
     expect(pw).toHaveLength(20);
-    expect(pw).toMatch(/^[A-HJ-NP-Za-hj-z2-9@#%*]+$/);
+    // sem caracteres ambíguos (I, O, l, o, 0, 1) e dentro do charset esperado
+    expect(pw).not.toMatch(/[IOlo01]/);
+    expect(pw).toMatch(/^[A-Za-z2-9@#%*]+$/);
   });
 
   it("produces different values across calls", () => {
