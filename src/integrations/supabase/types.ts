@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       companies: {
         Row: {
+          cartao_cnpj_arquivo: string | null
+          cartao_cnpj_path: string | null
           cnpj: string
           created_at: string
           id: string
@@ -25,6 +27,8 @@ export type Database = {
           webhook_token: string
         }
         Insert: {
+          cartao_cnpj_arquivo?: string | null
+          cartao_cnpj_path?: string | null
           cnpj: string
           created_at?: string
           id?: string
@@ -34,6 +38,8 @@ export type Database = {
           webhook_token?: string
         }
         Update: {
+          cartao_cnpj_arquivo?: string | null
+          cartao_cnpj_path?: string | null
           cnpj?: string
           created_at?: string
           id?: string
