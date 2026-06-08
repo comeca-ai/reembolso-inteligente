@@ -62,6 +62,47 @@ export interface SignUpResult {
   user: AuthUser | null;
 }
 
+/** Etapas do pré-cadastro, na ordem em que acontecem. */
+export type SignUpStep =
+  | "validando"
+  | "criando_conta"
+  | "provisionando"
+  | "carregando_sessao"
+  | "concluido";
+
+/** Rótulos amigáveis para exibir o progresso ao usuário. */
+export const SIGN_UP_STEP_LABELS: Record<SignUpStep, string> = {
+  validando: "Validando os dados informados",
+  criando_conta: "Criando a conta de acesso",
+  provisionando: "Provisionando empresa e perfil",
+  carregando_sessao: "Carregando sua sessão",
+  concluido: "Cadastro concluído",
+};
+
+/** Ordem das etapas — usada para saber até onde o processo chegou. */
+export const SIGN_UP_STEPS: SignUpStep[] = [
+  "validando",
+  "criando_conta",
+  "provisionando",
+  "carregando_sessao",
+  "concluido",
+];
+
+/**
+ * Erro de cadastro que carrega a etapa em que parou e o que já foi concluído,
+ * permitindo que a UI mostre "até onde foi feito".
+ */
+export class SignUpStepError extends Error {
+  step: SignUpStep;
+  completedSteps: SignUpStep[];
+  constructor(message: string, step: SignUpStep, completedSteps: SignUpStep[]) {
+    super(message);
+    this.name = "SignUpStepError";
+    this.step = step;
+    this.completedSteps = completedSteps;
+  }
+}
+
 export interface ResetPasswordInput {
   email: string;
 }
