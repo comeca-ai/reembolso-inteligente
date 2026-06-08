@@ -156,11 +156,19 @@ export const updateReimbursementStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => statusInput.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    // Escopo defensivo por empresa (além da RLS).
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!profile?.company_id) throw new Error("Empresa não encontrada.");
     const { error } = await supabase
       .from("inbound_reimbursements")
       .update({ status: data.status })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("company_id", profile.company_id);
     if (error) throw error;
     return { ok: true, id: data.id, status: data.status };
   });
