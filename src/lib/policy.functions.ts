@@ -122,6 +122,39 @@ function parseExtraction(raw: string): { pages: number; rules: z.infer<typeof ru
   return { pages, rules };
 }
 
+/** Parser para o rascunho gerado a partir de áudio/texto: { transcript, rules }. */
+function parseDraft(raw: string): { transcript: string; rules: z.infer<typeof ruleSchema>[] } {
+  let txt = (raw ?? "").trim();
+  const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) txt = fence[1].trim();
+  const first = txt.indexOf("{");
+  const last = txt.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) txt = txt.slice(first, last + 1);
+
+  let data: any;
+  try {
+    data = JSON.parse(txt);
+  } catch {
+    throw new Error("Resposta da IA não estava em JSON válido.");
+  }
+
+  const rawRules = Array.isArray(data?.rules) ? data.rules : [];
+  const rules = rawRules
+    .map((r: any) => ({
+      code: String(r?.code ?? "").trim(),
+      title: String(r?.title ?? "").trim(),
+      category: normalizeCategory(r?.category),
+      limit: String(r?.limit ?? "").trim(),
+      basis: String(r?.basis ?? "").trim(),
+      text: String(r?.text ?? "").trim(),
+    }))
+    .filter((r: z.infer<typeof ruleSchema>) => r.title || r.text);
+
+  const transcript = String(data?.transcript ?? "").trim();
+  return { transcript, rules };
+}
+
+
 function extractJsonObject(raw: string) {
   let txt = (raw ?? "").trim();
   const fence = txt.match(/```(?:json)?\s*([\s\S]*?)```/i);
