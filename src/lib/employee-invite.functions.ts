@@ -20,13 +20,29 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * Gera uma senha temporária forte (web crypto, disponível no runtime do
+ * servidor). Sem caracteres ambíguos para facilitar a digitação.
+ */
+function generateTempPassword(length = 14): string {
+  const charset = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#%*";
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < length; i++) out += charset[bytes[i] % charset.length];
+  return out;
+}
+
 function employeeEmailHtml(params: {
   nome: string;
   companyName: string;
+  email: string;
+  tempPassword: string;
+  loginUrl: string;
   whatsapp?: string;
   approverName?: string;
 }): string {
-  const { nome, companyName, whatsapp, approverName } = params;
+  const { nome, companyName, email, tempPassword, loginUrl, whatsapp, approverName } = params;
   const approverLine = approverName
     ? `<p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Seu aprovador responsável é <strong>${escapeHtml(approverName)}</strong>.</p>`
     : "";
@@ -41,17 +57,39 @@ function employeeEmailHtml(params: {
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Olá, ${escapeHtml(nome)}!</p>
       <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">
         A empresa <strong>${escapeHtml(companyName)}</strong> cadastrou você como colaborador de campo
-        no reembolso.ia.br. Você <strong>não precisa fazer login</strong>: basta enviar a foto do
-        comprovante por WhatsApp ou e-mail e nós cuidamos do resto.
+        no reembolso.ia.br.
       </p>
       ${approverLine}
       <div style="background-color:#f3f7f6;border-radius:10px;padding:16px 18px;margin:20px 0;">
-        <p style="font-size:14px;line-height:1.6;margin:0 0 8px;font-weight:bold;">Como enviar uma despesa</p>
+        <p style="font-size:14px;line-height:1.6;margin:0 0 8px;font-weight:bold;">Como enviar uma despesa (forma mais rápida)</p>
         <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">1. Tire uma foto nítida do comprovante.</p>
         <p style="font-size:14px;line-height:1.6;margin:0 0 6px;">2. Envie pelo WhatsApp ou e-mail cadastrado pela empresa.</p>
         <p style="font-size:14px;line-height:1.6;margin:0;">3. A IA lê os dados e encaminha para aprovação automaticamente.</p>
       </div>
       ${whatsappLine}
+      <p style="font-size:15px;line-height:1.6;margin:18px 0 12px;">
+        Se preferir, você também pode acompanhar suas despesas pelo painel. Use os dados abaixo:
+      </p>
+      <div style="background-color:#f3f7f6;border-radius:10px;padding:16px 18px;margin:0 0 20px;">
+        <p style="font-size:14px;line-height:1.6;margin:0 0 8px;font-weight:bold;">Seus dados de acesso</p>
+        <p style="font-size:14px;line-height:1.6;margin:0 0 4px;">E-mail: <strong>${escapeHtml(email)}</strong></p>
+        <p style="font-size:14px;line-height:1.6;margin:0;">Senha temporária: <strong style="font-family:monospace;font-size:16px;letter-spacing:1px;">${escapeHtml(tempPassword)}</strong></p>
+      </div>
+      <div style="background-color:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 18px;margin:0 0 20px;">
+        <p style="font-size:13px;line-height:1.6;margin:0;color:#9a3412;">
+          🔒 Por segurança, no <strong>primeiro acesso</strong> você precisará criar uma nova senha.
+        </p>
+      </div>
+      <p style="text-align:center;margin:28px 0;">
+        <a href="${loginUrl}"
+           style="display:inline-block;background-color:#0f2e2e;color:#ffffff;text-decoration:none;
+                  padding:12px 28px;border-radius:8px;font-size:15px;font-weight:bold;">
+          Entrar no painel
+        </a>
+      </p>
+      <p style="font-size:12px;line-height:1.5;color:#64807f;word-break:break-all;margin:0 0 24px;">
+        ${escapeHtml(loginUrl)}
+      </p>
       <hr style="border:none;border-top:1px solid #e2e8e8;margin:24px 0;" />
       <p style="font-size:12px;color:#94a3a3;margin:0;">
         Se você não reconhece este cadastro, pode ignorar este e-mail.
@@ -62,9 +100,10 @@ function employeeEmailHtml(params: {
 }
 
 /**
- * Envia um e-mail de boas-vindas/onboarding para um funcionário (usuário de
- * campo). Funcionários não fazem login — o e-mail apenas explica como enviar
- * comprovantes por WhatsApp ou e-mail. O remetente deve ser admin.
+ * Cadastra um colaborador de campo criando o login já com senha temporária
+ * (papel "membro", anexado à empresa do admin via gatilho handle_new_user) e
+ * envia as instruções + credenciais por e-mail. A troca de senha é obrigatória
+ * no primeiro acesso. O remetente deve ser admin.
  */
 export const inviteEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -83,26 +122,57 @@ export const inviteEmployee = createServerFn({ method: "POST" })
       throw new Error("Apenas administradores podem convidar colaboradores.");
     }
 
-    // 2) Empresa do admin (para personalizar o e-mail).
-    const { data: profile } = await supabase
+    // 2) Empresa do admin (obrigatória para vincular o colaborador).
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("company_id")
       .eq("id", userId)
       .maybeSingle();
-
-    let companyName = "Sua empresa";
-    if (profile?.company_id) {
-      const { data: company } = await supabase
-        .from("companies")
-        .select("razao_social")
-        .eq("id", profile.company_id)
-        .maybeSingle();
-      companyName = company?.razao_social ?? companyName;
+    if (profileError || !profile?.company_id) {
+      throw new Error("Empresa do administrador não encontrada.");
     }
 
-    const email = data.email.trim().toLowerCase();
+    const { data: company } = await supabase
+      .from("companies")
+      .select("razao_social")
+      .eq("id", profile.company_id)
+      .maybeSingle();
+    const companyName = company?.razao_social ?? "Sua empresa";
 
-    // 3) Envia o e-mail pelo SMTP2GO.
+    const email = data.email.trim().toLowerCase();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 3) Cria o usuário já com senha temporária (e-mail confirmado).
+    const tempPassword = generateTempPassword();
+    const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        invited_company_id: profile.company_id,
+        invite_role: "member",
+        nome: data.nome.trim(),
+        whatsapp: data.whatsapp?.trim() ?? "",
+      },
+    });
+
+    if (createError || !created?.user) {
+      const message = createError?.message ?? "";
+      if (/already.*registered|exist|duplicate/i.test(message)) {
+        throw new Error("Já existe um usuário com este e-mail.");
+      }
+      throw new Error("Não foi possível criar o acesso. Tente novamente.");
+    }
+
+    // 4) Marca a senha como temporária (troca obrigatória no 1º acesso).
+    await supabaseAdmin
+      .from("profiles")
+      .update({ must_change_password: true })
+      .eq("id", created.user.id);
+
+    const loginUrl = `${data.origin.replace(/\/$/, "")}/login`;
+
+    // 5) Envia o e-mail pelo SMTP2GO.
     const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
     if (!smtp2goApiKey) {
       throw new Error("Envio de e-mail indisponível: configuração ausente.");
@@ -122,6 +192,9 @@ export const inviteEmployee = createServerFn({ method: "POST" })
         html_body: employeeEmailHtml({
           nome: data.nome.trim(),
           companyName,
+          email,
+          tempPassword,
+          loginUrl,
           whatsapp: data.whatsapp?.trim() || undefined,
           approverName: data.approverName?.trim() || undefined,
         }),
@@ -135,7 +208,7 @@ export const inviteEmployee = createServerFn({ method: "POST" })
     if (!res.ok || !result?.data?.succeeded) {
       console.error(`[SMTP2GO] ${res.status}: ${JSON.stringify(result)}`);
       throw new Error(
-        "Não foi possível enviar o e-mail. Verifique a API key do SMTP2GO e o domínio do remetente.",
+        "Acesso criado, mas o e-mail não pôde ser enviado. Verifique a API key do SMTP2GO e o domínio do remetente.",
       );
     }
 
