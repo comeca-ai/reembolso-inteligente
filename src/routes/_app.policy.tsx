@@ -637,12 +637,12 @@ function PolicyPage() {
                 onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
               />
             </div>
-          </div>
+          </form>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditorOpen(false)}>
               Cancelar
             </Button>
-            <Button onClick={submitRule} disabled={saveMutation.isPending} className="gap-2">
+            <Button type="submit" form="rule-form" disabled={saveMutation.isPending} className="gap-2">
               {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               {draft.id ? "Salvar alterações" : "Adicionar regra"}
             </Button>
