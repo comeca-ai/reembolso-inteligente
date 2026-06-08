@@ -495,6 +495,7 @@ export const evaluateExpense = createServerFn({ method: "POST" })
 
 const ruleInput = z.object({
   id: z.string().uuid().optional(),
+  policyId: z.string().uuid().optional(),
   code: z.string().trim().min(1).max(40),
   title: z.string().trim().min(1).max(160),
   category: z.enum(CATEGORIES),
@@ -502,6 +503,7 @@ const ruleInput = z.object({
   basis: z.string().trim().max(160).optional().default(""),
   text: z.string().trim().max(2000).optional().default(""),
 });
+
 
 async function assertAdmin(
   supabase: { from: (t: string) => any },
