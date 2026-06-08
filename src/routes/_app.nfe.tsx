@@ -612,7 +612,33 @@ function NfeDashboard() {
                       >
                         …{r.danfeKey.slice(-12)}
                       </button>
+                      {(() => {
+                        const st = validarChave(r.danfeKey);
+                        return (
+                          <span
+                            className={cn(
+                              "mt-1 flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+                              st.estruturaOk
+                                ? "bg-success/10 text-success"
+                                : "bg-destructive/10 text-destructive",
+                            )}
+                            title={st.veredito}
+                          >
+                            {st.estruturaOk ? (
+                              <Check className="h-2.5 w-2.5" />
+                            ) : (
+                              <X className="h-2.5 w-2.5" />
+                            )}
+                            {st.estruturaOk
+                              ? st.alertas.length > 0
+                                ? "Estrutura ok · alertas"
+                                : "Estrutura válida"
+                              : "Estrutura inválida"}
+                          </span>
+                        );
+                      })()}
                     </td>
+
                     <td className="px-5 py-4 align-top">
                       {r.nfeStatus ? (
                         <span
