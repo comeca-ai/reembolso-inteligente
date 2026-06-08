@@ -163,6 +163,9 @@ export type Database = {
           danfe_key: string | null
           id: string
           message: string | null
+          nfe_raw: Json | null
+          nfe_status: string | null
+          nfe_verified_at: string | null
           policy_analyzed_at: string | null
           policy_cited_rule: string | null
           policy_confidence: number | null
@@ -184,6 +187,9 @@ export type Database = {
           danfe_key?: string | null
           id?: string
           message?: string | null
+          nfe_raw?: Json | null
+          nfe_status?: string | null
+          nfe_verified_at?: string | null
           policy_analyzed_at?: string | null
           policy_cited_rule?: string | null
           policy_confidence?: number | null
@@ -205,6 +211,9 @@ export type Database = {
           danfe_key?: string | null
           id?: string
           message?: string | null
+          nfe_raw?: Json | null
+          nfe_status?: string | null
+          nfe_verified_at?: string | null
           policy_analyzed_at?: string | null
           policy_cited_rule?: string | null
           policy_confidence?: number | null
