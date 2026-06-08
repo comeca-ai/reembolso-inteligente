@@ -37,7 +37,17 @@ function TesteWebhookPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [webhookToken, setWebhookToken] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const loadConfig = useServerFn(getReimbursementsConfig);
+
+  // Busca o webhook_token da empresa para autenticar a chamada de teste.
+  useEffect(() => {
+    loadConfig({})
+      .then((cfg) => setWebhookToken(cfg.webhookToken))
+      .catch(() => setWebhookToken(null));
+  }, [loadConfig]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
@@ -57,6 +67,10 @@ function TesteWebhookPage() {
 
   const handleSend = async () => {
     if (!base64) return;
+    if (!webhookToken) {
+      setError("Token do webhook indisponível para esta empresa.");
+      return;
+    }
     setLoading(true);
     setResult(null);
     setError(null);
@@ -64,7 +78,10 @@ function TesteWebhookPage() {
     try {
       const res = await fetch("/api/public/reimbursements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${webhookToken}`,
+        },
         body: JSON.stringify({
           image_base64: base64,
           sender: "teste@reembolso.ia.br",
