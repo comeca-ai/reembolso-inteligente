@@ -13,6 +13,7 @@
  * rodar via edge function — ver `invokeFunction` em `./supabase`.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
@@ -1402,9 +1403,12 @@ function buildReportCsv(list: Expense[]): { fileName: string; content: string; r
   };
 }
 
-function db() {
+function db(): SupabaseClient {
   if (!supabase) throw new Error("Supabase não configurado.");
-  return supabase;
+  // O cliente é tipado com o schema gerado; esta camada de dados usa nomes de
+  // tabela próprios (ainda não refletidos nos tipos), então acessamos via um
+  // cliente sem o tipo estrito para manter o comportamento de runtime atual.
+  return supabase as unknown as SupabaseClient;
 }
 
 const supabaseApi: DataProvider = {
