@@ -23,6 +23,7 @@ import {
   FileAudio,
   Rocket,
   ClipboardList,
+  ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,23 @@ function formatSeconds(total: number) {
   const s = (total % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 }
+
+const POLICY_TEMPLATE_TOPICS: { label: string; hint: string }[] = [
+  { label: "Refeições", hint: "limite por dia/refeição, exige nota fiscal?" },
+  { label: "Combustível", hint: "valor por km ou por abastecimento, exige cupom?" },
+  { label: "Hospedagem", hint: "limite por diária, precisa de aprovação prévia?" },
+  { label: "Transporte / apps", hint: "táxi, Uber, ônibus — quando é permitido?" },
+  { label: "Pedágio e estacionamento", hint: "reembolsável? exige comprovante?" },
+  { label: "Materiais e outros", hint: "o que entra, limites e exceções" },
+  { label: "Documentos obrigatórios", hint: "nota fiscal, recibo, data, CNPJ…" },
+  { label: "Prazos e aprovação", hint: "prazo para enviar e quem aprova" },
+];
+
+const POLICY_TEMPLATE_TEXT = `Política de reembolso — versão zero
+
+${POLICY_TEMPLATE_TOPICS.map((t, i) => `${i + 1}. ${t.label}: (${t.hint})`).join("\n")}
+
+Observações gerais: (regras que valem para todas as categorias)`;
 
 interface Props {
   draft: PolicyVersionDTO | null;
@@ -233,8 +251,22 @@ export function PolicyDraftStudio({
 
           {/* Texto colado */}
           <div className="rounded-xl border border-border bg-secondary/30 p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <ClipboardList className="h-4 w-4 text-brand" /> Colar / digitar anotações
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <ClipboardList className="h-4 w-4 text-brand" /> Colar / digitar anotações
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs text-brand hover:text-brand"
+                onClick={() =>
+                  setNotes((prev) =>
+                    prev.trim() ? `${prev.trimEnd()}\n\n${POLICY_TEMPLATE_TEXT}` : POLICY_TEMPLATE_TEXT,
+                  )
+                }
+              >
+                <ListChecks className="h-3.5 w-3.5" /> Usar template
+              </Button>
             </div>
             <Textarea
               rows={6}
@@ -243,6 +275,31 @@ export function PolicyDraftStudio({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
+          </div>
+        </div>
+
+        {/* Template de tópicos principais */}
+        <div className="rounded-xl border border-brand/20 bg-brand/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <ListChecks className="h-4 w-4 text-brand" /> Principais tópicos para cobrir
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Não sabe por onde começar? Comente cada um destes pontos no áudio ou texto — quanto mais
+            completo, melhor a IA estrutura as regras.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {POLICY_TEMPLATE_TOPICS.map((t) => (
+              <div
+                key={t.label}
+                className="flex items-start gap-2 rounded-lg border border-border bg-background px-3 py-2"
+              >
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-foreground">{t.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{t.hint}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
