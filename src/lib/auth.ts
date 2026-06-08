@@ -59,6 +59,13 @@ export interface SignInInput {
   senha: string;
 }
 
+/** Resultado do cadastro: ou cria sessão na hora, ou pede confirmação de e-mail. */
+export interface SignUpResult {
+  /** "active" = já logado; "confirmation_required" = precisa confirmar o e-mail. */
+  status: "active" | "confirmation_required";
+  user: AuthUser | null;
+}
+
 export interface ResetPasswordInput {
   email: string;
 }
@@ -214,8 +221,8 @@ export async function markPolicyUploaded(fileName: string): Promise<AuthUser | n
  * O gatilho `handle_new_user` no banco cria empresa + perfil + papel admin
  * a partir dos metadados abaixo.
  */
-export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
-  const { error } = await supabase.auth.signUp({
+export async function signUpCompany(input: SignUpInput): Promise<SignUpResult> {
+  const { data, error } = await supabase.auth.signUp({
     email: input.email.trim().toLowerCase(),
     password: input.senha,
     options: {
@@ -233,9 +240,15 @@ export async function signUpCompany(input: SignUpInput): Promise<AuthUser> {
 
   if (error) throw error;
 
+  // Quando a confirmação de e-mail está exigida, o signUp NÃO devolve sessão.
+  // Nesse caso o cadastro foi criado com sucesso, mas o acesso só é liberado
+  // após o usuário confirmar o e-mail — então não tratamos isso como falha.
+  if (!data.session) {
+    return { status: "confirmation_required", user: null };
+  }
+
   const user = await loadSession();
-  if (!user) throw new Error("Falha ao carregar a sessão após o cadastro.");
-  return user;
+  return { status: "active", user };
 }
 
 /** Valida credenciais via Supabase Auth. */
