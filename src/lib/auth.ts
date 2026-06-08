@@ -258,7 +258,21 @@ export async function markPolicyUploaded(fileName: string): Promise<AuthUser | n
  * O gatilho `handle_new_user` no banco cria empresa + perfil + papel admin
  * a partir dos metadados abaixo.
  */
-export async function signUpCompany(input: SignUpInput): Promise<SignUpResult> {
+export async function signUpCompany(
+  input: SignUpInput,
+  onProgress?: (step: SignUpStep) => void,
+): Promise<SignUpResult> {
+  const completed: SignUpStep[] = [];
+  const advance = (step: SignUpStep) => {
+    onProgress?.(step);
+  };
+
+  // 1) Validação local básica (os dados já chegam validados da UI).
+  advance("validando");
+  completed.push("validando");
+
+  // 2) Criação da conta de acesso no Auth.
+  advance("criando_conta");
   const { data, error } = await supabase.auth.signUp({
     email: input.email.trim().toLowerCase(),
     password: input.senha,
@@ -273,16 +287,48 @@ export async function signUpCompany(input: SignUpInput): Promise<SignUpResult> {
     },
   });
 
-  if (error) throw error;
+  if (error) {
+    throw new SignUpStepError(error.message, "criando_conta", [...completed]);
+  }
+  completed.push("criando_conta");
 
   // Quando a confirmação de e-mail está exigida, o signUp NÃO devolve sessão.
   // Nesse caso o cadastro foi criado com sucesso, mas o acesso só é liberado
   // após o usuário confirmar o e-mail — então não tratamos isso como falha.
   if (!data.session) {
+    advance("provisionando");
     return { status: "confirmation_required", user: null };
   }
 
-  const user = await loadSession();
+  // 3) Provisionamento de empresa + perfil + papel (gatilho/ensure no banco).
+  advance("provisionando");
+  try {
+    await ensureProfileRows(data.session.user);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Falha ao provisionar a empresa.";
+    throw new SignUpStepError(message, "provisionando", [...completed]);
+  }
+  completed.push("provisionando");
+
+  // 4) Carregamento da sessão completa (perfil + empresa + papel).
+  advance("carregando_sessao");
+  let user: AuthUser | null = null;
+  try {
+    user = await loadSession();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Falha ao carregar a sessão.";
+    throw new SignUpStepError(message, "carregando_sessao", [...completed]);
+  }
+  if (!user) {
+    throw new SignUpStepError(
+      "Não foi possível carregar a sessão após o cadastro.",
+      "carregando_sessao",
+      [...completed],
+    );
+  }
+  completed.push("carregando_sessao");
+
+  advance("concluido");
   return { status: "active", user };
 }
 
