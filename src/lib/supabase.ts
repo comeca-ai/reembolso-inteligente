@@ -24,12 +24,17 @@ import { supabase } from "@/integrations/supabase/client";
 export { supabase };
 
 /**
- * `true` quando há URL + chave pública configuradas (sempre verdadeiro em
- * Lovable Cloud, pois as variáveis VITE_SUPABASE_* são injetadas no build).
+ * `true` quando a camada de DADOS está apontada para um backend real.
+ *
+ * Mantemos o gate na `VITE_SUPABASE_ANON_KEY` (variável de dados, separada da
+ * chave de auth). Enquanto ela não estiver definida, a aplicação continua
+ * usando os dados de demonstração (mock) — exatamente como antes desta
+ * refatoração. O importante aqui é que a AUTENTICAÇÃO já usa o cliente único
+ * (reexportado acima), eliminando a duplicação de GoTrueClient.
  */
 export const isSupabaseConfigured = Boolean(
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) &&
-    (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined),
+    (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined),
 );
 
 /** `true` quando a aplicação está rodando com dados de demonstração (mock). */
