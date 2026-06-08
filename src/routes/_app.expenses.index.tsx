@@ -430,6 +430,52 @@ function ExpensesPage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
+                      <td className="px-5 py-4 align-top">
+                        {d.danfeKey ? (
+                          <div className="flex flex-col items-start gap-1.5">
+                            {d.nfeStatus && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                                  nfeBadge[d.nfeStatus].className,
+                                )}
+                              >
+                                {(() => {
+                                  const Icon = nfeBadge[d.nfeStatus].Icon;
+                                  return <Icon className="h-3 w-3" />;
+                                })()}
+                                {nfeBadge[d.nfeStatus].label}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 gap-1.5 px-2 text-xs"
+                                disabled={verifyingId === d.id}
+                                onClick={() => handleVerify(d)}
+                              >
+                                {verifyingId === d.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <ShieldCheck className="h-3 w-3" />
+                                )}
+                                {d.nfeStatus ? "Reverificar" : "Verificar"}
+                              </Button>
+                              <a
+                                href="https://www.nfe.fazenda.gov.br/portal/consultaRecaptcha.aspx"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Conferir manualmente no portal da SEFAZ"
+                                className="inline-flex items-center text-muted-foreground hover:text-primary"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       <td className="whitespace-nowrap px-5 py-4 align-top">
                         <span
                           className={cn(
