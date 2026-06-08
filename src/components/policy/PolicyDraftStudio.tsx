@@ -23,6 +23,7 @@ import {
   FileAudio,
   Rocket,
   ClipboardList,
+  ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
