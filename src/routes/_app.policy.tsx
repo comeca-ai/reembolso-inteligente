@@ -82,6 +82,7 @@ const CATEGORY_OPTIONS: PolicyCategory[] = [
 
 type RuleDraft = {
   id?: string;
+  policyId?: string;
   code: string;
   title: string;
   category: PolicyCategory;
@@ -98,6 +99,7 @@ const emptyDraft: RuleDraft = {
   basis: "",
   text: "",
 };
+
 
 
 export const Route = createFileRoute("/_app/policy")({
