@@ -188,6 +188,26 @@ function SignupPage() {
         return;
       }
 
+      // Com sessão ativa, sobe o arquivo do Cartão do CNPJ para o armazenamento.
+      if (cartaoCnpj) {
+        try {
+          const fileBase64 = await fileToBase64(cartaoCnpj);
+          await enviarCartaoCnpj({
+            data: {
+              fileName: cartaoCnpj.name,
+              fileBase64,
+              contentType: cartaoCnpj.type || "application/octet-stream",
+            },
+          });
+        } catch (uploadErr) {
+          // Não bloqueia o cadastro: avisamos para reenviar depois.
+          console.error("[signup] falha ao enviar Cartão do CNPJ:", uploadErr);
+          toast.warning("Conta criada, mas o Cartão do CNPJ não subiu", {
+            description: "Você pode reenviá-lo depois nas configurações.",
+          });
+        }
+      }
+
       toast.success("Conta piloto criada!", {
         description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
       });
