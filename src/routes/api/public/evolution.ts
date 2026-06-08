@@ -18,12 +18,12 @@ import {
  * Evolution e habilite o evento `MESSAGES_UPSERT`. Recomendado também ligar
  * "Webhook Base64" para que a imagem do comprovante venha embutida.
  *
- *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution
- *   (opcional) proteção por token:
- *     - querystring:  ...?token=SEU_TOKEN
- *     - ou header:    apikey: SEU_TOKEN
- *     - ou header:    Authorization: Bearer SEU_TOKEN
- *   O token comparado é o secret DESPESAS_WEBHOOK_TOKEN (se definido).
+ *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution?token=<webhook_token>
+ *   Autenticação obrigatória por token (o `webhook_token` da empresa):
+ *     - querystring:  ...?token=<webhook_token>
+ *     - ou header:    apikey: <webhook_token>
+ *     - ou header:    Authorization: Bearer <webhook_token>
+ *   A empresa é resolvida a partir desse token (não da "primeira empresa").
  *
  * O Evolution envia algo como:
  *   {
