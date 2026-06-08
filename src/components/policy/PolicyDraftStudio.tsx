@@ -212,8 +212,14 @@ export function PolicyDraftStudio({
         notes: notes.trim() || undefined,
       };
       if (audioBlob) {
-        payload.audioBase64 = await blobToBase64(audioBlob);
-        payload.audioMime = audioBlob.type || "audio/webm";
+        try {
+          payload.audioBase64 = await audioBlobToWavBase64(audioBlob);
+          payload.audioMime = "audio/wav";
+        } catch {
+          // Fallback: envia o áudio original caso a conversão falhe.
+          payload.audioBase64 = await blobToBase64(audioBlob);
+          payload.audioMime = audioBlob.type || "audio/webm";
+        }
       }
       return draftFn({ data: payload });
     },
