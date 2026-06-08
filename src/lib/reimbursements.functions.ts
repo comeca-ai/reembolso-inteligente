@@ -259,16 +259,22 @@ export const analyzeReimbursement = createServerFn({ method: "POST" })
           },
         ],
       });
-      const parsed = extractJsonObject(text);
-      const v = String(parsed?.verdict ?? "revisar");
+      // JSON malformado da IA não deve derrubar a requisição (vira "revisar").
+      let parsed: Record<string, unknown> = {};
+      try {
+        parsed = (extractJsonObject(text) as Record<string, unknown>) ?? {};
+      } catch (e) {
+        console.error("[analyzeReimbursement] JSON inválido da IA:", e);
+      }
+      const v = String(parsed.verdict ?? "revisar");
       analysis = {
         verdict:
           v === "aprovar" || v === "revisar" || v === "recusar"
             ? (v as ReimbursementAnalysis["verdict"])
             : "revisar",
-        summary: String(parsed?.summary ?? "Comprovante marcado para revisão."),
-        citedRule: String(parsed?.citedRule ?? ""),
-        confidence: Math.min(1, Math.max(0, Number(parsed?.confidence ?? 0.5))),
+        summary: String(parsed.summary ?? "Comprovante marcado para revisão."),
+        citedRule: String(parsed.citedRule ?? ""),
+        confidence: Math.min(1, Math.max(0, Number(parsed.confidence ?? 0.5))),
       };
     }
 
