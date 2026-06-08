@@ -48,6 +48,10 @@ function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (linkState !== "ready") {
+      setError("O link de recuperação expirou ou já foi usado. Solicite um novo.");
+      return;
+    }
     if (senha.length < 8) {
       setError("A senha precisa ter no mínimo 8 caracteres.");
       return;
