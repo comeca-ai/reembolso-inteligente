@@ -96,7 +96,7 @@ export async function loadSession(): Promise<AuthUser | null> {
 
   let { data: profile } = await supabase
     .from("profiles")
-    .select("id, nome, email, whatsapp, company_id")
+    .select("id, nome, email, whatsapp, company_id, must_change_password")
     .eq("id", authUser.id)
     .maybeSingle();
 
@@ -104,7 +104,7 @@ export async function loadSession(): Promise<AuthUser | null> {
     await ensureProfileRows(authUser);
     const { data: repairedProfile } = await supabase
       .from("profiles")
-      .select("id, nome, email, whatsapp, company_id")
+      .select("id, nome, email, whatsapp, company_id, must_change_password")
       .eq("id", authUser.id)
       .maybeSingle();
     profile = repairedProfile;
