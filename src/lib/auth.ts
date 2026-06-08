@@ -156,6 +156,7 @@ export async function loadSession(): Promise<AuthUser | null> {
     whatsapp: profile?.whatsapp ?? undefined,
     role,
     company,
+    mustChangePassword: profile?.must_change_password ?? false,
   };
   sessionLoaded = true;
   return cachedUser;
