@@ -291,7 +291,7 @@ export const analyzeReimbursement = createServerFn({ method: "POST" })
       };
     }
 
-    const { error: updErr } = await supabase
+    const { data: updated, error: updErr } = await supabase
       .from("inbound_reimbursements")
       .update({
         policy_verdict: analysis.verdict,
@@ -300,8 +300,14 @@ export const analyzeReimbursement = createServerFn({ method: "POST" })
         policy_confidence: analysis.confidence,
         policy_analyzed_at: new Date().toISOString(),
       } as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("id");
     if (updErr) throw updErr;
+    if (!updated || updated.length === 0) {
+      throw new Error(
+        "Sem permissão para gravar a análise. Apenas administradores e aprovadores podem analisar.",
+      );
+    }
 
     return analysis;
   });
