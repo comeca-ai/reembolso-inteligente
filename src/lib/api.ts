@@ -13,6 +13,7 @@
  * rodar via edge function — ver `invokeFunction` em `./supabase`.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   supabase,
   isSupabaseConfigured,
