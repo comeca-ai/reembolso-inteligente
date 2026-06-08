@@ -181,7 +181,9 @@ function ExpensesPage() {
         (d.sender ?? "").toLowerCase().includes(q) ||
         (d.senderName ?? "").toLowerCase().includes(q) ||
         (d.message ?? "").toLowerCase().includes(q) ||
-        (d.category ?? "").toLowerCase().includes(q),
+        (d.category ?? "").toLowerCase().includes(q) ||
+        (d.danfeKey ?? "").toLowerCase().includes(q.replace(/\D/g, "")) ||
+        (d.danfeKey ?? "").toLowerCase().includes(q),
     );
   }, [despesas, search, statusFilter]);
 
