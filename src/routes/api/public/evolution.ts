@@ -287,6 +287,26 @@ export const Route = createFileRoute("/api/public/evolution")({
 
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;
+
+          // ID único da mensagem do WhatsApp — usado para idempotência
+          // (o Evolution às vezes reenvia o mesmo evento, gerando duplicados).
+          const waMessageId: string | null =
+            typeof key?.id === "string" && key.id.trim() ? key.id.trim() : null;
+
+          // Se já gravamos esta mensagem para esta empresa, ignoramos (dedupe).
+          if (waMessageId) {
+            const { data: existing } = await supabaseAdmin
+              .from("inbound_reimbursements")
+              .select("id")
+              .eq("company_id", companyId)
+              .eq("wa_message_id", waMessageId)
+              .maybeSingle();
+            if (existing) {
+              results.push({ status: "duplicado", id: existing.id });
+              continue;
+            }
+          }
+
           let { base64, mimetype } = findImageBase64(data?.message);
           const { caption } = findImageBase64(data?.message);
 
@@ -312,50 +332,70 @@ export const Route = createFileRoute("/api/public/evolution")({
           let aiDescription: string | null = null;
           let danfeKey: string | null = null;
           let attachmentUrl: string | null = null;
+          let aiRead = false; // a IA conseguiu extrair pelo menos o valor?
 
           if (isUsableBase64(base64) && base64) {
             // Imagem (data URL ou http) usada apenas em memória para a IA ler.
             const imageForAi = toDataUrl(base64, mimetype);
 
-            try {
-              const provider = createLovableAiGatewayProvider(getLovableApiKey());
-              const { object } = await generateObject({
-                model: provider("google/gemini-2.5-flash"),
-                schema: ExtractionSchema,
-                messages: [
-                  {
-                    role: "user",
-                    content: [
-                      {
-                        type: "text",
-                        text:
-                          "Você é um leitor de comprovantes/recibos de despesa. " +
-                          "Olhe a imagem e extraia: (1) amount = o VALOR TOTAL pago em reais como número (ex.: 45.90), ou null se não conseguir ler; " +
-                          "(2) category = uma destas opções: " +
-                          CATEGORIES.join(", ") +
-                          " (escolha 'outros' se não tiver certeza); " +
-                          "(3) description = um resumo curto (ex.: nome do estabelecimento); " +
-                          "(4) danfe_key = a CHAVE DE ACESSO da NF-e/DANFE, que são exatamente 44 dígitos numéricos (geralmente impressos sob o código de barras, podendo aparecer em grupos de 4). Junte todos os dígitos sem espaços. Use null se o comprovante não for uma nota fiscal ou se a chave não estiver legível. " +
-                          "Responda sempre preenchendo todos os campos.",
-                      },
-                      { type: "image", image: imageForAi },
-                    ],
-                  },
-                ],
-              });
-              amount = object.amount;
-              category = object.category ?? "outros";
-              aiDescription = object.description;
-              // Mantém apenas os dígitos e valida o tamanho de 44 (chave NF-e).
-              const onlyDigits = (object.danfe_key ?? "").replace(/\D/g, "");
-              danfeKey = onlyDigits.length === 44 ? onlyDigits : null;
-            } catch (e) {
-              console.error("[evolution webhook] IA falhou:", e);
+            // Tenta ler com a IA; em caso de falha transitória, faz uma 2ª tentativa.
+            for (let attempt = 1; attempt <= 2 && !aiRead; attempt++) {
+              try {
+                const provider = createLovableAiGatewayProvider(getLovableApiKey());
+                const { object } = await generateObject({
+                  model: provider("google/gemini-3-flash-preview"),
+                  schema: ExtractionSchema,
+                  messages: [
+                    {
+                      role: "user",
+                      content: [
+                        {
+                          type: "text",
+                          text:
+                            "Você é um leitor especialista de comprovantes, recibos e notas fiscais de despesa. " +
+                            "Analise a imagem com atenção e extraia os campos abaixo. " +
+                            "(1) amount = o VALOR TOTAL pago, como número em reais (ex.: 45.90). " +
+                            "Procure por rótulos como 'TOTAL', 'VALOR TOTAL', 'VALOR A PAGAR', 'TOTAL R$' ou o maior valor em destaque. " +
+                            "Use ponto como separador decimal e NÃO inclua o símbolo R$. Se realmente não houver valor legível, use null (nunca 0). " +
+                            "(2) category = uma destas opções: " +
+                            CATEGORIES.join(", ") +
+                            " (escolha a mais provável pelo estabelecimento/itens; use 'outros' só se não houver pista). " +
+                            "(3) description = um resumo curto e útil (ex.: nome do estabelecimento). " +
+                            "(4) danfe_key = a CHAVE DE ACESSO da NF-e/DANFE: exatamente 44 dígitos numéricos (geralmente sob o código de barras, às vezes em grupos de 4). " +
+                            "Junte todos os dígitos sem espaços. Use null se não for nota fiscal ou se a chave não estiver legível. " +
+                            "Responda sempre preenchendo todos os campos.",
+                        },
+                        { type: "image", image: imageForAi },
+                      ],
+                    },
+                  ],
+                });
+                // Trata 0 (ou negativo) como valor não lido.
+                amount =
+                  typeof object.amount === "number" && object.amount > 0
+                    ? object.amount
+                    : null;
+                category = object.category ?? "outros";
+                aiDescription = object.description;
+                // Mantém apenas os dígitos e valida o tamanho de 44 (chave NF-e).
+                const onlyDigits = (object.danfe_key ?? "").replace(/\D/g, "");
+                danfeKey = onlyDigits.length === 44 ? onlyDigits : null;
+                aiRead = amount !== null; // sucesso se conseguiu o valor
+              } catch (e) {
+                console.error(
+                  `[evolution webhook] IA falhou (tentativa ${attempt}):`,
+                  e,
+                );
+              }
             }
 
             // Persiste o comprovante no Storage (durável) e guarda só o caminho.
             attachmentUrl = await uploadComprovante(companyId, imageForAi, mimetype);
           }
+
+          // Status: "recebido" quando a leitura foi ok; "pendente_leitura" quando
+          // a IA não conseguiu extrair o valor (revisão manual no painel).
+          const status = aiRead ? "recebido" : "pendente_leitura";
 
           // 5. Grava a mensagem recebida.
           const { data: inserted, error: insertError } = await supabaseAdmin
@@ -365,30 +405,36 @@ export const Route = createFileRoute("/api/public/evolution")({
               channel: "whatsapp",
               sender,
               sender_name: senderName,
+              wa_message_id: waMessageId,
               message: caption ?? aiDescription,
               attachment_url: attachmentUrl,
               amount,
               category,
               danfe_key: danfeKey,
-              status: "recebido",
+              status,
               raw_payload: {
                 event: evt?.event ?? null,
                 instance: evt?.instance ?? null,
                 key,
                 pushName: senderName,
-                ai: { amount, category, description: aiDescription, danfe_key: danfeKey },
+                ai: { amount, category, description: aiDescription, danfe_key: danfeKey, read: aiRead },
               } as never,
             })
             .select("id")
             .single();
 
           if (insertError) {
+            // Conflito do índice único = corrida com outro reenvio; trata como duplicado.
+            if ((insertError as { code?: string }).code === "23505") {
+              results.push({ status: "duplicado" });
+              continue;
+            }
             console.error("[evolution webhook] insert falhou:", insertError);
             results.push({ status: "erro", reason: "falha ao gravar" });
             continue;
           }
 
-          results.push({ status: "ok", id: inserted.id });
+          results.push({ status: aiRead ? "ok" : "sem_leitura", id: inserted.id });
         }
 
         return json({ ok: true, results }, 200);
