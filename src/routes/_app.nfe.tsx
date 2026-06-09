@@ -783,6 +783,23 @@ function NfeDashboard() {
         </Link>
         .
       </p>
+
+      <ComplianceDialog
+        open={complianceRow !== null}
+        onOpenChange={(v) => {
+          if (!v) setComplianceRow(null);
+        }}
+        reimbursementId={complianceRow?.id ?? ""}
+        title={
+          complianceRow
+            ? `a nota …${complianceRow.danfeKey.slice(-8)}`
+            : "a nota"
+        }
+        initialReport={complianceRow?.complianceReport ?? null}
+        onEvaluated={(report) => {
+          if (complianceRow) applyCompliance(complianceRow.id, report);
+        }}
+      />
     </div>
   );
 }
