@@ -94,6 +94,31 @@ const badge: Record<
   },
 };
 
+const complianceBadge: Record<
+  ComplianceStatus,
+  { label: string; className: string }
+> = {
+  ok: { label: "OK", className: "bg-success/10 text-success ring-1 ring-success/30" },
+  alerta: {
+    label: "Atenção",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+  },
+  violado: {
+    label: "Violado",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+  },
+  manual: {
+    label: "Manual",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+  },
+  pendente: {
+    label: "Pendente",
+    className: "bg-muted text-muted-foreground ring-1 ring-border",
+  },
+};
+
+
+
 async function fetchNfe(): Promise<NfeRow[]> {
   const { data, error } = await supabase
     .from("inbound_reimbursements")
