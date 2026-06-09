@@ -641,13 +641,27 @@ function NfeDashboard() {
             <table className="w-full min-w-[860px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  <th className="px-5 py-3 font-medium">Remetente</th>
-                  <th className="px-5 py-3 font-medium">Valor</th>
-                  <th className="px-5 py-3 font-medium">Chave DANFE</th>
-                  <th className="px-5 py-3 font-medium">Situação</th>
-                  <th className="px-5 py-3 font-medium">Compliance</th>
-                  <th className="px-5 py-3 font-medium">Fonte</th>
-                  <th className="px-5 py-3 font-medium">Verificado em</th>
+                  <th className="px-5 py-3 font-medium" title="Quem enviou a nota (nome e WhatsApp/e-mail)">
+                    Remetente
+                  </th>
+                  <th className="px-5 py-3 font-medium" title="Valor total da nota fiscal">
+                    Valor
+                  </th>
+                  <th className="px-5 py-3 font-medium" title="Chave de acesso de 44 dígitos da DANFE — clique para copiar">
+                    Chave de acesso
+                  </th>
+                  <th className="px-5 py-3 font-medium" title="Autenticidade da nota junto à SEFAZ">
+                    Situação na SEFAZ
+                  </th>
+                  <th className="px-5 py-3 font-medium" title="Resultado das regras de compliance da empresa">
+                    Compliance
+                  </th>
+                  <th className="px-5 py-3 font-medium" title="De onde veio a informação da verificação">
+                    Fonte
+                  </th>
+                  <th className="px-5 py-3 font-medium" title="Data e hora da última verificação">
+                    Verificado em
+                  </th>
                   <th className="px-5 py-3 text-right font-medium">Ações</th>
                 </tr>
               </thead>
