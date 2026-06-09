@@ -6,10 +6,7 @@ import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
-import {
-  extractWebhookToken,
-  resolveCompanyByWebhookToken,
-} from "@/lib/webhook-auth.server";
+import { resolveCompanyByWhatsappNumber } from "@/lib/webhook-auth.server";
 
 /**
  * Webhook do Evolution API (WhatsApp).
@@ -18,12 +15,12 @@ import {
  * Evolution e habilite o evento `MESSAGES_UPSERT`. Recomendado também ligar
  * "Webhook Base64" para que a imagem do comprovante venha embutida.
  *
- *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution?token=<webhook_token>
- *   Autenticação obrigatória por token (o `webhook_token` da empresa):
- *     - querystring:  ...?token=<webhook_token>
- *     - ou header:    apikey: <webhook_token>
- *     - ou header:    Authorization: Bearer <webhook_token>
- *   A empresa é resolvida a partir desse token (não da "primeira empresa").
+ *   URL:   POST https://reembolso-ia-br.lovable.app/api/public/evolution
+ *   Sem token: a empresa é identificada pelo NÚMERO DE WHATSAPP da linha
+ *   (a instância) que recebeu a mensagem. Cadastre esse número em
+ *   `companies.whatsapp_number`. O número da linha vem no payload do Evolution
+ *   (campos `sender` / `owner` no topo, ou `key.remoteJid` quando `fromMe`).
+ *   Se nenhuma empresa tiver esse WhatsApp cadastrado, a mensagem é ignorada.
  *
  * O Evolution envia algo como:
  *   {
@@ -217,6 +214,34 @@ function phoneFromJid(jid: string | undefined | null): string {
   return digits ? `+${digits}` : "desconhecido";
 }
 
+/**
+ * Descobre o número da LINHA de WhatsApp que recebeu a mensagem (a instância).
+ * É a chave que identifica a empresa. O Evolution coloca esse número em
+ * diferentes lugares conforme a versão; tentamos todos em ordem.
+ */
+function ownerNumberFromEvent(
+  evt: Record<string, any> | undefined,
+  data: Record<string, any> | undefined,
+  key: Record<string, any> | undefined,
+): string | null {
+  const candidates = [
+    evt?.sender,
+    evt?.owner,
+    evt?.instanceOwner,
+    data?.owner,
+    data?.instanceOwner,
+    // Quando a própria conta envia (fromMe), o remetente é a linha da empresa.
+    key?.fromMe === true ? key?.remoteJid : null,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string") {
+      const digits = c.replace(/\D/g, "");
+      if (digits.length >= 8) return digits;
+    }
+  }
+  return null;
+}
+
 /** Tenta achar a imagem em base64 em vários lugares do payload do Evolution. */
 function findImageBase64(message: Record<string, any> | undefined): {
   base64: string | null;
@@ -248,15 +273,8 @@ export const Route = createFileRoute("/api/public/evolution")({
         new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Autentica pelo webhook_token e resolve a empresa correspondente.
-        const companyId = await resolveCompanyByWebhookToken(
-          extractWebhookToken(request),
-        );
-        if (!companyId) {
-          return json({ error: "Token de webhook inválido ou ausente." }, 401);
-        }
-
-        // 2. Lê o corpo.
+        // 1. Lê o corpo. A empresa é resolvida por evento (pelo número de
+        // WhatsApp da linha que recebeu a mensagem), não por token.
         let raw: any;
         try {
           raw = await request.json();
@@ -282,6 +300,18 @@ export const Route = createFileRoute("/api/public/evolution")({
           // Ignora mensagens enviadas por nós mesmos.
           if (key?.fromMe === true) {
             results.push({ status: "ignorado", reason: "fromMe" });
+            continue;
+          }
+
+          // Resolve a empresa pelo número de WhatsApp da linha que recebeu
+          // a mensagem (a instância). Sem cadastro, ignoramos o evento.
+          const ownerNumber = ownerNumberFromEvent(evt, data, key);
+          const companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
+          if (!companyId) {
+            results.push({
+              status: "ignorado",
+              reason: "whatsapp da empresa não cadastrado",
+            });
             continue;
           }
 

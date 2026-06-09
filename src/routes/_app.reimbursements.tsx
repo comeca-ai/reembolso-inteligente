@@ -11,6 +11,7 @@ import {
   updateReimbursementStatus,
   analyzeReimbursement,
   decideReimbursement,
+  setCompanyWhatsapp,
   type InboundReimbursementDTO,
 } from "@/lib/reimbursements.functions";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -39,6 +40,7 @@ import {
   Calendar,
   Tag,
   Banknote,
+  Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -138,13 +140,33 @@ function ReimbursementsPage() {
   const updateStatus = useServerFn(updateReimbursementStatus);
   const analyze = useServerFn(analyzeReimbursement);
   const decide = useServerFn(decideReimbursement);
+  const saveWhatsapp = useServerFn(setCompanyWhatsapp);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [waInput, setWaInput] = useState("");
+  const [waDirty, setWaDirty] = useState(false);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["reimbursements-config"],
     queryFn: () => fetchConfig(),
   });
+
+  useEffect(() => {
+    if (!waDirty && data?.whatsappNumber != null) {
+      setWaInput(data.whatsappNumber);
+    }
+  }, [data?.whatsappNumber, waDirty]);
+
+  const whatsappMutation = useMutation({
+    mutationFn: (vars: { whatsappNumber: string }) => saveWhatsapp({ data: vars }),
+    onSuccess: () => {
+      setWaDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+      toast.success("Número de WhatsApp salvo.");
+    },
+    onError: () => toast.error("Não foi possível salvar o número."),
+  });
+
 
   const mutation = useMutation({
     mutationFn: (vars: { id: string; status: (typeof STATUS_FLOW)[number] }) =>
@@ -241,6 +263,56 @@ function ReimbursementsPage() {
           </Button>
         }
       />
+
+      {data?.isAdmin && (
+        <Card className="rounded-[22px] border border-slate-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-24px_rgba(15,23,42,0.25)]">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-inset ring-primary/10">
+              <Smartphone className="h-[18px] w-[18px] text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold tracking-tight text-slate-800">
+                WhatsApp da empresa
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Cadastre o número da linha de WhatsApp que recebe os comprovantes.
+                É por esse número que identificamos a sua empresa — não é mais
+                necessário token no webhook.
+              </p>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Input
+                  value={waInput}
+                  onChange={(e) => {
+                    setWaInput(e.target.value);
+                    setWaDirty(true);
+                  }}
+                  placeholder="Ex.: +55 11 99999-9999"
+                  className="h-10 max-w-xs rounded-xl border-slate-200 bg-white shadow-sm focus-visible:ring-primary/30"
+                />
+                <Button
+                  className="h-10 gap-2 rounded-xl"
+                  disabled={
+                    whatsappMutation.isPending ||
+                    !waInput.trim() ||
+                    (!waDirty && data?.whatsappNumber != null)
+                  }
+                  onClick={() =>
+                    whatsappMutation.mutate({ whatsappNumber: waInput })
+                  }
+                >
+                  {whatsappMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
 
       <Card className="overflow-hidden rounded-[22px] border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-24px_rgba(15,23,42,0.25)]">
         <div className="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-6 py-5 lg:flex-row lg:items-center lg:justify-between">

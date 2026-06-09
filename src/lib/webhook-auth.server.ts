@@ -49,3 +49,28 @@ export async function resolveCompanyByWebhookToken(
     .maybeSingle();
   return data?.id ?? null;
 }
+
+/**
+ * Resolve o id da empresa a partir do número de WhatsApp da LINHA que recebeu
+ * a mensagem (a instância do Evolution). A comparação ignora DDI/DDD e
+ * formatação (usa os últimos 8 dígitos). Retorna null quando não há número
+ * utilizável ou nenhuma empresa cadastrou esse WhatsApp — o chamador deve
+ * responder 401 nesse caso.
+ *
+ * Esta é a chave de identificação no lugar do antigo `webhook_token`: cada
+ * empresa cadastra o número da sua linha de WhatsApp em `companies.whatsapp_number`.
+ */
+export async function resolveCompanyByWhatsappNumber(
+  number: string | null,
+): Promise<string | null> {
+  const digits = (number ?? "").replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  const { data, error } = await supabaseAdmin.rpc("resolve_company_by_whatsapp", {
+    _number: digits,
+  });
+  if (error) {
+    console.error("[webhook-auth] resolve_company_by_whatsapp falhou:", error);
+    return null;
+  }
+  return (data as string | null) ?? null;
+}

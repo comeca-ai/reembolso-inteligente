@@ -13,14 +13,17 @@ lê o comprovante com IA e registra a despesa no painel **Despesas**.
 
 1. URL do webhook (método POST):
    ```
-   https://reembolso-inteligente.lovable.app/api/public/evolution
+   https://reembolso-ia-br.lovable.app/api/public/evolution
    ```
 2. Habilite o evento **`MESSAGES_UPSERT`**.
 3. Recomendado habilitar **Webhook Base64**, para que a imagem do comprovante
    venha embutida no payload.
 
-> O endpoint é público (prefixo `api/public`) e **não exige token**. Aceita
-> qualquer chamada do Evolution.
+> O endpoint é público (prefixo `api/public`) e **não exige token**. A empresa
+> é identificada pelo **número de WhatsApp da linha (instância)** que recebeu a
+> mensagem — cadastre esse número em **Reembolsos → WhatsApp da empresa**
+> (`companies.whatsapp_number`). Se nenhuma empresa tiver esse número
+> cadastrado, a mensagem é ignorada.
 
 ### Fluxo de processamento
 

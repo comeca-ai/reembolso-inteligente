@@ -25,6 +25,7 @@ export type Database = {
           razao_social: string
           updated_at: string
           webhook_token: string
+          whatsapp_number: string | null
         }
         Insert: {
           cartao_cnpj_arquivo?: string | null
@@ -36,6 +37,7 @@ export type Database = {
           razao_social: string
           updated_at?: string
           webhook_token?: string
+          whatsapp_number?: string | null
         }
         Update: {
           cartao_cnpj_arquivo?: string | null
@@ -47,6 +49,7 @@ export type Database = {
           razao_social?: string
           updated_at?: string
           webhook_token?: string
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
@@ -494,6 +497,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      resolve_company_by_whatsapp: {
+        Args: { _number: string }
+        Returns: string
       }
     }
     Enums: {
