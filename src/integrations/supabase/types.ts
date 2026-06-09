@@ -20,6 +20,7 @@ export type Database = {
           cartao_cnpj_path: string | null
           cnpj: string
           created_at: string
+          evolution_instance: string | null
           id: string
           politica_reembolso_arquivo: string | null
           razao_social: string
@@ -32,6 +33,7 @@ export type Database = {
           cartao_cnpj_path?: string | null
           cnpj: string
           created_at?: string
+          evolution_instance?: string | null
           id?: string
           politica_reembolso_arquivo?: string | null
           razao_social: string
@@ -44,6 +46,7 @@ export type Database = {
           cartao_cnpj_path?: string | null
           cnpj?: string
           created_at?: string
+          evolution_instance?: string | null
           id?: string
           politica_reembolso_arquivo?: string | null
           razao_social?: string
@@ -497,6 +500,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      resolve_company_by_instance: {
+        Args: { _instance: string }
+        Returns: string
       }
       resolve_company_by_whatsapp: {
         Args: { _number: string }
