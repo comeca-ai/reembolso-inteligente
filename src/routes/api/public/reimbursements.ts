@@ -199,6 +199,7 @@ export const Route = createFileRoute("/api/public/reimbursements")({
             id: inserted.id,
             received_at: inserted.created_at,
             ai: { amount, category, description: aiDescription, danfe_key: danfeKey },
+            nfe_status: nfeStatus,
           },
           201,
         );
