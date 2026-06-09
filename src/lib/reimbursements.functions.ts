@@ -50,6 +50,8 @@ export interface ReimbursementsConfig {
   webhookToken: string | null;
   /** Número de WhatsApp da linha que recebe os recibos (chave da empresa). */
   whatsappNumber: string | null;
+  /** Nome da instância do Evolution (chave principal de identificação). */
+  evolutionInstance: string | null;
   isAdmin: boolean;
   messages: InboundReimbursementDTO[];
 }
@@ -134,15 +136,18 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
 
     let webhookToken: string | null = null;
     let whatsappNumber: string | null = null;
+    let evolutionInstance: string | null = null;
     if (isAdmin && companyId) {
       const { data: company } = await supabase
         .from("companies")
-        .select("webhook_token, whatsapp_number")
+        .select("webhook_token, whatsapp_number, evolution_instance")
         .eq("id", companyId)
         .maybeSingle();
       webhookToken = (company?.webhook_token as string | undefined) ?? null;
       whatsappNumber =
         (company?.whatsapp_number as string | undefined) ?? null;
+      evolutionInstance =
+        (company?.evolution_instance as string | undefined) ?? null;
     }
 
     const { data: rows, error } = await supabase
@@ -162,6 +167,7 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
     return {
       webhookToken,
       whatsappNumber,
+      evolutionInstance,
       isAdmin,
       messages: (rows ?? []).map((row) => mapRow(row, collaborators ?? [])),
     };
@@ -209,6 +215,49 @@ export const setCompanyWhatsapp = createServerFn({ method: "POST" })
 
     return { whatsappNumber: value };
   });
+
+const instanceInput = z.object({
+  evolutionInstance: z.string().trim().max(100),
+});
+
+/**
+ * Salva o nome da instância do Evolution (chave principal de identificação da
+ * empresa no webhook do WhatsApp). Apenas admin.
+ */
+export const setCompanyEvolutionInstance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => instanceInput.parse(data))
+  .handler(
+    async ({ data, context }): Promise<{ evolutionInstance: string | null }> => {
+      const { supabase, userId } = context;
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+      if (!isAdmin) throw new Error("Apenas administradores podem alterar isto.");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", userId)
+        .maybeSingle();
+      const companyId = profile?.company_id;
+      if (!companyId) throw new Error("Empresa não encontrada.");
+
+      const value = data.evolutionInstance || null;
+      const { error } = await supabase
+        .from("companies")
+        .update({ evolution_instance: value })
+        .eq("id", companyId);
+      if (error) throw error;
+
+      return { evolutionInstance: value };
+    },
+  );
+
+
 
 
 const statusInput = z.object({

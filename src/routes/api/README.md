@@ -20,10 +20,15 @@ lê o comprovante com IA e registra a despesa no painel **Despesas**.
    venha embutida no payload.
 
 > O endpoint é público (prefixo `api/public`) e **não exige token**. A empresa
-> é identificada pelo **número de WhatsApp da linha (instância)** que recebeu a
-> mensagem — cadastre esse número em **Reembolsos → WhatsApp da empresa**
-> (`companies.whatsapp_number`). Se nenhuma empresa tiver esse número
-> cadastrado, a mensagem é ignorada.
+> é identificada, em ordem de prioridade:
+> 1. pelo **nome da instância** do Evolution (campo `instance` do payload —
+>    sempre presente). Cadastre em **Reembolsos → Identificação no WhatsApp**
+>    (`companies.evolution_instance`);
+> 2. como reserva, pelo **número de WhatsApp da linha** quando o Evolution
+>    envia `sender`/`owner` (`companies.whatsapp_number`).
+>
+> Se nenhuma das duas chaves estiver cadastrada, a mensagem é ignorada (e um
+> aviso com `instance` e `ownerNumber` é registrado nos logs do servidor).
 
 ### Fluxo de processamento
 

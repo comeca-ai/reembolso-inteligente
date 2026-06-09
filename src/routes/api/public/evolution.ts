@@ -6,7 +6,10 @@ import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
-import { resolveCompanyByWhatsappNumber } from "@/lib/webhook-auth.server";
+import {
+  resolveCompanyByWhatsappNumber,
+  resolveCompanyByInstance,
+} from "@/lib/webhook-auth.server";
 
 /**
  * Webhook do Evolution API (WhatsApp).
@@ -303,14 +306,27 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
-          // Resolve a empresa pelo número de WhatsApp da linha que recebeu
-          // a mensagem (a instância). Sem cadastro, ignoramos o evento.
+          // Resolve a empresa. Estratégia robusta:
+          //   1) pelo NOME DA INSTÂNCIA (campo `instance`, sempre presente);
+          //   2) fallback pelo número de WhatsApp da linha (quando o Evolution
+          //      envia `sender`/`owner`).
+          // Sem nenhuma das duas chaves cadastradas, ignoramos o evento.
           const ownerNumber = ownerNumberFromEvent(evt, data, key);
-          const companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
+          let companyId = await resolveCompanyByInstance(evt?.instance);
           if (!companyId) {
+            companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
+          }
+          if (!companyId) {
+            console.warn(
+              "[evolution webhook] empresa não resolvida.",
+              "instance=",
+              evt?.instance ?? null,
+              "ownerNumber=",
+              ownerNumber,
+            );
             results.push({
               status: "ignorado",
-              reason: "whatsapp da empresa não cadastrado",
+              reason: "instância/whatsapp da empresa não cadastrado",
             });
             continue;
           }
