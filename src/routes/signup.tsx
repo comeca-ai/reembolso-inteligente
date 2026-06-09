@@ -72,6 +72,7 @@ type Errors = Partial<Record<keyof FormState, string>>;
 
 function SignupPage() {
   const navigate = useNavigate();
+  const [phase, setPhase] = useState<"form" | "participants">("form");
   const [form, setForm] = useState<FormState>({
     razaoSocial: "",
     cnpj: "",
