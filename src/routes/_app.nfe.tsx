@@ -321,6 +321,25 @@ function NfeDashboard() {
     );
   }
 
+  function applyCompliance(id: string, report: ComplianceReport) {
+    queryClient.setQueryData<NfeRow[]>(NFE_KEY, (prev) =>
+      (prev ?? []).map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              complianceStatus: report.overall,
+              complianceReport: report,
+            }
+          : item,
+      ),
+    );
+    setComplianceRow((prev) =>
+      prev && prev.id === id
+        ? { ...prev, complianceStatus: report.overall, complianceReport: report }
+        : prev,
+    );
+  }
+
   async function handleVerify(r: NfeRow) {
     setVerifyingId(r.id);
     try {
