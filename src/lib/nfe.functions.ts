@@ -74,6 +74,7 @@ export const verifyNfe = createServerFn({ method: "POST" })
       "",
     );
 
+    const { checkKey } = await import("@/lib/nfe-verify.server");
     const { result, raw } = await checkKey(key);
 
     // Grava o resultado para histórico apenas quando houve consulta efetiva.
