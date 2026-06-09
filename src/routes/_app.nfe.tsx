@@ -98,7 +98,7 @@ async function fetchNfe(): Promise<NfeRow[]> {
   const { data, error } = await supabase
     .from("inbound_reimbursements")
     .select(
-      "id, sender, sender_name, amount, danfe_key, created_at, nfe_status, nfe_verified_at",
+      "id, sender, sender_name, amount, danfe_key, created_at, nfe_status, nfe_verified_at, compliance_status, compliance_report",
     )
     .not("danfe_key", "is", null)
     .order("created_at", { ascending: false })
@@ -115,6 +115,10 @@ async function fetchNfe(): Promise<NfeRow[]> {
       createdAt: row.created_at,
       nfeStatus: (row.nfe_status as NfeStatus | null) ?? null,
       nfeVerifiedAt: (row.nfe_verified_at as string | null) ?? null,
+      complianceStatus:
+        (row.compliance_status as ComplianceStatus | null) ?? null,
+      complianceReport:
+        (row.compliance_report as ComplianceReport | null) ?? null,
     }));
 }
 
