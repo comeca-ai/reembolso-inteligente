@@ -31,6 +31,9 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
