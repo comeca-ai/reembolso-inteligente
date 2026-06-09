@@ -184,6 +184,14 @@ export const Route = createFileRoute("/api/public/reimbursements")({
           return json({ error: "Falha ao registrar a mensagem." }, 500);
         }
 
+        // 5. Se há chave de DANFE, verifica a nota na SEFAZ automaticamente e
+        // grava o resultado (tolerante a falhas — não derruba o webhook).
+        let nfeStatus: string | null = null;
+        if (danfeKey) {
+          nfeStatus = await autoVerifyReimbursementNfe(inserted.id, danfeKey);
+        }
+
+
         return json(
           {
             ok: true,
