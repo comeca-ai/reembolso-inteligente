@@ -117,6 +117,7 @@ function ReimbursementsPage() {
   const fetchConfig = useServerFn(getReimbursementsConfig);
   const updateStatus = useServerFn(updateReimbursementStatus);
   const analyze = useServerFn(analyzeReimbursement);
+  const decide = useServerFn(decideReimbursement);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
