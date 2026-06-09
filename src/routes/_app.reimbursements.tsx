@@ -293,19 +293,24 @@ function ReimbursementRow({
   item,
   pending,
   analyzing,
+  deciding,
   onAdvance,
   onAnalyze,
+  onDecide,
 }: {
   item: InboundReimbursementDTO;
   pending: boolean;
   analyzing: boolean;
+  deciding: boolean;
   onAdvance: (status: (typeof STATUS_FLOW)[number]) => void;
   onAnalyze: () => void;
+  onDecide: (decision: "pendente" | "aprovado" | "negado") => void;
 }) {
   const ChannelIcon = item.channel === "email" ? Mail : MessageCircle;
   const idx = STATUS_FLOW.indexOf(item.status as (typeof STATUS_FLOW)[number]);
   const next = idx >= 0 && idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
   const verdict = item.policyVerdict ? verdictConfig[item.policyVerdict] : null;
+  const decision = decisionConfig[item.decision];
 
   return (
     <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-secondary/40 sm:flex-row sm:items-start sm:justify-between">
