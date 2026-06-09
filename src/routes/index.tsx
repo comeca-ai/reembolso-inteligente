@@ -96,20 +96,24 @@ function Hero() {
       />
       <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
         <div className="animate-fade-rise">
-          <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight text-sidebar-foreground sm:text-5xl">
-            Reembolsos da sua equipe de campo,{" "}
-            <span className="text-sidebar-primary">resolvidos no automático.</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-1 text-xs font-medium text-sidebar-foreground/80">
+            <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />
+            Infraestrutura de reembolso para equipes de campo
+          </span>
+          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-sidebar-foreground sm:text-5xl">
+            Do comprovante no WhatsApp ao reembolso{" "}
+            <span className="text-sidebar-primary">pronto pra pagar.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-sidebar-foreground/80 sm:text-lg">
-            O colaborador manda o comprovante pelo WhatsApp. A IA lê os dados,
-            compara com a sua política e entrega uma recomendação clara. O
-            aprovador decide em segundos — com trilha de auditoria e LGPD por
-            padrão.
+            O colaborador manda a foto do recibo pelo WhatsApp. A IA confere com a
+            sua política e devolve o reembolso mastigado: valor conferido, chave
+            PIX na tela e trilha de auditoria. O aprovador só dá o ok — o resto
+            já está pronto.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
               <Link to="/signup">
-                Criar conta piloto
+                Começar piloto grátis
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -125,7 +129,7 @@ function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-sidebar-foreground/70">
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-sidebar-primary" />
-              Sem cartão de crédito
+              Piloto grátis · 90 dias
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-sidebar-primary" />
