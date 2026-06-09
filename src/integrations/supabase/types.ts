@@ -167,6 +167,10 @@ export type Database = {
           company_id: string
           created_at: string
           danfe_key: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision: string
+          decision_note: string | null
           id: string
           message: string | null
           nfe_raw: Json | null
@@ -191,6 +195,10 @@ export type Database = {
           company_id: string
           created_at?: string
           danfe_key?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string
+          decision_note?: string | null
           id?: string
           message?: string | null
           nfe_raw?: Json | null
@@ -215,6 +223,10 @@ export type Database = {
           company_id?: string
           created_at?: string
           danfe_key?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string
+          decision_note?: string | null
           id?: string
           message?: string | null
           nfe_raw?: Json | null
