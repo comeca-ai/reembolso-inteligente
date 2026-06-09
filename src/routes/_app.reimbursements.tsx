@@ -295,12 +295,50 @@ function ReimbursementsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold tracking-tight text-slate-800">
-                WhatsApp da empresa
+                Identificação no WhatsApp (Evolution)
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                Cadastre o número da linha de WhatsApp que recebe os comprovantes.
-                É por esse número que identificamos a sua empresa — não é mais
-                necessário token no webhook.
+                Identificamos a sua empresa pelo <strong>nome da instância</strong>{" "}
+                do Evolution (esse dado vem em toda mensagem). Cadastre-o abaixo —
+                ele é a chave principal. O número da linha é opcional, usado só como
+                reserva. Não é mais necessário token no webhook.
+              </p>
+
+              <p className="mt-4 text-xs font-medium text-slate-600">
+                Nome da instância do Evolution
+              </p>
+              <div className="mt-1.5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Input
+                  value={instInput}
+                  onChange={(e) => {
+                    setInstInput(e.target.value);
+                    setInstDirty(true);
+                  }}
+                  placeholder="Ex.: Reembolsa aí"
+                  className="h-10 max-w-xs rounded-xl border-slate-200 bg-white shadow-sm focus-visible:ring-primary/30"
+                />
+                <Button
+                  className="h-10 gap-2 rounded-xl"
+                  disabled={
+                    instanceMutation.isPending ||
+                    !instInput.trim() ||
+                    (!instDirty && data?.evolutionInstance != null)
+                  }
+                  onClick={() =>
+                    instanceMutation.mutate({ evolutionInstance: instInput })
+                  }
+                >
+                  {instanceMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Salvar
+                </Button>
+              </div>
+
+              <p className="mt-5 text-xs font-medium text-slate-600">
+                Número da linha (opcional, reserva)
               </p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Input
