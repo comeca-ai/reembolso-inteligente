@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { createFileRoute, redirect, Link, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Eye, EyeOff, Check, X, Circle } from "lucide-react";
+import { Loader2, Eye, EyeOff, Check, X, Circle, Upload, FileSpreadsheet } from "lucide-react";
 import {
   signUpCompany,
   isAuthenticated,
@@ -22,6 +23,8 @@ import {
   SignUpStepError,
   type SignUpStep,
 } from "@/lib/auth";
+import { inviteParticipantsBatch } from "@/lib/participants-invite.functions";
+import { parseParticipantsCsv, type ParsedParticipantRow } from "@/lib/participants-csv";
 
 export const Route = createFileRoute("/signup")({
   ssr: false,
