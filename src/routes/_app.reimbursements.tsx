@@ -11,6 +11,7 @@ import {
   updateReimbursementStatus,
   analyzeReimbursement,
   decideReimbursement,
+  setCompanyWhatsapp,
   type InboundReimbursementDTO,
 } from "@/lib/reimbursements.functions";
 import { PageHeader } from "@/components/shared/PageHeader";
