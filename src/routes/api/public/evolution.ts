@@ -341,18 +341,28 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
-          // Resolve a empresa. Estratégia robusta:
-          //   1) pelo NOME DA INSTÂNCIA (campo `instance`, sempre presente);
-          //   2) fallback pelo número de WhatsApp da linha (quando o Evolution
-          //      envia `sender`/`owner`).
-          // Sem nenhuma das duas chaves cadastradas, ignoramos o evento.
-          let companyId = await resolveCompanyByInstance(evt?.instance);
+          // Telefone de quem ENVIOU o comprovante (o colaborador).
+          const sender = phoneFromJid(key?.remoteJid);
+          const senderName: string | null = data?.pushName ?? null;
+
+          // Resolve a empresa. O número de WhatsApp do SaaS é ÚNICO/COMPARTILHADO
+          // por todas as empresas, então a empresa é determinada pelo COLABORADOR
+          // que enviou (perfil cadastrado com esse WhatsApp). Estratégia:
+          //   1) pelo TELEFONE DO REMETENTE → perfil → empresa (chave principal);
+          //   2) fallback antigo por nome da instância / número da linha
+          //      (mantido para contas com instância dedicada).
+          let companyId = await resolveCompanyBySenderWhatsapp(sender);
+          if (!companyId) {
+            companyId = await resolveCompanyByInstance(evt?.instance);
+          }
           if (!companyId) {
             companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
           }
           if (!companyId) {
             console.warn(
               "[evolution webhook] empresa não resolvida.",
+              "sender=",
+              sender,
               "instance=",
               evt?.instance ?? null,
               "ownerNumber=",
@@ -361,15 +371,13 @@ export const Route = createFileRoute("/api/public/evolution")({
             await logDebug("empresa não resolvida", null);
             results.push({
               status: "ignorado",
-              reason: "instância/whatsapp da empresa não cadastrado",
+              reason: "colaborador (whatsapp) não cadastrado em nenhuma empresa",
             });
             continue;
           }
 
           await logDebug("empresa resolvida", companyId);
 
-          const sender = phoneFromJid(key?.remoteJid);
-          const senderName: string | null = data?.pushName ?? null;
 
           // ID único da mensagem do WhatsApp — usado para idempotência
           // (o Evolution às vezes reenvia o mesmo evento, gerando duplicados).
