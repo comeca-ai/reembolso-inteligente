@@ -345,14 +345,14 @@ function ReimbursementRow({
 
   return (
     <motion.div
-      whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+      whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.7)" }}
       transition={{ duration: 0.2 }}
-      className="group relative flex flex-col gap-4 p-5 transition-colors sm:flex-row sm:items-start sm:justify-between"
+      className="group relative flex flex-col gap-4 px-6 py-5 transition-colors sm:flex-row sm:items-start sm:justify-between"
     >
       {/* Subtle left accent line */}
       <div
         className={cn(
-          "absolute left-0 top-5 bottom-5 w-0.5 rounded-full transition-opacity opacity-0 group-hover:opacity-100",
+          "absolute left-0 top-5 bottom-5 w-[3px] rounded-full transition-opacity opacity-0 group-hover:opacity-100",
           verdict
             ? item.policyVerdict === "aprovar"
               ? "bg-emerald-400"
@@ -363,10 +363,15 @@ function ReimbursementRow({
         )}
       />
 
-      <div className="min-w-0 flex-1 pl-0 sm:pl-3">
+      <div className="flex min-w-0 flex-1 gap-3.5 pl-0 sm:pl-3">
+        {/* Avatar */}
+        <div className="mt-0.5 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold uppercase text-slate-500 ring-1 ring-inset ring-slate-200/80 sm:flex">
+          {(item.senderName || item.sender || "?").trim().charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
         {/* Header row */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-slate-800">
+          <span className="font-semibold tracking-tight text-slate-800">
             {item.senderName || item.sender}
           </span>
           <span className="inline-flex items-center gap-1 text-xs text-slate-400">
