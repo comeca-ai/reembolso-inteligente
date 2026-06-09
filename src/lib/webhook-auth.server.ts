@@ -74,3 +74,26 @@ export async function resolveCompanyByWhatsappNumber(
   }
   return (data as string | null) ?? null;
 }
+
+/**
+ * Resolve o id da empresa a partir do NOME DA INSTÂNCIA do Evolution
+ * (campo `instance` do payload — sempre presente, ao contrário do número da
+ * linha). Cada empresa cadastra o nome da instância em
+ * `companies.evolution_instance`. Comparação case-insensitive e sem espaços
+ * nas pontas. Retorna null quando não há instância utilizável ou nenhuma
+ * empresa cadastrou esse nome.
+ */
+export async function resolveCompanyByInstance(
+  instance: string | null | undefined,
+): Promise<string | null> {
+  const name = (instance ?? "").trim();
+  if (!name) return null;
+  const { data, error } = await supabaseAdmin.rpc("resolve_company_by_instance", {
+    _instance: name,
+  });
+  if (error) {
+    console.error("[webhook-auth] resolve_company_by_instance falhou:", error);
+    return null;
+  }
+  return (data as string | null) ?? null;
+}
