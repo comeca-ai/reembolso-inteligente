@@ -76,7 +76,7 @@ function LandingNav() {
             <Link to="/login">Entrar</Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/signup">Criar conta piloto</Link>
+            <Link to="/signup">Piloto grátis</Link>
           </Button>
         </div>
       </div>
