@@ -140,13 +140,33 @@ function ReimbursementsPage() {
   const updateStatus = useServerFn(updateReimbursementStatus);
   const analyze = useServerFn(analyzeReimbursement);
   const decide = useServerFn(decideReimbursement);
+  const saveWhatsapp = useServerFn(setCompanyWhatsapp);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [waInput, setWaInput] = useState("");
+  const [waDirty, setWaDirty] = useState(false);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["reimbursements-config"],
     queryFn: () => fetchConfig(),
   });
+
+  useEffect(() => {
+    if (!waDirty && data?.whatsappNumber != null) {
+      setWaInput(data.whatsappNumber);
+    }
+  }, [data?.whatsappNumber, waDirty]);
+
+  const whatsappMutation = useMutation({
+    mutationFn: (vars: { whatsappNumber: string }) => saveWhatsapp({ data: vars }),
+    onSuccess: () => {
+      setWaDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+      toast.success("Número de WhatsApp salvo.");
+    },
+    onError: () => toast.error("Não foi possível salvar o número."),
+  });
+
 
   const mutation = useMutation({
     mutationFn: (vars: { id: string; status: (typeof STATUS_FLOW)[number] }) =>
