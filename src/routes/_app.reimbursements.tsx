@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { motion, AnimatePresence } from "framer-motion";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,10 @@ import {
   ThumbsUp,
   ThumbsDown,
   RotateCcw,
+  ChevronRight,
+  Calendar,
+  Tag,
+  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -50,10 +55,10 @@ export const Route = createFileRoute("/_app/reimbursements")({
 });
 
 const statusConfig: Record<string, string> = {
-  recebido: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
-  em_analise: "bg-primary/10 text-primary ring-1 ring-primary/25",
-  processado: "bg-success/15 text-success ring-1 ring-success/30",
-  arquivado: "bg-muted text-muted-foreground ring-1 ring-border",
+  recebido: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  em_analise: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
+  processado: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  arquivado: "bg-slate-50 text-slate-500 ring-1 ring-slate-200",
 };
 
 const statusLabels: Record<string, string> = {
@@ -67,36 +72,41 @@ const STATUS_FLOW = ["recebido", "em_analise", "processado", "arquivado"] as con
 
 const verdictConfig: Record<
   string,
-  { label: string; icon: typeof CheckCircle2; box: string; chip: string }
+  { label: string; icon: typeof CheckCircle2; gradient: string; chip: string; glow: string }
 > = {
   aprovar: {
     label: "Em linha com a política",
     icon: CheckCircle2,
-    box: "border-success/30 bg-success/10",
-    chip: "bg-success/15 text-success ring-1 ring-success/30",
+    gradient: "from-emerald-500/10 via-emerald-500/5 to-transparent",
+    chip: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    glow: "shadow-emerald-500/10",
   },
   revisar: {
     label: "Requer revisão",
     icon: AlertTriangle,
-    box: "border-warning/30 bg-warning/10",
-    chip: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+    gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
+    chip: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+    glow: "shadow-amber-500/10",
   },
   recusar: {
     label: "Fora da política",
     icon: XCircle,
-    box: "border-destructive/30 bg-destructive/10",
-    chip: "bg-destructive/15 text-destructive ring-1 ring-destructive/30",
+    gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
+    chip: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+    glow: "shadow-rose-500/10",
   },
 };
 
-const decisionConfig: Record<string, { label: string; chip: string }> = {
+const decisionConfig: Record<string, { label: string; chip: string; icon: typeof ThumbsUp }> = {
   aprovado: {
     label: "Aprovado",
-    chip: "bg-success/15 text-success ring-1 ring-success/30",
+    chip: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    icon: ThumbsUp,
   },
   negado: {
     label: "Negado",
-    chip: "bg-destructive/15 text-destructive ring-1 ring-destructive/30",
+    chip: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+    icon: ThumbsDown,
   },
 };
 
@@ -110,6 +120,14 @@ function formatDateTime(value: string) {
   return new Date(value).toLocaleString("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
+  });
+}
+
+function formatDate(value: string) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
   });
 }
 
@@ -160,9 +178,6 @@ function ReimbursementsPage() {
     onError: () => toast.error("Não foi possível registrar a decisão."),
   });
 
-
-  // Atualização em tempo real: novos comprovantes vindos do WhatsApp aparecem
-  // automaticamente. A chave de roteamento é sempre o número de telefone.
   useEffect(() => {
     const channel = supabase
       .channel("inbound-reimbursements-live")
@@ -207,15 +222,15 @@ function ReimbursementsPage() {
   }
 
   return (
-    <div className="animate-fade-rise space-y-8">
+    <div className="space-y-8">
       <PageHeader
         eyebrow="Integração"
         title="Reembolsos recebidos"
-        description="Comprovantes enviados pelos colaboradores (WhatsApp, e-mail ou outro canal) chegam aqui. A IA analisa se cada um está em linha com a política."
+        description="Comprovantes enviados pelos colaboradores chegam aqui. A IA analisa automaticamente se cada um está em linha com a política da empresa."
         actions={
           <Button
             variant="outline"
-            className="gap-2"
+            className="gap-2 rounded-lg border-slate-200 hover:bg-slate-50"
             onClick={() => refetch()}
             disabled={isFetching}
           >
@@ -225,18 +240,23 @@ function ReimbursementsPage() {
         }
       />
 
-      <Card>
-        <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-center lg:justify-between">
-          <p className="text-sm font-medium text-foreground">
-            {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"} recebida
-            {messages.length === 1 ? "" : "s"}
-          </p>
+      <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/50 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Inbox className="h-4 w-4 text-primary" />
+            </div>
+            <p className="text-sm font-medium text-slate-700">
+              {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"} recebida
+              {messages.length === 1 ? "" : "s"}
+            </p>
+          </div>
           <div className="w-full lg:w-80">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por remetente ou mensagem…"
-              className="h-9"
+              className="h-10 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/30"
             />
           </div>
         </div>
@@ -259,28 +279,37 @@ function ReimbursementsPage() {
             }
           />
         ) : (
-          <div className="divide-y divide-border">
-            {filtered.map((m) => (
-              <ReimbursementRow
-                key={m.id}
-                item={m}
-                pending={mutation.isPending && mutation.variables?.id === m.id}
-                analyzing={
-                  analysisMutation.isPending && analysisMutation.variables?.id === m.id
-                }
-                deciding={
-                  decisionMutation.isPending && decisionMutation.variables?.id === m.id
-                }
-                onAdvance={(status) => mutation.mutate({ id: m.id, status })}
-                onAnalyze={() => analysisMutation.mutate({ id: m.id })}
-                onDecide={(decision) => decisionMutation.mutate({ id: m.id, decision })}
-              />
-            ))}
+          <div className="divide-y divide-slate-100">
+            <AnimatePresence mode="popLayout">
+              {filtered.map((m, index) => (
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                  transition={{ duration: 0.35, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <ReimbursementRow
+                    item={m}
+                    pending={mutation.isPending && mutation.variables?.id === m.id}
+                    analyzing={
+                      analysisMutation.isPending && analysisMutation.variables?.id === m.id
+                    }
+                    deciding={
+                      decisionMutation.isPending && decisionMutation.variables?.id === m.id
+                    }
+                    onAdvance={(status) => mutation.mutate({ id: m.id, status })}
+                    onAnalyze={() => analysisMutation.mutate({ id: m.id })}
+                    onDecide={(decision) => decisionMutation.mutate({ id: m.id, decision })}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 
         {isError && (
-          <div className="border-t border-border p-4 text-sm text-destructive">
+          <div className="border-t border-slate-100 p-5 text-sm text-destructive">
             Não foi possível carregar as mensagens. Tente atualizar.
           </div>
         )}
@@ -313,31 +342,50 @@ function ReimbursementRow({
   const decision = decisionConfig[item.decision];
 
   return (
-    <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-secondary/40 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0 flex-1">
+    <motion.div
+      whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+      transition={{ duration: 0.2 }}
+      className="group relative flex flex-col gap-4 p-5 transition-colors sm:flex-row sm:items-start sm:justify-between"
+    >
+      {/* Subtle left accent line */}
+      <div
+        className={cn(
+          "absolute left-0 top-5 bottom-5 w-0.5 rounded-full transition-opacity opacity-0 group-hover:opacity-100",
+          verdict
+            ? item.policyVerdict === "aprovar"
+              ? "bg-emerald-400"
+              : item.policyVerdict === "revisar"
+                ? "bg-amber-400"
+                : "bg-rose-400"
+            : "bg-slate-300",
+        )}
+      />
+
+      <div className="min-w-0 flex-1 pl-0 sm:pl-3">
+        {/* Header row */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium text-foreground">
+          <span className="font-semibold text-slate-800">
             {item.senderName || item.sender}
           </span>
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 text-xs text-slate-400">
             <ChannelIcon className="h-3.5 w-3.5" />
             {item.sender}
           </span>
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-              statusConfig[item.status] ?? "bg-muted text-muted-foreground ring-1 ring-border",
+              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+              statusConfig[item.status] ?? "bg-slate-50 text-slate-500 ring-1 ring-slate-200",
             )}
           >
             {statusLabels[item.status] ?? item.status}
           </span>
           {item.collaboratorName ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success ring-1 ring-success/30">
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200">
               <UserCheck className="h-3.5 w-3.5" />
               {item.collaboratorName}
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-border">
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-400 ring-1 ring-slate-200">
               <UserX className="h-3.5 w-3.5" />
               Sem colaborador
             </span>
@@ -345,7 +393,7 @@ function ReimbursementRow({
           {verdict && (
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
                 verdict.chip,
               )}
             >
@@ -356,36 +404,45 @@ function ReimbursementRow({
           {decision && (
             <span
               className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium",
                 decision.chip,
               )}
             >
-              {item.decision === "aprovado" ? (
-                <ThumbsUp className="h-3.5 w-3.5" />
-              ) : (
-                <ThumbsDown className="h-3.5 w-3.5" />
-              )}
+              <decision.icon className="h-3.5 w-3.5" />
               {decision.label}
             </span>
           )}
         </div>
+
+        {/* Message */}
         {item.message && (
-          <p className="mt-1.5 text-sm text-muted-foreground">{item.message}</p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-500">{item.message}</p>
         )}
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+
+        {/* Metadata row */}
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-400">
           {item.category && (
-            <span className="capitalize">Categoria: {item.category}</span>
+            <span className="inline-flex items-center gap-1 capitalize">
+              <Tag className="h-3.5 w-3.5" />
+              {item.category}
+            </span>
           )}
           {item.amount !== null && (
-            <span className="font-medium text-foreground">{formatBRL(item.amount)}</span>
+            <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+              <Banknote className="h-3.5 w-3.5 text-slate-400" />
+              {formatBRL(item.amount)}
+            </span>
           )}
-          <span>{formatDateTime(item.createdAt)}</span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-3.5 w-3.5" />
+            {formatDateTime(item.createdAt)}
+          </span>
           {item.attachmentUrl && (
             <a
               href={item.attachmentUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline transition-colors"
             >
               <Paperclip className="h-3.5 w-3.5" />
               Comprovante
@@ -393,68 +450,90 @@ function ReimbursementRow({
           )}
         </div>
 
-        {/* Observação da IA sobre conformidade com a política */}
+        {/* AI Verdict Box */}
         {verdict ? (
-          <div className={cn("mt-3 rounded-lg border p-3", verdict.box)}>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            transition={{ duration: 0.3 }}
+            className={cn(
+              "mt-4 overflow-hidden rounded-xl border bg-gradient-to-r p-4",
+              verdict.gradient,
+              item.policyVerdict === "aprovar"
+                ? "border-emerald-200/60"
+                : item.policyVerdict === "revisar"
+                  ? "border-amber-200/60"
+                  : "border-rose-200/60",
+            )}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/80 shadow-sm">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+              </div>
               Observação da IA
               {item.policyCitedRule && (
-                <span className="font-normal text-muted-foreground">
+                <span className="font-normal text-slate-400">
                   · cláusula {item.policyCitedRule}
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-foreground/90">{item.policySummary}</p>
-          </div>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.policySummary}</p>
+          </motion.div>
         ) : (
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-xs text-slate-400">
             A IA ainda não avaliou este comprovante.
           </p>
         )}
       </div>
 
-      <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+      {/* Actions */}
+      <div className="flex shrink-0 flex-col items-stretch gap-2.5 sm:items-end sm:pt-1">
+        {/* AI Analysis Button */}
         <Button
           variant={verdict ? "ghost" : "secondary"}
           size="sm"
-          className="gap-1.5"
+          className={cn(
+            "gap-2 rounded-lg text-xs font-medium",
+            verdict
+              ? "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+              : "bg-slate-100 text-slate-700 hover:bg-slate-200",
+          )}
           disabled={analyzing}
           onClick={onAnalyze}
         >
           {analyzing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <Sparkles className="h-4 w-4" />
+            <Sparkles className="h-3.5 w-3.5" />
           )}
           {verdict ? "Reanalisar" : "Analisar com IA"}
         </Button>
 
-        {/* Decisão humana do aprovador */}
+        {/* Decision Buttons */}
         {item.decision === "pendente" ? (
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 border-success/40 text-success hover:bg-success/10 hover:text-success"
+              className="gap-2 rounded-lg border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 text-xs font-medium"
               disabled={deciding}
               onClick={() => onDecide("aprovado")}
             >
               {deciding ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <ThumbsUp className="h-4 w-4" />
+                <ThumbsUp className="h-3.5 w-3.5" />
               )}
               Aprovar
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="gap-2 rounded-lg border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 text-xs font-medium"
               disabled={deciding}
               onClick={() => onDecide("negado")}
             >
-              <ThumbsDown className="h-4 w-4" />
+              <ThumbsDown className="h-3.5 w-3.5" />
               Negar
             </Button>
           </div>
@@ -462,30 +541,34 @@ function ReimbursementRow({
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5"
+            className="gap-2 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             disabled={deciding}
             onClick={() => onDecide("pendente")}
           >
             {deciding ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3.5 w-3.5" />
             )}
             Reabrir decisão
           </Button>
         )}
 
+        {/* Status Advance */}
         {next && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="gap-1.5 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             disabled={pending}
             onClick={() => onAdvance(next)}
           >
             Marcar como {statusLabels[next]}
+            <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
+
