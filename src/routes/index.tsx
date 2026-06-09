@@ -332,17 +332,17 @@ const steps = [
   {
     icon: MessageCircle,
     title: "1. A equipe envia",
-    desc: "O colaborador tira foto do comprovante e manda pelo WhatsApp ou e-mail. Acabou.",
+    desc: "O colaborador tira foto do comprovante e manda pelo WhatsApp ou e-mail. Acabou — sem app novo.",
   },
   {
     icon: ScanLine,
-    title: "2. A IA analisa",
-    desc: "Os dados são extraídos e comparados com a sua política. Sai uma recomendação explicável.",
+    title: "2. O sistema prepara",
+    desc: "A IA extrai os dados, confere com a sua política e monta o reembolso pronto: valor, chave PIX e justificativa.",
   },
   {
     icon: CheckCircle2,
-    title: "3. Você decide",
-    desc: "O aprovador confirma, aprova com ressalva ou recusa — tudo registrado para auditoria.",
+    title: "3. Você só dá o ok",
+    desc: "O aprovador aprova, ressalva ou recusa em segundos. Tudo registrado com trilha de auditoria.",
   },
 ];
 
