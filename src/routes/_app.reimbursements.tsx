@@ -353,6 +353,21 @@ function ReimbursementRow({
               {verdict.label}
             </span>
           )}
+          {decision && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                decision.chip,
+              )}
+            >
+              {item.decision === "aprovado" ? (
+                <ThumbsUp className="h-3.5 w-3.5" />
+              ) : (
+                <ThumbsDown className="h-3.5 w-3.5" />
+              )}
+              {decision.label}
+            </span>
+          )}
         </div>
         {item.message && (
           <p className="mt-1.5 text-sm text-muted-foreground">{item.message}</p>
