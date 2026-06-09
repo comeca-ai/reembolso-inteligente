@@ -32,6 +32,11 @@ import {
   SEFAZ_PORTAL_URL,
 } from "@/lib/nfe.functions";
 import { validarChave, type NfeChaveResultado } from "@/lib/nfe-chave";
+import { ComplianceDialog } from "@/components/nfe/ComplianceDialog";
+import type {
+  ComplianceReport,
+  ComplianceStatus,
+} from "@/lib/compliance.functions";
 
 interface NfeRow {
   id: string;
@@ -43,6 +48,8 @@ interface NfeRow {
   nfeStatus: NfeStatus | null;
   nfeVerifiedAt: string | null;
   nfeSource?: string | null;
+  complianceStatus: ComplianceStatus | null;
+  complianceReport: ComplianceReport | null;
 }
 
 interface TestResult extends NfeVerifyResult {
