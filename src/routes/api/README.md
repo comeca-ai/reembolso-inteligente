@@ -19,16 +19,20 @@ lê o comprovante com IA e registra a despesa no painel **Despesas**.
 3. Recomendado habilitar **Webhook Base64**, para que a imagem do comprovante
    venha embutida no payload.
 
-> O endpoint é público (prefixo `api/public`) e **não exige token**. A empresa
-> é identificada, em ordem de prioridade:
-> 1. pelo **nome da instância** do Evolution (campo `instance` do payload —
->    sempre presente). Cadastre em **Reembolsos → Identificação no WhatsApp**
->    (`companies.evolution_instance`);
-> 2. como reserva, pelo **número de WhatsApp da linha** quando o Evolution
->    envia `sender`/`owner` (`companies.whatsapp_number`).
+> O endpoint é público (prefixo `api/public`) e **não exige token**. O número
+> de WhatsApp do SaaS é **único/compartilhado** por todas as empresas, então a
+> empresa é identificada pelo **colaborador que enviou** o comprovante, em
+> ordem de prioridade:
+> 1. pelo **telefone do remetente** (`key.remoteJid`) → casado com o WhatsApp
+>    de um perfil cadastrado → empresa desse perfil
+>    (`resolve_company_by_sender_whatsapp`, compara os últimos 8 dígitos);
+> 2. fallback (contas com instância dedicada): **nome da instância**
+>    (`companies.evolution_instance`) ou **número da linha**
+>    (`companies.whatsapp_number`).
 >
-> Se nenhuma das duas chaves estiver cadastrada, a mensagem é ignorada (e um
-> aviso com `instance` e `ownerNumber` é registrado nos logs do servidor).
+> Se o remetente não casar com nenhum colaborador cadastrado, a mensagem é
+> ignorada (e um aviso é registrado nos logs do servidor). Os colaboradores são
+> cadastrados com o WhatsApp no **cadastro/onboarding** e nos convites.
 
 ### Fluxo de processamento
 
