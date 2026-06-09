@@ -38,6 +38,10 @@ export interface InboundReimbursementDTO {
   policyCitedRule: string | null;
   policyConfidence: number | null;
   policyAnalyzedAt: string | null;
+  /** Decisão humana do aprovador/admin. */
+  decision: "pendente" | "aprovado" | "negado";
+  decisionNote: string | null;
+  decidedAt: string | null;
 }
 
 
