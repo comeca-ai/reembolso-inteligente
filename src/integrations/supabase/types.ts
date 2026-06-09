@@ -541,6 +541,10 @@ export type Database = {
         Args: { _instance: string }
         Returns: string
       }
+      resolve_company_by_sender_whatsapp: {
+        Args: { _sender: string }
+        Returns: string
+      }
       resolve_company_by_whatsapp: {
         Args: { _number: string }
         Returns: string
