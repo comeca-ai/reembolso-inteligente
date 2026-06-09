@@ -50,6 +50,8 @@ export interface ReimbursementsConfig {
   webhookToken: string | null;
   /** Número de WhatsApp da linha que recebe os recibos (chave da empresa). */
   whatsappNumber: string | null;
+  /** Nome da instância do Evolution (chave principal de identificação). */
+  evolutionInstance: string | null;
   isAdmin: boolean;
   messages: InboundReimbursementDTO[];
 }
