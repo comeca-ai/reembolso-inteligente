@@ -186,6 +186,7 @@ export type Database = {
           sender_name: string | null
           status: string
           updated_at: string
+          wa_message_id: string | null
         }
         Insert: {
           amount?: number | null
@@ -214,6 +215,7 @@ export type Database = {
           sender_name?: string | null
           status?: string
           updated_at?: string
+          wa_message_id?: string | null
         }
         Update: {
           amount?: number | null
@@ -242,6 +244,7 @@ export type Database = {
           sender_name?: string | null
           status?: string
           updated_at?: string
+          wa_message_id?: string | null
         }
         Relationships: [
           {
