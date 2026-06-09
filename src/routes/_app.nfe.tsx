@@ -615,9 +615,18 @@ function NfeDashboard() {
 
 
       <Card>
-        <div className="flex items-center justify-between border-b border-border p-4">
+        <div className="space-y-1 border-b border-border p-4">
           <p className="text-sm font-medium text-foreground">
-            {rows.length} {rows.length === 1 ? "nota" : "notas"} com chave DANFE
+            {rows.length} {rows.length === 1 ? "nota fiscal" : "notas fiscais"}{" "}
+            recebida{rows.length === 1 ? "" : "s"} com chave de acesso (DANFE)
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Cada linha é uma nota fiscal eletrônica. A coluna{" "}
+            <span className="font-medium text-foreground">Situação</span> mostra a
+            autenticidade junto à SEFAZ e{" "}
+            <span className="font-medium text-foreground">Compliance</span> o
+            resultado das regras da empresa. Clique numa etiqueta para ver os
+            detalhes.
           </p>
         </div>
 
