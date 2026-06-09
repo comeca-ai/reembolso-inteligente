@@ -235,7 +235,9 @@ export const decideReimbursement = createServerFn({ method: "POST" })
     return { ok: true, id: data.id, decision: data.decision };
   });
 
-
+// ---------------------------------------------------------------------------
+// Análise da IA: o comprovante recebido está em linha com a política?
+// ---------------------------------------------------------------------------
 
 const analyzeInput = z.object({ id: z.string().uuid() });
 
