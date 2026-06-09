@@ -136,15 +136,18 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
 
     let webhookToken: string | null = null;
     let whatsappNumber: string | null = null;
+    let evolutionInstance: string | null = null;
     if (isAdmin && companyId) {
       const { data: company } = await supabase
         .from("companies")
-        .select("webhook_token, whatsapp_number")
+        .select("webhook_token, whatsapp_number, evolution_instance")
         .eq("id", companyId)
         .maybeSingle();
       webhookToken = (company?.webhook_token as string | undefined) ?? null;
       whatsappNumber =
         (company?.whatsapp_number as string | undefined) ?? null;
+      evolutionInstance =
+        (company?.evolution_instance as string | undefined) ?? null;
     }
 
     const { data: rows, error } = await supabase
