@@ -161,6 +161,12 @@ function ReimbursementsPage() {
     }
   }, [data?.whatsappNumber, waDirty]);
 
+  useEffect(() => {
+    if (!instDirty && data?.evolutionInstance != null) {
+      setInstInput(data.evolutionInstance);
+    }
+  }, [data?.evolutionInstance, instDirty]);
+
   const whatsappMutation = useMutation({
     mutationFn: (vars: { whatsappNumber: string }) => saveWhatsapp({ data: vars }),
     onSuccess: () => {
@@ -170,6 +176,19 @@ function ReimbursementsPage() {
     },
     onError: () => toast.error("Não foi possível salvar o número."),
   });
+
+  const instanceMutation = useMutation({
+    mutationFn: (vars: { evolutionInstance: string }) =>
+      saveInstance({ data: vars }),
+    onSuccess: () => {
+      setInstDirty(false);
+      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+      toast.success("Instância do Evolution salva.");
+    },
+    onError: () => toast.error("Não foi possível salvar a instância."),
+  });
+
+
 
 
   const mutation = useMutation({
