@@ -32,6 +32,7 @@ import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicHooksHealthCheckRouteImport } from './routes/api/public/hooks/health-check'
 
 const TesteWebhookRoute = TesteWebhookRouteImport.update({
   id: '/teste-webhook',
@@ -148,6 +149,12 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksHealthCheckRoute =
+  ApiPublicHooksHealthCheckRouteImport.update({
+    id: '/api/public/hooks/health-check',
+    path: '/api/public/hooks/health-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/expenses/': typeof AppExpensesIndexRoute
+  '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -193,6 +201,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/expenses': typeof AppExpensesIndexRoute
+  '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -219,6 +228,7 @@ export interface FileRoutesById {
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
   '/_app/expenses/': typeof AppExpensesIndexRoute
+  '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution'
     | '/api/public/reimbursements'
     | '/expenses/'
+    | '/api/public/hooks/health-check'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -269,6 +280,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution'
     | '/api/public/reimbursements'
     | '/expenses'
+    | '/api/public/hooks/health-check'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -294,6 +306,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution'
     | '/api/public/reimbursements'
     | '/_app/expenses/'
+    | '/api/public/hooks/health-check'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -312,6 +325,7 @@ export interface RootRouteChildren {
   ApiPublicDespesasRoute: typeof ApiPublicDespesasRoute
   ApiPublicEvolutionRoute: typeof ApiPublicEvolutionRoute
   ApiPublicReimbursementsRoute: typeof ApiPublicReimbursementsRoute
+  ApiPublicHooksHealthCheckRoute: typeof ApiPublicHooksHealthCheckRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -480,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/health-check': {
+      id: '/api/public/hooks/health-check'
+      path: '/api/public/hooks/health-check'
+      fullPath: '/api/public/hooks/health-check'
+      preLoaderRoute: typeof ApiPublicHooksHealthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -520,6 +541,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDespesasRoute: ApiPublicDespesasRoute,
   ApiPublicEvolutionRoute: ApiPublicEvolutionRoute,
   ApiPublicReimbursementsRoute: ApiPublicReimbursementsRoute,
+  ApiPublicHooksHealthCheckRoute: ApiPublicHooksHealthCheckRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
