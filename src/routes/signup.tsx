@@ -151,9 +151,9 @@ function SignupPage() {
 
       setProgressOpen(false);
       toast.success("Conta piloto criada!", {
-        description: `${form.razaoSocial} está pronta. Vamos ao painel.`,
+        description: `${form.razaoSocial} está pronta. Agora adicione os participantes do piloto.`,
       });
-      navigate({ to: "/overview" });
+      setPhase("participants");
     } catch (err) {
       const message = (err as { message?: string })?.message ?? "";
       let description = "Tente novamente em instantes.";
