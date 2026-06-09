@@ -240,23 +240,25 @@ function ReimbursementsPage() {
         }
       />
 
-      <Card className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/50 p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Inbox className="h-4 w-4 text-primary" />
+      <Card className="overflow-hidden rounded-[22px] border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_40px_-24px_rgba(15,23,42,0.25)]">
+        <div className="flex flex-col gap-4 border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-inset ring-primary/10">
+              <Inbox className="h-[18px] w-[18px] text-primary" />
             </div>
-            <p className="text-sm font-medium text-slate-700">
-              {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"} recebida
-              {messages.length === 1 ? "" : "s"}
-            </p>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold tracking-tight text-slate-800">
+                {messages.length} {messages.length === 1 ? "mensagem" : "mensagens"}
+              </p>
+              <p className="text-xs text-slate-400">na caixa de entrada</p>
+            </div>
           </div>
           <div className="w-full lg:w-80">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por remetente ou mensagem…"
-              className="h-10 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/30"
+              className="h-10 rounded-xl border-slate-200 bg-white shadow-sm focus-visible:ring-primary/30"
             />
           </div>
         </div>
@@ -343,14 +345,14 @@ function ReimbursementRow({
 
   return (
     <motion.div
-      whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.8)" }}
+      whileHover={{ backgroundColor: "rgba(248, 250, 252, 0.7)" }}
       transition={{ duration: 0.2 }}
-      className="group relative flex flex-col gap-4 p-5 transition-colors sm:flex-row sm:items-start sm:justify-between"
+      className="group relative flex flex-col gap-4 px-6 py-5 transition-colors sm:flex-row sm:items-start sm:justify-between"
     >
       {/* Subtle left accent line */}
       <div
         className={cn(
-          "absolute left-0 top-5 bottom-5 w-0.5 rounded-full transition-opacity opacity-0 group-hover:opacity-100",
+          "absolute left-0 top-5 bottom-5 w-[3px] rounded-full transition-opacity opacity-0 group-hover:opacity-100",
           verdict
             ? item.policyVerdict === "aprovar"
               ? "bg-emerald-400"
@@ -361,10 +363,15 @@ function ReimbursementRow({
         )}
       />
 
-      <div className="min-w-0 flex-1 pl-0 sm:pl-3">
+      <div className="flex min-w-0 flex-1 gap-3.5 pl-0 sm:pl-3">
+        {/* Avatar */}
+        <div className="mt-0.5 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold uppercase text-slate-500 ring-1 ring-inset ring-slate-200/80 sm:flex">
+          {(item.senderName || item.sender || "?").trim().charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
         {/* Header row */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-slate-800">
+          <span className="font-semibold tracking-tight text-slate-800">
             {item.senderName || item.sender}
           </span>
           <span className="inline-flex items-center gap-1 text-xs text-slate-400">
@@ -484,6 +491,7 @@ function ReimbursementRow({
             A IA ainda não avaliou este comprovante.
           </p>
         )}
+        </div>
       </div>
 
       {/* Actions */}
