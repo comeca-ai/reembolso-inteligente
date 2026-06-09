@@ -9,6 +9,7 @@ import {
   getReimbursementsConfig,
   updateReimbursementStatus,
   analyzeReimbursement,
+  decideReimbursement,
   type InboundReimbursementDTO,
 } from "@/lib/reimbursements.functions";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -30,6 +31,9 @@ import {
   AlertTriangle,
   XCircle,
   Loader2,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -85,6 +89,17 @@ const verdictConfig: Record<
   },
 };
 
+const decisionConfig: Record<string, { label: string; chip: string }> = {
+  aprovado: {
+    label: "Aprovado",
+    chip: "bg-success/15 text-success ring-1 ring-success/30",
+  },
+  negado: {
+    label: "Negado",
+    chip: "bg-destructive/15 text-destructive ring-1 ring-destructive/30",
+  },
+};
+
 function formatBRL(value: number | null) {
   if (value === null) return "—";
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -102,6 +117,7 @@ function ReimbursementsPage() {
   const fetchConfig = useServerFn(getReimbursementsConfig);
   const updateStatus = useServerFn(updateReimbursementStatus);
   const analyze = useServerFn(analyzeReimbursement);
+  const decide = useServerFn(decideReimbursement);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
@@ -127,6 +143,23 @@ function ReimbursementsPage() {
     },
     onError: () => toast.error("Não foi possível analisar com a IA."),
   });
+
+  const decisionMutation = useMutation({
+    mutationFn: (vars: { id: string; decision: "pendente" | "aprovado" | "negado" }) =>
+      decide({ data: vars }),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+      toast.success(
+        vars.decision === "aprovado"
+          ? "Reembolso aprovado."
+          : vars.decision === "negado"
+            ? "Reembolso negado."
+            : "Decisão reaberta.",
+      );
+    },
+    onError: () => toast.error("Não foi possível registrar a decisão."),
+  });
+
 
   // Atualização em tempo real: novos comprovantes vindos do WhatsApp aparecem
   // automaticamente. A chave de roteamento é sempre o número de telefone.
@@ -235,8 +268,12 @@ function ReimbursementsPage() {
                 analyzing={
                   analysisMutation.isPending && analysisMutation.variables?.id === m.id
                 }
+                deciding={
+                  decisionMutation.isPending && decisionMutation.variables?.id === m.id
+                }
                 onAdvance={(status) => mutation.mutate({ id: m.id, status })}
                 onAnalyze={() => analysisMutation.mutate({ id: m.id })}
+                onDecide={(decision) => decisionMutation.mutate({ id: m.id, decision })}
               />
             ))}
           </div>
@@ -256,19 +293,24 @@ function ReimbursementRow({
   item,
   pending,
   analyzing,
+  deciding,
   onAdvance,
   onAnalyze,
+  onDecide,
 }: {
   item: InboundReimbursementDTO;
   pending: boolean;
   analyzing: boolean;
+  deciding: boolean;
   onAdvance: (status: (typeof STATUS_FLOW)[number]) => void;
   onAnalyze: () => void;
+  onDecide: (decision: "pendente" | "aprovado" | "negado") => void;
 }) {
   const ChannelIcon = item.channel === "email" ? Mail : MessageCircle;
   const idx = STATUS_FLOW.indexOf(item.status as (typeof STATUS_FLOW)[number]);
   const next = idx >= 0 && idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
   const verdict = item.policyVerdict ? verdictConfig[item.policyVerdict] : null;
+  const decision = decisionConfig[item.decision];
 
   return (
     <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-secondary/40 sm:flex-row sm:items-start sm:justify-between">
@@ -309,6 +351,21 @@ function ReimbursementRow({
             >
               <verdict.icon className="h-3.5 w-3.5" />
               {verdict.label}
+            </span>
+          )}
+          {decision && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                decision.chip,
+              )}
+            >
+              {item.decision === "aprovado" ? (
+                <ThumbsUp className="h-3.5 w-3.5" />
+              ) : (
+                <ThumbsDown className="h-3.5 w-3.5" />
+              )}
+              {decision.label}
             </span>
           )}
         </div>
@@ -372,6 +429,52 @@ function ReimbursementRow({
           )}
           {verdict ? "Reanalisar" : "Analisar com IA"}
         </Button>
+
+        {/* Decisão humana do aprovador */}
+        {item.decision === "pendente" ? (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-success/40 text-success hover:bg-success/10 hover:text-success"
+              disabled={deciding}
+              onClick={() => onDecide("aprovado")}
+            >
+              {deciding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ThumbsUp className="h-4 w-4" />
+              )}
+              Aprovar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={deciding}
+              onClick={() => onDecide("negado")}
+            >
+              <ThumbsDown className="h-4 w-4" />
+              Negar
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            disabled={deciding}
+            onClick={() => onDecide("pendente")}
+          >
+            {deciding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4" />
+            )}
+            Reabrir decisão
+          </Button>
+        )}
+
         {next && (
           <Button
             variant="outline"

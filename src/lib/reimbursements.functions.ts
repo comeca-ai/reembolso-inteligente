@@ -38,6 +38,10 @@ export interface InboundReimbursementDTO {
   policyCitedRule: string | null;
   policyConfidence: number | null;
   policyAnalyzedAt: string | null;
+  /** Decisão humana do aprovador/admin. */
+  decision: "pendente" | "aprovado" | "negado";
+  decisionNote: string | null;
+  decidedAt: string | null;
 }
 
 
@@ -65,6 +69,9 @@ function mapRow(
     policy_cited_rule?: string | null;
     policy_confidence?: number | null;
     policy_analyzed_at?: string | null;
+    decision?: string | null;
+    decision_note?: string | null;
+    decided_at?: string | null;
   },
   collaborators: { id: string; nome: string | null; whatsapp: string | null }[],
 ): InboundReimbursementDTO {
@@ -96,6 +103,12 @@ function mapRow(
         ? null
         : Number(row.policy_confidence),
     policyAnalyzedAt: row.policy_analyzed_at ?? null,
+    decision:
+      row.decision === "aprovado" || row.decision === "negado"
+        ? row.decision
+        : "pendente",
+    decisionNote: row.decision_note ?? null,
+    decidedAt: row.decided_at ?? null,
   };
 }
 
@@ -130,7 +143,7 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabase
       .from("inbound_reimbursements")
       .select(
-        "id, channel, sender, sender_name, message, attachment_url, amount, category, status, created_at, policy_verdict, policy_summary, policy_cited_rule, policy_confidence, policy_analyzed_at",
+        "id, channel, sender, sender_name, message, attachment_url, amount, category, status, created_at, policy_verdict, policy_summary, policy_cited_rule, policy_confidence, policy_analyzed_at, decision, decision_note, decided_at",
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -172,6 +185,54 @@ export const updateReimbursementStatus = createServerFn({ method: "POST" })
       .eq("company_id", profile.company_id);
     if (error) throw error;
     return { ok: true, id: data.id, status: data.status };
+  });
+
+// ---------------------------------------------------------------------------
+// Decisão humana: o aprovador/admin aprova ou nega o reembolso recebido.
+// ---------------------------------------------------------------------------
+
+const decisionInput = z.object({
+  id: z.string().uuid(),
+  decision: z.enum(["pendente", "aprovado", "negado"]),
+  note: z.string().max(500).optional(),
+});
+
+export const decideReimbursement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => decisionInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // Apenas admin ou aprovador podem decidir.
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const canDecide = (roles ?? []).some(
+      (r) => r.role === "admin" || r.role === "approver",
+    );
+    if (!canDecide) {
+      throw new Error("Apenas administradores e aprovadores podem decidir.");
+    }
+
+    const isPending = data.decision === "pendente";
+    const { data: updated, error } = await supabase
+      .from("inbound_reimbursements")
+      .update({
+        decision: data.decision,
+        decision_note: data.note ?? null,
+        decided_by: isPending ? null : userId,
+        decided_at: isPending ? null : new Date().toISOString(),
+        // Aprovar/negar move o status para "processado"; reabrir volta a "em_analise".
+        status: isPending ? "em_analise" : "processado",
+      } as never)
+      .eq("id", data.id)
+      .select("id");
+    if (error) throw error;
+    if (!updated || updated.length === 0) {
+      throw new Error("Sem permissão para gravar a decisão.");
+    }
+    return { ok: true, id: data.id, decision: data.decision };
   });
 
 // ---------------------------------------------------------------------------
