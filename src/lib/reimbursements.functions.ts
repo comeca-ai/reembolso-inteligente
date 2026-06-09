@@ -103,6 +103,12 @@ function mapRow(
         ? null
         : Number(row.policy_confidence),
     policyAnalyzedAt: row.policy_analyzed_at ?? null,
+    decision:
+      row.decision === "aprovado" || row.decision === "negado"
+        ? row.decision
+        : "pendente",
+    decisionNote: row.decision_note ?? null,
+    decidedAt: row.decided_at ?? null,
   };
 }
 
