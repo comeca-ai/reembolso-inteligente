@@ -491,6 +491,7 @@ function ReimbursementRow({
             A IA ainda não avaliou este comprovante.
           </p>
         )}
+        </div>
       </div>
 
       {/* Actions */}
