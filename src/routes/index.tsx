@@ -19,18 +19,18 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "reembolso.ia.br — Reembolsos de equipes de campo no automático",
+        title: "reembolso.ia.br — Do comprovante no WhatsApp ao reembolso pronto pra pagar",
       },
       {
         name: "description",
         content:
-          "Sua equipe envia o comprovante pelo WhatsApp, a IA extrai os dados, confere com a sua política e gera uma recomendação explicável. O aprovador decide em segundos. Reembolso rápido, sem complicação.",
+          "A equipe manda o comprovante pelo WhatsApp. A IA confere com a sua política e devolve o reembolso pronto pra pagar: valor conferido, chave PIX na tela e trilha de auditoria. O aprovador só dá o ok.",
       },
-      { property: "og:title", content: "reembolso.ia.br — Reembolso rápido, sem complicação" },
+      { property: "og:title", content: "reembolso.ia.br — Reembolso pronto pra pagar, não mais uma planilha" },
       {
         property: "og:description",
         content:
-          "Automatize os reembolsos da sua equipe de campo com IA explicável e decisão humana.",
+          "Infraestrutura de reembolso para equipes de campo: WhatsApp, IA explicável, política versionada e LGPD por padrão.",
       },
       { property: "og:type", content: "website" },
     ],
