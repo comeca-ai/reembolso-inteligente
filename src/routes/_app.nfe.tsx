@@ -32,6 +32,11 @@ import {
   SEFAZ_PORTAL_URL,
 } from "@/lib/nfe.functions";
 import { validarChave, type NfeChaveResultado } from "@/lib/nfe-chave";
+import { ComplianceDialog } from "@/components/nfe/ComplianceDialog";
+import type {
+  ComplianceReport,
+  ComplianceStatus,
+} from "@/lib/compliance.functions";
 
 interface NfeRow {
   id: string;
@@ -43,6 +48,8 @@ interface NfeRow {
   nfeStatus: NfeStatus | null;
   nfeVerifiedAt: string | null;
   nfeSource?: string | null;
+  complianceStatus: ComplianceStatus | null;
+  complianceReport: ComplianceReport | null;
 }
 
 interface TestResult extends NfeVerifyResult {
@@ -87,11 +94,36 @@ const badge: Record<
   },
 };
 
+const complianceBadge: Record<
+  ComplianceStatus,
+  { label: string; className: string }
+> = {
+  ok: { label: "OK", className: "bg-success/10 text-success ring-1 ring-success/30" },
+  alerta: {
+    label: "Atenção",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+  },
+  violado: {
+    label: "Violado",
+    className: "bg-destructive/10 text-destructive ring-1 ring-destructive/30",
+  },
+  manual: {
+    label: "Manual",
+    className: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
+  },
+  pendente: {
+    label: "Pendente",
+    className: "bg-muted text-muted-foreground ring-1 ring-border",
+  },
+};
+
+
+
 async function fetchNfe(): Promise<NfeRow[]> {
   const { data, error } = await supabase
     .from("inbound_reimbursements")
     .select(
-      "id, sender, sender_name, amount, danfe_key, created_at, nfe_status, nfe_verified_at",
+      "id, sender, sender_name, amount, danfe_key, created_at, nfe_status, nfe_verified_at, compliance_status, compliance_report",
     )
     .not("danfe_key", "is", null)
     .order("created_at", { ascending: false })
@@ -108,6 +140,10 @@ async function fetchNfe(): Promise<NfeRow[]> {
       createdAt: row.created_at,
       nfeStatus: (row.nfe_status as NfeStatus | null) ?? null,
       nfeVerifiedAt: (row.nfe_verified_at as string | null) ?? null,
+      complianceStatus:
+        (row.compliance_status as ComplianceStatus | null) ?? null,
+      complianceReport:
+        (row.compliance_report as unknown as ComplianceReport | null) ?? null,
     }));
 }
 
@@ -272,6 +308,7 @@ function NfeDashboard() {
   const [testInput, setTestInput] = useState("");
   const [testRunning, setTestRunning] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [complianceRow, setComplianceRow] = useState<NfeRow | null>(null);
   const runVerifyNfe = useServerFn(verifyNfe);
   const runVerifyNfeKey = useServerFn(verifyNfeKey);
 
@@ -306,6 +343,25 @@ function NfeDashboard() {
           ? { ...item, nfeStatus: status, nfeVerifiedAt: verifiedAt }
           : item,
       ),
+    );
+  }
+
+  function applyCompliance(id: string, report: ComplianceReport) {
+    queryClient.setQueryData<NfeRow[]>(NFE_KEY, (prev) =>
+      (prev ?? []).map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              complianceStatus: report.overall,
+              complianceReport: report,
+            }
+          : item,
+      ),
+    );
+    setComplianceRow((prev) =>
+      prev && prev.id === id
+        ? { ...prev, complianceStatus: report.overall, complianceReport: report }
+        : prev,
     );
   }
 
@@ -580,6 +636,7 @@ function NfeDashboard() {
                   <th className="px-5 py-3 font-medium">Valor</th>
                   <th className="px-5 py-3 font-medium">Chave DANFE</th>
                   <th className="px-5 py-3 font-medium">Situação</th>
+                  <th className="px-5 py-3 font-medium">Compliance</th>
                   <th className="px-5 py-3 font-medium">Fonte</th>
                   <th className="px-5 py-3 font-medium">Verificado em</th>
                   <th className="px-5 py-3 text-right font-medium">Ações</th>
@@ -662,6 +719,21 @@ function NfeDashboard() {
                         </span>
                       )}
                     </td>
+                    <td className="px-5 py-4 align-top">
+                      <button
+                        type="button"
+                        onClick={() => setComplianceRow(r)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity hover:opacity-80",
+                          complianceBadge[r.complianceStatus ?? "pendente"]
+                            .className,
+                        )}
+                        title="Ver / rodar avaliação de compliance"
+                      >
+                        <ShieldCheck className="h-3 w-3" />
+                        {complianceBadge[r.complianceStatus ?? "pendente"].label}
+                      </button>
+                    </td>
                     <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
                       {sourceById[r.id] ?? "—"}
                     </td>
@@ -711,6 +783,23 @@ function NfeDashboard() {
         </Link>
         .
       </p>
+
+      <ComplianceDialog
+        open={complianceRow !== null}
+        onOpenChange={(v) => {
+          if (!v) setComplianceRow(null);
+        }}
+        reimbursementId={complianceRow?.id ?? ""}
+        title={
+          complianceRow
+            ? `a nota …${complianceRow.danfeKey.slice(-8)}`
+            : "a nota"
+        }
+        initialReport={complianceRow?.complianceReport ?? null}
+        onEvaluated={(report) => {
+          if (complianceRow) applyCompliance(complianceRow.id, report);
+        }}
+      />
     </div>
   );
 }
