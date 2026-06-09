@@ -6,7 +6,10 @@ import {
   createLovableAiGatewayProvider,
   getLovableApiKey,
 } from "@/lib/ai-gateway.server";
-import { resolveCompanyByWhatsappNumber } from "@/lib/webhook-auth.server";
+import {
+  resolveCompanyByWhatsappNumber,
+  resolveCompanyByInstance,
+} from "@/lib/webhook-auth.server";
 
 /**
  * Webhook do Evolution API (WhatsApp).
