@@ -283,6 +283,7 @@ function NfeDashboard() {
   const [testInput, setTestInput] = useState("");
   const [testRunning, setTestRunning] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [complianceRow, setComplianceRow] = useState<NfeRow | null>(null);
   const runVerifyNfe = useServerFn(verifyNfe);
   const runVerifyNfeKey = useServerFn(verifyNfeKey);
 
