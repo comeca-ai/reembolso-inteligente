@@ -167,6 +167,7 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
     return {
       webhookToken,
       whatsappNumber,
+      evolutionInstance,
       isAdmin,
       messages: (rows ?? []).map((row) => mapRow(row, collaborators ?? [])),
     };
