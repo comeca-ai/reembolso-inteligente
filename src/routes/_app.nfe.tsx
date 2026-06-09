@@ -719,6 +719,21 @@ function NfeDashboard() {
                         </span>
                       )}
                     </td>
+                    <td className="px-5 py-4 align-top">
+                      <button
+                        type="button"
+                        onClick={() => setComplianceRow(r)}
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-opacity hover:opacity-80",
+                          complianceBadge[r.complianceStatus ?? "pendente"]
+                            .className,
+                        )}
+                        title="Ver / rodar avaliação de compliance"
+                      >
+                        <ShieldCheck className="h-3 w-3" />
+                        {complianceBadge[r.complianceStatus ?? "pendente"].label}
+                      </button>
+                    </td>
                     <td className="whitespace-nowrap px-5 py-4 align-top text-xs text-muted-foreground">
                       {sourceById[r.id] ?? "—"}
                     </td>
