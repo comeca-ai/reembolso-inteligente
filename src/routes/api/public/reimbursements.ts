@@ -10,6 +10,7 @@ import {
   extractWebhookToken,
   resolveCompanyByWebhookToken,
 } from "@/lib/webhook-auth.server";
+import { autoVerifyReimbursementNfe } from "@/lib/nfe-verify.server";
 
 /**
  * Webhook público para receber comprovantes de reembolso.
@@ -184,12 +185,21 @@ export const Route = createFileRoute("/api/public/reimbursements")({
           return json({ error: "Falha ao registrar a mensagem." }, 500);
         }
 
+        // 5. Se há chave de DANFE, verifica a nota na SEFAZ automaticamente e
+        // grava o resultado (tolerante a falhas — não derruba o webhook).
+        let nfeStatus: string | null = null;
+        if (danfeKey) {
+          nfeStatus = await autoVerifyReimbursementNfe(inserted.id, danfeKey);
+        }
+
+
         return json(
           {
             ok: true,
             id: inserted.id,
             received_at: inserted.created_at,
             ai: { amount, category, description: aiDescription, danfe_key: danfeKey },
+            nfe_status: nfeStatus,
           },
           201,
         );
