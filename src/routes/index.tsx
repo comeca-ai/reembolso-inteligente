@@ -417,16 +417,16 @@ function FinalCta() {
         />
         <div className="relative mx-auto max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-sidebar-foreground sm:text-4xl">
-            Comece o piloto com a sua empresa
+            Comece o piloto grátis de 90 dias
           </h2>
           <p className="mt-3 text-base text-sidebar-foreground/80">
             Cadastre sua empresa e o primeiro administrador em poucos minutos.
-            Sem cartão de crédito, com suporte na implantação.
+            Sem cartão de crédito, com suporte na implantação e KPIs combinados.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
               <Link to="/signup">
-                Criar conta piloto
+                Começar piloto grátis
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
