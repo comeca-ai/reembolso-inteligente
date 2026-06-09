@@ -30,6 +30,18 @@ export function generateTempPassword(length = 14): string {
 }
 
 /**
+ * Normaliza um número de WhatsApp para os últimos 8 dígitos (ignora DDI/DDD e
+ * qualquer formatação). Esta é a MESMA chave usada pelo webhook para resolver a
+ * empresa pelo remetente (`resolve_company_by_sender_whatsapp`), então usá-la no
+ * cadastro garante consistência entre o que é salvo e o que é roteado. Retorna
+ * null quando não há dígitos suficientes para identificar com segurança.
+ */
+export function whatsappKey(value: string | null | undefined): string | null {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits.length >= 8 ? digits.slice(-8) : null;
+}
+
+/**
  * Extrai e parseia o primeiro objeto JSON de um texto que pode vir com cercas
  * de código (```json ... ```) ou texto ao redor (saída típica de LLM).
  * Lança SyntaxError se o conteúdo não for JSON válido — o chamador deve tratar.
