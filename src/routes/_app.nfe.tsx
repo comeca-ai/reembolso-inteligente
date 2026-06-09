@@ -636,6 +636,7 @@ function NfeDashboard() {
                   <th className="px-5 py-3 font-medium">Valor</th>
                   <th className="px-5 py-3 font-medium">Chave DANFE</th>
                   <th className="px-5 py-3 font-medium">Situação</th>
+                  <th className="px-5 py-3 font-medium">Compliance</th>
                   <th className="px-5 py-3 font-medium">Fonte</th>
                   <th className="px-5 py-3 font-medium">Verificado em</th>
                   <th className="px-5 py-3 text-right font-medium">Ações</th>
