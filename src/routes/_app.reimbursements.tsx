@@ -149,38 +149,8 @@ function ReimbursementsPage() {
     queryFn: () => fetchConfig(),
   });
 
-  useEffect(() => {
-    if (!waDirty && data?.whatsappNumber != null) {
-      setWaInput(data.whatsappNumber);
-    }
-  }, [data?.whatsappNumber, waDirty]);
 
-  useEffect(() => {
-    if (!instDirty && data?.evolutionInstance != null) {
-      setInstInput(data.evolutionInstance);
-    }
-  }, [data?.evolutionInstance, instDirty]);
 
-  const whatsappMutation = useMutation({
-    mutationFn: (vars: { whatsappNumber: string }) => saveWhatsapp({ data: vars }),
-    onSuccess: () => {
-      setWaDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
-      toast.success("Número de WhatsApp salvo.");
-    },
-    onError: () => toast.error("Não foi possível salvar o número."),
-  });
-
-  const instanceMutation = useMutation({
-    mutationFn: (vars: { evolutionInstance: string }) =>
-      saveInstance({ data: vars }),
-    onSuccess: () => {
-      setInstDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
-      toast.success("Instância do Evolution salva.");
-    },
-    onError: () => toast.error("Não foi possível salvar a instância."),
-  });
 
 
 
