@@ -180,12 +180,25 @@ function SignupPage() {
   }
 
 
+  if (phase === "participants") {
+    return (
+      <AuthLayout
+        eyebrow="Programa Piloto"
+        title="Participantes do piloto"
+        subtitle="Suba uma planilha (CSV) com quem vai participar. Cada pessoa recebe acesso e o convite por e-mail."
+      >
+        <ParticipantsStep onFinish={() => navigate({ to: "/overview" })} />
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
       eyebrow="Programa Piloto"
       title="Criar conta piloto"
       subtitle="Cadastre sua empresa e o primeiro administrador para começar a testar."
     >
+
       <form onSubmit={handleSubmit} className="space-y-3" noValidate>
         <Field label="Razão social" error={errors.razaoSocial}>
           <Input
