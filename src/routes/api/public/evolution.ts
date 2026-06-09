@@ -303,6 +303,18 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
+          // Resolve a empresa pelo número de WhatsApp da linha que recebeu
+          // a mensagem (a instância). Sem cadastro, ignoramos o evento.
+          const ownerNumber = ownerNumberFromEvent(evt, data, key);
+          const companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
+          if (!companyId) {
+            results.push({
+              status: "ignorado",
+              reason: "whatsapp da empresa não cadastrado",
+            });
+            continue;
+          }
+
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;
 
