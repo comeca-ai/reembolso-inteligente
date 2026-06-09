@@ -48,6 +48,8 @@ export interface InboundReimbursementDTO {
 
 export interface ReimbursementsConfig {
   webhookToken: string | null;
+  /** Número de WhatsApp da linha que recebe os recibos (chave da empresa). */
+  whatsappNumber: string | null;
   isAdmin: boolean;
   messages: InboundReimbursementDTO[];
 }
