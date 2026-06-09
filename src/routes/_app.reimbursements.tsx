@@ -55,6 +55,7 @@ export const Route = createFileRoute("/_app/reimbursements")({
 });
 
 const statusConfig: Record<string, string> = {
+  pendente_leitura: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
   recebido: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
   em_analise: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
   processado: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
@@ -62,6 +63,7 @@ const statusConfig: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
+  pendente_leitura: "Revisar leitura",
   recebido: "Recebido",
   em_analise: "Em análise",
   processado: "Processado",
