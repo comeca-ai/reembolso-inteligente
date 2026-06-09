@@ -10,6 +10,7 @@ import {
   extractWebhookToken,
   resolveCompanyByWebhookToken,
 } from "@/lib/webhook-auth.server";
+import { autoVerifyReimbursementNfe } from "@/lib/nfe-verify.server";
 
 /**
  * Webhook público para receber comprovantes de reembolso.
