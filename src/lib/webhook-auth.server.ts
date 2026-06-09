@@ -97,3 +97,30 @@ export async function resolveCompanyByInstance(
   }
   return (data as string | null) ?? null;
 }
+
+/**
+ * Resolve o id da empresa a partir do TELEFONE DO REMETENTE (o colaborador que
+ * enviou o comprovante). Esta é a chave principal no modelo de número de
+ * WhatsApp ÚNICO/COMPARTILHADO do SaaS: a mesma linha recebe mensagens de
+ * todas as empresas, então a empresa é determinada pelo perfil do colaborador
+ * cadastrado (`profiles.whatsapp` → `profiles.company_id`). Comparação pelos
+ * últimos 8 dígitos. Retorna null quando o número não casa com nenhum perfil.
+ */
+export async function resolveCompanyBySenderWhatsapp(
+  sender: string | null,
+): Promise<string | null> {
+  const digits = (sender ?? "").replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  const { data, error } = await supabaseAdmin.rpc(
+    "resolve_company_by_sender_whatsapp",
+    { _sender: digits },
+  );
+  if (error) {
+    console.error(
+      "[webhook-auth] resolve_company_by_sender_whatsapp falhou:",
+      error,
+    );
+    return null;
+  }
+  return (data as string | null) ?? null;
+}
