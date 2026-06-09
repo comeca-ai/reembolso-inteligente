@@ -144,6 +144,23 @@ function ReimbursementsPage() {
     onError: () => toast.error("Não foi possível analisar com a IA."),
   });
 
+  const decisionMutation = useMutation({
+    mutationFn: (vars: { id: string; decision: "pendente" | "aprovado" | "negado" }) =>
+      decide({ data: vars }),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["reimbursements-config"] });
+      toast.success(
+        vars.decision === "aprovado"
+          ? "Reembolso aprovado."
+          : vars.decision === "negado"
+            ? "Reembolso negado."
+            : "Decisão reaberta.",
+      );
+    },
+    onError: () => toast.error("Não foi possível registrar a decisão."),
+  });
+
+
   // Atualização em tempo real: novos comprovantes vindos do WhatsApp aparecem
   // automaticamente. A chave de roteamento é sempre o número de telefone.
   useEffect(() => {
