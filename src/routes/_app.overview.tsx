@@ -2,7 +2,8 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { api, formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
+import { formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
+import { getOverviewMetrics } from "@/lib/overview.functions";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageSkeleton, KpiSkeleton } from "@/components/shared/Skeletons";
 import { TrustStrip } from "@/components/shared/TrustStrip";
@@ -39,7 +40,7 @@ import {
 
 const overviewQuery = queryOptions({
   queryKey: ["overview"],
-  queryFn: () => api.getOverview(),
+  queryFn: () => getOverviewMetrics(),
 });
 
 export const Route = createFileRoute("/_app/overview")({
@@ -121,8 +122,8 @@ function OverviewPage() {
     },
   ];
 
-  const maxCat = Math.max(...data.byCategory.map((c) => c.total));
-  const maxStatus = Math.max(...data.byStatus.map((s) => s.count));
+  const maxCat = Math.max(1, ...data.byCategory.map((c) => c.total));
+  const maxStatus = Math.max(1, ...data.byStatus.map((s) => s.count));
 
   return (
     <div className="animate-fade-rise space-y-8">
