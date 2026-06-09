@@ -214,6 +214,34 @@ function phoneFromJid(jid: string | undefined | null): string {
   return digits ? `+${digits}` : "desconhecido";
 }
 
+/**
+ * Descobre o número da LINHA de WhatsApp que recebeu a mensagem (a instância).
+ * É a chave que identifica a empresa. O Evolution coloca esse número em
+ * diferentes lugares conforme a versão; tentamos todos em ordem.
+ */
+function ownerNumberFromEvent(
+  evt: Record<string, any> | undefined,
+  data: Record<string, any> | undefined,
+  key: Record<string, any> | undefined,
+): string | null {
+  const candidates = [
+    evt?.sender,
+    evt?.owner,
+    evt?.instanceOwner,
+    data?.owner,
+    data?.instanceOwner,
+    // Quando a própria conta envia (fromMe), o remetente é a linha da empresa.
+    key?.fromMe === true ? key?.remoteJid : null,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string") {
+      const digits = c.replace(/\D/g, "");
+      if (digits.length >= 8) return digits;
+    }
+  }
+  return null;
+}
+
 /** Tenta achar a imagem em base64 em vários lugares do payload do Evolution. */
 function findImageBase64(message: Record<string, any> | undefined): {
   base64: string | null;
