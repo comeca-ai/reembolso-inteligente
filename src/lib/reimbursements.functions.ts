@@ -143,7 +143,7 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
     const { data: rows, error } = await supabase
       .from("inbound_reimbursements")
       .select(
-        "id, channel, sender, sender_name, message, attachment_url, amount, category, status, created_at, policy_verdict, policy_summary, policy_cited_rule, policy_confidence, policy_analyzed_at",
+        "id, channel, sender, sender_name, message, attachment_url, amount, category, status, created_at, policy_verdict, policy_summary, policy_cited_rule, policy_confidence, policy_analyzed_at, decision, decision_note, decided_at",
       )
       .order("created_at", { ascending: false })
       .limit(200);
