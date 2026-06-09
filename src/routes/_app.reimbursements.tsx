@@ -268,8 +268,12 @@ function ReimbursementsPage() {
                 analyzing={
                   analysisMutation.isPending && analysisMutation.variables?.id === m.id
                 }
+                deciding={
+                  decisionMutation.isPending && decisionMutation.variables?.id === m.id
+                }
                 onAdvance={(status) => mutation.mutate({ id: m.id, status })}
                 onAnalyze={() => analysisMutation.mutate({ id: m.id })}
+                onDecide={(decision) => decisionMutation.mutate({ id: m.id, decision })}
               />
             ))}
           </div>
