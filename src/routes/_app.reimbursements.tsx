@@ -89,6 +89,17 @@ const verdictConfig: Record<
   },
 };
 
+const decisionConfig: Record<string, { label: string; chip: string }> = {
+  aprovado: {
+    label: "Aprovado",
+    chip: "bg-success/15 text-success ring-1 ring-success/30",
+  },
+  negado: {
+    label: "Negado",
+    chip: "bg-destructive/15 text-destructive ring-1 ring-destructive/30",
+  },
+};
+
 function formatBRL(value: number | null) {
   if (value === null) return "—";
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
