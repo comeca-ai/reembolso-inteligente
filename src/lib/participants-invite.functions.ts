@@ -1,0 +1,219 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { escapeHtml, generateTempPassword } from "@/lib/server-utils";
+
+/** Papéis aceitos para os participantes do piloto. */
+const roleEnum = z.enum(["admin", "approver", "member"]);
+
+const participantSchema = z.object({
+  nome: z.string().min(1).max(255),
+  email: z.string().email().max(255),
+  whatsapp: z.string().max(40).optional(),
+  role: roleEnum.default("member"),
+});
+
+const batchSchema = z.object({
+  participants: z.array(participantSchema).min(1).max(200),
+  origin: z.string().url().max(255),
+});
+
+export type ParticipantInput = z.infer<typeof participantSchema>;
+
+const ROLE_LABEL: Record<z.infer<typeof roleEnum>, string> = {
+  admin: "Administrador",
+  approver: "Aprovador",
+  member: "Colaborador",
+};
+
+function participantEmailHtml(params: {
+  nome: string;
+  companyName: string;
+  email: string;
+  tempPassword: string;
+  loginUrl: string;
+  roleLabel: string;
+}): string {
+  const { nome, companyName, email, tempPassword, loginUrl, roleLabel } = params;
+  return `<!doctype html>
+<html lang="pt-BR">
+  <body style="margin:0;padding:0;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;color:#0f2e2e;">
+    <div style="max-width:520px;margin:0 auto;padding:32px 24px;">
+      <h1 style="font-size:20px;margin:0 0 16px;">Você foi incluído no piloto do reembolso.ia.br</h1>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">Olá, ${escapeHtml(nome)}!</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 12px;">
+        A empresa <strong>${escapeHtml(companyName)}</strong> incluiu você no programa piloto do
+        reembolso.ia.br com o papel de <strong>${escapeHtml(roleLabel)}</strong>. Sua conta já está
+        criada — basta entrar com a senha temporária abaixo.
+      </p>
+      <div style="background-color:#f3f7f6;border-radius:10px;padding:16px 18px;margin:20px 0;">
+        <p style="font-size:14px;line-height:1.6;margin:0 0 8px;font-weight:bold;">Seus dados de acesso</p>
+        <p style="font-size:14px;line-height:1.6;margin:0 0 4px;">E-mail: <strong>${escapeHtml(email)}</strong></p>
+        <p style="font-size:14px;line-height:1.6;margin:0;">Senha temporária: <strong style="font-family:monospace;font-size:16px;letter-spacing:1px;">${escapeHtml(tempPassword)}</strong></p>
+      </div>
+      <div style="background-color:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:14px 18px;margin:0 0 20px;">
+        <p style="font-size:13px;line-height:1.6;margin:0;color:#9a3412;">
+          🔒 Por segurança, no <strong>primeiro acesso</strong> você precisará criar uma nova senha.
+        </p>
+      </div>
+      <p style="text-align:center;margin:28px 0;">
+        <a href="${loginUrl}"
+           style="display:inline-block;background-color:#0f2e2e;color:#ffffff;text-decoration:none;
+                  padding:12px 28px;border-radius:8px;font-size:15px;font-weight:bold;">
+          Entrar no painel
+        </a>
+      </p>
+      <p style="font-size:12px;line-height:1.5;color:#64807f;word-break:break-all;margin:0 0 24px;">
+        ${escapeHtml(loginUrl)}
+      </p>
+      <hr style="border:none;border-top:1px solid #e2e8e8;margin:24px 0;" />
+      <p style="font-size:12px;color:#94a3a3;margin:0;">
+        Se você não reconhece este convite, pode ignorar este e-mail.
+      </p>
+    </div>
+  </body>
+</html>`;
+}
+
+export interface ParticipantInviteResult {
+  email: string;
+  nome: string;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Convida em lote os participantes do piloto a partir de uma planilha (CSV).
+ * Cria cada usuário com senha temporária (anexado à empresa do admin via
+ * metadados) e envia as credenciais por e-mail. Processa item a item e devolve
+ * o resultado de cada linha, sem interromper o lote em caso de falha pontual.
+ */
+export const inviteParticipantsBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => batchSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    // 1) Apenas admins podem convidar participantes.
+    const { data: roleRows, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (roleError) throw new Error("Não foi possível verificar suas permissões.");
+    const isAdmin = (roleRows ?? []).some((r) => r.role === "admin");
+    if (!isAdmin) {
+      throw new Error("Apenas administradores podem convidar participantes.");
+    }
+
+    // 2) Empresa do admin.
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profileError || !profile?.company_id) {
+      throw new Error("Empresa do administrador não encontrada.");
+    }
+
+    const { data: company } = await supabase
+      .from("companies")
+      .select("razao_social")
+      .eq("id", profile.company_id)
+      .maybeSingle();
+    const companyName = company?.razao_social ?? "Sua empresa";
+
+    const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
+    if (!smtp2goApiKey) {
+      throw new Error("Envio de e-mail indisponível: configuração ausente.");
+    }
+    const sender = process.env.SMTP2GO_SENDER ?? "reembolso.ia.br <nao-responder@reembolso.ia.br>";
+    const loginUrl = `${data.origin.replace(/\/$/, "")}/login`;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 3) Deduplica por e-mail (mantém a primeira ocorrência).
+    const seen = new Set<string>();
+    const unique = data.participants.filter((p) => {
+      const key = p.email.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const results: ParticipantInviteResult[] = [];
+
+    for (const participant of unique) {
+      const email = participant.email.trim().toLowerCase();
+      const nome = participant.nome.trim();
+      try {
+        const tempPassword = generateTempPassword();
+        const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: {
+            invited_company_id: profile.company_id,
+            invite_role: participant.role,
+            nome,
+            whatsapp: participant.whatsapp?.trim() ?? "",
+          },
+        });
+
+        if (createError || !created?.user) {
+          const message = createError?.message ?? "";
+          if (/already.*registered|exist|duplicate/i.test(message)) {
+            results.push({ email, nome, ok: false, error: "E-mail já cadastrado." });
+          } else {
+            results.push({ email, nome, ok: false, error: "Não foi possível criar o acesso." });
+          }
+          continue;
+        }
+
+        await supabaseAdmin
+          .from("profiles")
+          .update({ must_change_password: true })
+          .eq("id", created.user.id);
+
+        const res = await fetch("https://api.smtp2go.com/v3/email/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Smtp2go-Api-Key": smtp2goApiKey,
+          },
+          body: JSON.stringify({
+            sender,
+            to: [email],
+            subject: `Convite para o piloto do reembolso.ia.br — ${companyName}`,
+            html_body: participantEmailHtml({
+              nome,
+              companyName,
+              email,
+              tempPassword,
+              loginUrl,
+              roleLabel: ROLE_LABEL[participant.role],
+            }),
+          }),
+        });
+
+        const result = (await res.json().catch(() => null)) as
+          | { data?: { succeeded?: number } }
+          | null;
+
+        if (!res.ok || !result?.data?.succeeded) {
+          console.error(`[SMTP2GO] ${res.status}: ${JSON.stringify(result)}`);
+          // Rollback: remove a conta órfã (sem credenciais entregues).
+          await supabaseAdmin.auth.admin.deleteUser(created.user.id).catch(() => {});
+          results.push({ email, nome, ok: false, error: "Falha ao enviar o e-mail de convite." });
+          continue;
+        }
+
+        results.push({ email, nome, ok: true });
+      } catch {
+        results.push({ email, nome, ok: false, error: "Erro inesperado ao processar." });
+      }
+    }
+
+    const succeeded = results.filter((r) => r.ok).length;
+    return { results, succeeded, total: results.length };
+  });
