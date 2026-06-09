@@ -381,7 +381,7 @@ function HowItWorks() {
 }
 
 const metrics = [
-  { value: "&lt; 24h", label: "Meta de aprovação no piloto" },
+  { value: "< 24h", label: "Meta de aprovação no piloto" },
   { value: "Pronto", label: "Reembolso já com valor e chave PIX" },
   { value: "100%", label: "Decisões com trilha de auditoria" },
   { value: "0", label: "Apps novos para a equipe de campo" },
