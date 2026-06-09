@@ -2,7 +2,8 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { getCurrentUser } from "@/lib/auth";
 import { canAccess, landingForRole } from "@/lib/permissions";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { api, formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
+import { formatBRL, formatDateTime, criticalKindLabels, type CriticalKind } from "@/lib/api";
+import { getOverviewMetrics } from "@/lib/overview.functions";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { PageSkeleton, KpiSkeleton } from "@/components/shared/Skeletons";
 import { TrustStrip } from "@/components/shared/TrustStrip";
@@ -39,7 +40,7 @@ import {
 
 const overviewQuery = queryOptions({
   queryKey: ["overview"],
-  queryFn: () => api.getOverview(),
+  queryFn: () => getOverviewMetrics(),
 });
 
 export const Route = createFileRoute("/_app/overview")({
