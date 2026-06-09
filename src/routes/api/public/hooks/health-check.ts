@@ -30,18 +30,26 @@ function json(body: unknown, status: number) {
 }
 
 function isAuthorized(request: Request): boolean {
-  const expected = process.env.DESPESAS_WEBHOOK_TOKEN;
-  if (!expected) return false;
   const auth = request.headers.get("authorization") ?? "";
   const bearer = auth.replace(/^Bearer\s+/i, "").trim();
   const apikey = request.headers.get("apikey")?.trim() ?? "";
-  return bearer === expected || apikey === expected;
+
+  // Disparo manual seguro: senha do webhook (DESPESAS_WEBHOOK_TOKEN).
+  const webhookToken = process.env.DESPESAS_WEBHOOK_TOKEN;
+  if (webhookToken && (bearer === webhookToken || apikey === webhookToken)) {
+    return true;
+  }
+
+  // Disparo do agendamento (pg_cron): chave anônima/publicável no header apikey.
+  const anonKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (anonKey && (apikey === anonKey || bearer === anonKey)) {
+    return true;
+  }
+
+  return false;
 }
 
 async function handle(request: Request, force: boolean) {
-  if (!process.env.DESPESAS_WEBHOOK_TOKEN) {
-    return json({ error: "Health-check não configurado." }, 500);
-  }
   if (!isAuthorized(request)) {
     return json({ error: "Token inválido." }, 401);
   }
