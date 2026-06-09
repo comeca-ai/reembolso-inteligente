@@ -15,12 +15,12 @@ import { resolveCompanyByWhatsappNumber } from "@/lib/webhook-auth.server";
  * Evolution e habilite o evento `MESSAGES_UPSERT`. Recomendado também ligar
  * "Webhook Base64" para que a imagem do comprovante venha embutida.
  *
- *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution?token=<webhook_token>
- *   Autenticação obrigatória por token (o `webhook_token` da empresa):
- *     - querystring:  ...?token=<webhook_token>
- *     - ou header:    apikey: <webhook_token>
- *     - ou header:    Authorization: Bearer <webhook_token>
- *   A empresa é resolvida a partir desse token (não da "primeira empresa").
+ *   URL:   POST https://reembolso-ia-br.lovable.app/api/public/evolution
+ *   Sem token: a empresa é identificada pelo NÚMERO DE WHATSAPP da linha
+ *   (a instância) que recebeu a mensagem. Cadastre esse número em
+ *   `companies.whatsapp_number`. O número da linha vem no payload do Evolution
+ *   (campos `sender` / `owner` no topo, ou `key.remoteJid` quando `fromMe`).
+ *   Se nenhuma empresa tiver esse WhatsApp cadastrado, a mensagem é ignorada.
  *
  * O Evolution envia algo como:
  *   {
