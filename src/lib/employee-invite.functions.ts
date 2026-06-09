@@ -142,6 +142,21 @@ export const inviteEmployee = createServerFn({ method: "POST" })
     const email = data.email.trim().toLowerCase();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // 3) Garante roteamento determinístico: o mesmo WhatsApp não pode estar
+    // cadastrado em outra empresa (senão a despesa enviada por esse número
+    // seria atribuída à empresa errada).
+    if (data.whatsapp?.trim()) {
+      const { findWhatsappConflict } = await import("@/lib/webhook-auth.server");
+      const conflict = await findWhatsappConflict(data.whatsapp, profile.company_id);
+      if (conflict) {
+        throw new Error(
+          "Este WhatsApp já está cadastrado em outra empresa. Use um número diferente para garantir que os comprovantes cheguem na empresa certa.",
+        );
+      }
+    }
+
+
+
     // 3) Cria o usuário já com senha temporária (e-mail confirmado).
     const tempPassword = generateTempPassword();
     const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({

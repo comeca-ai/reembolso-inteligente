@@ -124,3 +124,34 @@ export async function resolveCompanyBySenderWhatsapp(
   }
   return (data as string | null) ?? null;
 }
+
+/**
+ * Verifica se o WhatsApp informado já está cadastrado para um colaborador de
+ * OUTRA empresa. Como a empresa é resolvida pelo remetente, o mesmo número em
+ * duas empresas tornaria o roteamento ambíguo (a despesa poderia ir para a
+ * empresa errada). Comparação pelos últimos 8 dígitos — a mesma chave do
+ * webhook. Retorna o nome do conflito quando há, ou null quando está livre.
+ *
+ * @param companyId empresa que está cadastrando (para ignorar conflitos dentro
+ *                   da própria empresa, que são apenas o mesmo colaborador).
+ */
+export async function findWhatsappConflict(
+  whatsapp: string | null | undefined,
+  companyId: string,
+): Promise<{ nome: string | null } | null> {
+  const { whatsappKey } = await import("@/lib/server-utils");
+  const key = whatsappKey(whatsapp);
+  if (!key) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from("profiles")
+    .select("nome, whatsapp, company_id")
+    .neq("company_id", companyId)
+    .not("whatsapp", "is", null);
+  if (error) {
+    console.error("[webhook-auth] findWhatsappConflict falhou:", error);
+    return null;
+  }
+  const hit = (data ?? []).find((p) => whatsappKey(p.whatsapp) === key);
+  return hit ? { nome: hit.nome ?? null } : null;
+}
