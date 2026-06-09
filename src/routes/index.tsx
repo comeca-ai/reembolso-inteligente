@@ -182,6 +182,11 @@ function HeroMock() {
           </p>
         </div>
 
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/60 px-4 py-3">
+          <span className="text-xs text-muted-foreground">Pronto pra pagar · chave PIX</span>
+          <span className="font-mono text-xs font-semibold text-foreground">financeiro@empresa.com.br</span>
+        </div>
+
         <div className="mt-4 flex gap-2">
           <div className="flex-1 rounded-lg bg-brand py-2.5 text-center text-sm font-semibold text-brand-foreground">
             Aprovar
