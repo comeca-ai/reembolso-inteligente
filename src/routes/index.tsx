@@ -381,8 +381,8 @@ function HowItWorks() {
 }
 
 const metrics = [
-  { value: "3,4h", label: "Tempo médio de aprovação" },
-  { value: "97%", label: "Confiança média da extração" },
+  { value: "&lt; 24h", label: "Meta de aprovação no piloto" },
+  { value: "Pronto", label: "Reembolso já com valor e chave PIX" },
   { value: "100%", label: "Decisões com trilha de auditoria" },
   { value: "0", label: "Apps novos para a equipe de campo" },
 ];
