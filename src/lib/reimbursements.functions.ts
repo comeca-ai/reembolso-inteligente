@@ -161,10 +161,55 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
 
     return {
       webhookToken,
+      whatsappNumber,
       isAdmin,
       messages: (rows ?? []).map((row) => mapRow(row, collaborators ?? [])),
     };
   });
+
+const whatsappInput = z.object({
+  whatsappNumber: z
+    .string()
+    .trim()
+    .max(30)
+    .transform((v) => v.replace(/[^\d+]/g, "")),
+});
+
+/**
+ * Salva o número de WhatsApp da empresa (a linha que recebe os recibos).
+ * Apenas admin. Este número é a chave que identifica a empresa no webhook.
+ */
+export const setCompanyWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => whatsappInput.parse(data))
+  .handler(async ({ data, context }): Promise<{ whatsappNumber: string | null }> => {
+    const { supabase, userId } = context;
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+    if (!isAdmin) throw new Error("Apenas administradores podem alterar isto.");
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("company_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const companyId = profile?.company_id;
+    if (!companyId) throw new Error("Empresa não encontrada.");
+
+    const value = data.whatsappNumber || null;
+    const { error } = await supabase
+      .from("companies")
+      .update({ whatsapp_number: value })
+      .eq("id", companyId);
+    if (error) throw error;
+
+    return { whatsappNumber: value };
+  });
+
 
 const statusInput = z.object({
   id: z.string().uuid(),
