@@ -118,7 +118,7 @@ async function fetchNfe(): Promise<NfeRow[]> {
       complianceStatus:
         (row.compliance_status as ComplianceStatus | null) ?? null,
       complianceReport:
-        (row.compliance_report as ComplianceReport | null) ?? null,
+        (row.compliance_report as unknown as ComplianceReport | null) ?? null,
     }));
 }
 
