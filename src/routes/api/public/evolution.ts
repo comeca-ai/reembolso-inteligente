@@ -11,6 +11,7 @@ import {
   resolveCompanyByInstance,
   resolveCompanyBySenderWhatsapp,
 } from "@/lib/webhook-auth.server";
+import { autoVerifyReimbursementNfe } from "@/lib/nfe-verify.server";
 
 /**
  * Webhook do Evolution API (WhatsApp).
