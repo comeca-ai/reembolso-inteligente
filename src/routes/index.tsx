@@ -19,18 +19,18 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "reembolso.ia.br — Reembolsos de equipes de campo no automático",
+        title: "reembolso.ia.br — Do comprovante no WhatsApp ao reembolso pronto pra pagar",
       },
       {
         name: "description",
         content:
-          "Sua equipe envia o comprovante pelo WhatsApp, a IA extrai os dados, confere com a sua política e gera uma recomendação explicável. O aprovador decide em segundos. Reembolso rápido, sem complicação.",
+          "A equipe manda o comprovante pelo WhatsApp. A IA confere com a sua política e devolve o reembolso pronto pra pagar: valor conferido, chave PIX na tela e trilha de auditoria. O aprovador só dá o ok.",
       },
-      { property: "og:title", content: "reembolso.ia.br — Reembolso rápido, sem complicação" },
+      { property: "og:title", content: "reembolso.ia.br — Reembolso pronto pra pagar, não mais uma planilha" },
       {
         property: "og:description",
         content:
-          "Automatize os reembolsos da sua equipe de campo com IA explicável e decisão humana.",
+          "Infraestrutura de reembolso para equipes de campo: WhatsApp, IA explicável, política versionada e LGPD por padrão.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -76,7 +76,7 @@ function LandingNav() {
             <Link to="/login">Entrar</Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/signup">Criar conta piloto</Link>
+            <Link to="/signup">Piloto grátis</Link>
           </Button>
         </div>
       </div>
@@ -96,20 +96,24 @@ function Hero() {
       />
       <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:py-24">
         <div className="animate-fade-rise">
-          <h1 className="text-4xl font-semibold leading-[1.08] tracking-tight text-sidebar-foreground sm:text-5xl">
-            Reembolsos da sua equipe de campo,{" "}
-            <span className="text-sidebar-primary">resolvidos no automático.</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-sidebar-border/60 bg-sidebar-accent/40 px-3 py-1 text-xs font-medium text-sidebar-foreground/80">
+            <Sparkles className="h-3.5 w-3.5 text-sidebar-primary" />
+            Infraestrutura de reembolso para equipes de campo
+          </span>
+          <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight text-sidebar-foreground sm:text-5xl">
+            Do comprovante no WhatsApp ao reembolso{" "}
+            <span className="text-sidebar-primary">pronto pra pagar.</span>
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-sidebar-foreground/80 sm:text-lg">
-            O colaborador manda o comprovante pelo WhatsApp. A IA lê os dados,
-            compara com a sua política e entrega uma recomendação clara. O
-            aprovador decide em segundos — com trilha de auditoria e LGPD por
-            padrão.
+            O colaborador manda a foto do recibo pelo WhatsApp. A IA confere com a
+            sua política e devolve o reembolso mastigado: valor conferido, chave
+            PIX na tela e trilha de auditoria. O aprovador só dá o ok — o resto
+            já está pronto.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
               <Link to="/signup">
-                Criar conta piloto
+                Começar piloto grátis
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -125,7 +129,7 @@ function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-sidebar-foreground/70">
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-sidebar-primary" />
-              Sem cartão de crédito
+              Piloto grátis · 90 dias
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-sidebar-primary" />
@@ -176,6 +180,11 @@ function HeroMock() {
             Dentro do teto de alimentação (R$ 120/dia) e com CNPJ válido. Nenhuma
             regra da política v3.2 foi violada.
           </p>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/60 px-4 py-3">
+          <span className="text-xs text-muted-foreground">Pronto pra pagar · chave PIX</span>
+          <span className="font-mono text-xs font-semibold text-foreground">financeiro@empresa.com.br</span>
         </div>
 
         <div className="mt-4 flex gap-2">
@@ -323,17 +332,17 @@ const steps = [
   {
     icon: MessageCircle,
     title: "1. A equipe envia",
-    desc: "O colaborador tira foto do comprovante e manda pelo WhatsApp ou e-mail. Acabou.",
+    desc: "O colaborador tira foto do comprovante e manda pelo WhatsApp ou e-mail. Acabou — sem app novo.",
   },
   {
     icon: ScanLine,
-    title: "2. A IA analisa",
-    desc: "Os dados são extraídos e comparados com a sua política. Sai uma recomendação explicável.",
+    title: "2. O sistema prepara",
+    desc: "A IA extrai os dados, confere com a sua política e monta o reembolso pronto: valor, chave PIX e justificativa.",
   },
   {
     icon: CheckCircle2,
-    title: "3. Você decide",
-    desc: "O aprovador confirma, aprova com ressalva ou recusa — tudo registrado para auditoria.",
+    title: "3. Você só dá o ok",
+    desc: "O aprovador aprova, ressalva ou recusa em segundos. Tudo registrado com trilha de auditoria.",
   },
 ];
 
@@ -372,8 +381,8 @@ function HowItWorks() {
 }
 
 const metrics = [
-  { value: "3,4h", label: "Tempo médio de aprovação" },
-  { value: "97%", label: "Confiança média da extração" },
+  { value: "< 24h", label: "Meta de aprovação no piloto" },
+  { value: "Pronto", label: "Reembolso já com valor e chave PIX" },
   { value: "100%", label: "Decisões com trilha de auditoria" },
   { value: "0", label: "Apps novos para a equipe de campo" },
 ];
@@ -408,16 +417,16 @@ function FinalCta() {
         />
         <div className="relative mx-auto max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-sidebar-foreground sm:text-4xl">
-            Comece o piloto com a sua empresa
+            Comece o piloto grátis de 90 dias
           </h2>
           <p className="mt-3 text-base text-sidebar-foreground/80">
             Cadastre sua empresa e o primeiro administrador em poucos minutos.
-            Sem cartão de crédito, com suporte na implantação.
+            Sem cartão de crédito, com suporte na implantação e KPIs combinados.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
               <Link to="/signup">
-                Criar conta piloto
+                Começar piloto grátis
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
