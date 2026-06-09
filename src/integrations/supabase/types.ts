@@ -461,6 +461,42 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_debug: {
+        Row: {
+          created_at: string
+          event_name: string | null
+          id: string
+          instance: string | null
+          owner_number: string | null
+          payload: Json | null
+          reason: string | null
+          resolved_company: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          event_name?: string | null
+          id?: string
+          instance?: string | null
+          owner_number?: string | null
+          payload?: Json | null
+          reason?: string | null
+          resolved_company?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          event_name?: string | null
+          id?: string
+          instance?: string | null
+          owner_number?: string | null
+          payload?: Json | null
+          reason?: string | null
+          resolved_company?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

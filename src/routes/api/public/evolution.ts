@@ -292,16 +292,51 @@ export const Route = createFileRoute("/api/public/evolution")({
 
         for (const evt of events) {
           const eventName: string = (evt?.event ?? "").toString().toLowerCase();
+
+          const data = evt?.data ?? evt;
+          const key = data?.key ?? {};
+          const ownerNumber = ownerNumberFromEvent(evt, data, key);
+
+          // [DIAGNÓSTICO] Registra TODO evento recebido para investigação.
+          const logDebug = async (
+            reason: string,
+            resolvedCompany: string | null,
+          ) => {
+            try {
+              await supabaseAdmin.from("webhook_debug").insert({
+                source: "evolution",
+                event_name: evt?.event ?? null,
+                instance: evt?.instance ?? null,
+                owner_number: ownerNumber,
+                resolved_company: resolvedCompany,
+                reason,
+                payload: {
+                  topLevelKeys: Object.keys(evt ?? {}),
+                  dataKeys: Object.keys(data ?? {}),
+                  messageKeys: Object.keys(data?.message ?? {}),
+                  fromMe: key?.fromMe ?? null,
+                  remoteJid: key?.remoteJid ?? null,
+                  pushName: data?.pushName ?? null,
+                  messageType: data?.messageType ?? null,
+                  sender: evt?.sender ?? null,
+                  owner: evt?.owner ?? data?.owner ?? null,
+                } as never,
+              });
+            } catch (e) {
+              console.error("[evolution webhook] debug log falhou:", e);
+            }
+          };
+
           // Só nos interessam mensagens recebidas.
           if (eventName && !eventName.includes("messages.upsert")) {
+            await logDebug(`evento ${eventName}`, null);
             results.push({ status: "ignorado", reason: `evento ${eventName}` });
             continue;
           }
 
-          const data = evt?.data ?? evt;
-          const key = data?.key ?? {};
           // Ignora mensagens enviadas por nós mesmos.
           if (key?.fromMe === true) {
+            await logDebug("fromMe", null);
             results.push({ status: "ignorado", reason: "fromMe" });
             continue;
           }
@@ -311,7 +346,6 @@ export const Route = createFileRoute("/api/public/evolution")({
           //   2) fallback pelo número de WhatsApp da linha (quando o Evolution
           //      envia `sender`/`owner`).
           // Sem nenhuma das duas chaves cadastradas, ignoramos o evento.
-          const ownerNumber = ownerNumberFromEvent(evt, data, key);
           let companyId = await resolveCompanyByInstance(evt?.instance);
           if (!companyId) {
             companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
@@ -324,12 +358,15 @@ export const Route = createFileRoute("/api/public/evolution")({
               "ownerNumber=",
               ownerNumber,
             );
+            await logDebug("empresa não resolvida", null);
             results.push({
               status: "ignorado",
               reason: "instância/whatsapp da empresa não cadastrado",
             });
             continue;
           }
+
+          await logDebug("empresa resolvida", companyId);
 
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;

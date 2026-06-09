@@ -1,0 +1,1 @@
+DELETE FROM public.inbound_reimbursements WHERE wa_message_id LIKE 'PROBE%' OR wa_message_id LIKE 'DEBUGTEST%';
