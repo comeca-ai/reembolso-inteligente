@@ -101,6 +101,7 @@ export const verifyNfeKey = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => verifyKeyInput.parse(input))
   .handler(async ({ data }): Promise<NfeVerifyResult> => {
     const key = String(data.key ?? "").replace(/\D/g, "");
+    const { checkKey } = await import("@/lib/nfe-verify.server");
     const { result } = await checkKey(key);
     return result;
   });
