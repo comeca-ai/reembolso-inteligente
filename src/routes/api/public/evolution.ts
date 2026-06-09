@@ -9,6 +9,7 @@ import {
 import {
   resolveCompanyByWhatsappNumber,
   resolveCompanyByInstance,
+  resolveCompanyBySenderWhatsapp,
 } from "@/lib/webhook-auth.server";
 
 /**
