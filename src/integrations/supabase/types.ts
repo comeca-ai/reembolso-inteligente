@@ -171,6 +171,9 @@ export type Database = {
           category: string | null
           channel: string
           company_id: string
+          compliance_at: string | null
+          compliance_report: Json | null
+          compliance_status: string | null
           created_at: string
           danfe_key: string | null
           decided_at: string | null
@@ -200,6 +203,9 @@ export type Database = {
           category?: string | null
           channel?: string
           company_id: string
+          compliance_at?: string | null
+          compliance_report?: Json | null
+          compliance_status?: string | null
           created_at?: string
           danfe_key?: string | null
           decided_at?: string | null
@@ -229,6 +235,9 @@ export type Database = {
           category?: string | null
           channel?: string
           company_id?: string
+          compliance_at?: string | null
+          compliance_report?: Json | null
+          compliance_status?: string | null
           created_at?: string
           danfe_key?: string | null
           decided_at?: string | null
