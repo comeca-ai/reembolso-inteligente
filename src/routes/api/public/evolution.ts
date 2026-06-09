@@ -527,6 +527,14 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
+
+          // 6. Se a IA leu uma chave de DANFE, roda a verificação da nota na
+          // SEFAZ automaticamente e grava o resultado (sem bloquear a resposta
+          // do webhook por muito tempo nem derrubar o fluxo em caso de falha).
+          if (danfeKey) {
+            await autoVerifyReimbursementNfe(inserted.id, danfeKey);
+          }
+
           results.push({ status: aiRead ? "ok" : "sem_leitura", id: inserted.id });
         }
 
