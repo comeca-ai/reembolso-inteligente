@@ -142,10 +142,13 @@ function ReimbursementsPage() {
   const analyze = useServerFn(analyzeReimbursement);
   const decide = useServerFn(decideReimbursement);
   const saveWhatsapp = useServerFn(setCompanyWhatsapp);
+  const saveInstance = useServerFn(setCompanyEvolutionInstance);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [waInput, setWaInput] = useState("");
   const [waDirty, setWaDirty] = useState(false);
+  const [instInput, setInstInput] = useState("");
+  const [instDirty, setInstDirty] = useState(false);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["reimbursements-config"],
