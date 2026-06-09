@@ -216,6 +216,49 @@ export const setCompanyWhatsapp = createServerFn({ method: "POST" })
     return { whatsappNumber: value };
   });
 
+const instanceInput = z.object({
+  evolutionInstance: z.string().trim().max(100),
+});
+
+/**
+ * Salva o nome da instância do Evolution (chave principal de identificação da
+ * empresa no webhook do WhatsApp). Apenas admin.
+ */
+export const setCompanyEvolutionInstance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => instanceInput.parse(data))
+  .handler(
+    async ({ data, context }): Promise<{ evolutionInstance: string | null }> => {
+      const { supabase, userId } = context;
+
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+      if (!isAdmin) throw new Error("Apenas administradores podem alterar isto.");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", userId)
+        .maybeSingle();
+      const companyId = profile?.company_id;
+      if (!companyId) throw new Error("Empresa não encontrada.");
+
+      const value = data.evolutionInstance || null;
+      const { error } = await supabase
+        .from("companies")
+        .update({ evolution_instance: value })
+        .eq("id", companyId);
+      if (error) throw error;
+
+      return { evolutionInstance: value };
+    },
+  );
+
+
+
 
 const statusInput = z.object({
   id: z.string().uuid(),
