@@ -69,6 +69,9 @@ function mapRow(
     policy_cited_rule?: string | null;
     policy_confidence?: number | null;
     policy_analyzed_at?: string | null;
+    decision?: string | null;
+    decision_note?: string | null;
+    decided_at?: string | null;
   },
   collaborators: { id: string; nome: string | null; whatsapp: string | null }[],
 ): InboundReimbursementDTO {
