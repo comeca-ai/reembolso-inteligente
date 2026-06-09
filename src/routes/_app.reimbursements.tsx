@@ -429,6 +429,52 @@ function ReimbursementRow({
           )}
           {verdict ? "Reanalisar" : "Analisar com IA"}
         </Button>
+
+        {/* Decisão humana do aprovador */}
+        {item.decision === "pendente" ? (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-success/40 text-success hover:bg-success/10 hover:text-success"
+              disabled={deciding}
+              onClick={() => onDecide("aprovado")}
+            >
+              {deciding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ThumbsUp className="h-4 w-4" />
+              )}
+              Aprovar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={deciding}
+              onClick={() => onDecide("negado")}
+            >
+              <ThumbsDown className="h-4 w-4" />
+              Negar
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            disabled={deciding}
+            onClick={() => onDecide("pendente")}
+          >
+            {deciding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RotateCcw className="h-4 w-4" />
+            )}
+            Reabrir decisão
+          </Button>
+        )}
+
         {next && (
           <Button
             variant="outline"
