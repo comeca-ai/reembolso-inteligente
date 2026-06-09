@@ -287,6 +287,26 @@ export const Route = createFileRoute("/api/public/evolution")({
 
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;
+
+          // ID único da mensagem do WhatsApp — usado para idempotência
+          // (o Evolution às vezes reenvia o mesmo evento, gerando duplicados).
+          const waMessageId: string | null =
+            typeof key?.id === "string" && key.id.trim() ? key.id.trim() : null;
+
+          // Se já gravamos esta mensagem para esta empresa, ignoramos (dedupe).
+          if (waMessageId) {
+            const { data: existing } = await supabaseAdmin
+              .from("inbound_reimbursements")
+              .select("id")
+              .eq("company_id", companyId)
+              .eq("wa_message_id", waMessageId)
+              .maybeSingle();
+            if (existing) {
+              results.push({ status: "duplicado", id: existing.id });
+              continue;
+            }
+          }
+
           let { base64, mimetype } = findImageBase64(data?.message);
           const { caption } = findImageBase64(data?.message);
 
