@@ -341,7 +341,12 @@ function ReimbursementRow({
 }) {
   const ChannelIcon = item.channel === "email" ? Mail : MessageCircle;
   const idx = STATUS_FLOW.indexOf(item.status as (typeof STATUS_FLOW)[number]);
-  const next = idx >= 0 && idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
+  const next =
+    item.status === "pendente_leitura"
+      ? STATUS_FLOW[0]
+      : idx >= 0 && idx < STATUS_FLOW.length - 1
+        ? STATUS_FLOW[idx + 1]
+        : null;
   const verdict = item.policyVerdict ? verdictConfig[item.policyVerdict] : null;
   const decision = decisionConfig[item.decision];
 
