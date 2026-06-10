@@ -459,9 +459,7 @@ export const Route = createFileRoute("/api/public/evolution")({
             }
           }
 
-          // 3. Empresa já resolvida pelo token (acima).
-
-          // 4. IA analisa o comprovante quando há imagem utilizável.
+          // A IA analisa o comprovante quando há imagem utilizável.
           let amount: number | null = null;
           let category: string | null = null;
           let aiDescription: string | null = null;
