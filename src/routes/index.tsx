@@ -76,7 +76,7 @@ function LandingNav() {
             <Link to="/login">Entrar</Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/signup">Piloto grátis</Link>
+            <Link to="/signup">Configurar solução</Link>
           </Button>
         </div>
       </div>
@@ -113,7 +113,7 @@ function Hero() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
               <Link to="/signup">
-                Começar piloto grátis
+                Configurar a solução
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -129,7 +129,7 @@ function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-sidebar-foreground/70">
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-sidebar-primary" />
-              Piloto grátis · 90 dias
+              Setup guiado em minutos
             </span>
             <span className="inline-flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4 text-sidebar-primary" />
@@ -417,7 +417,7 @@ function FinalCta() {
         />
         <div className="relative mx-auto max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-sidebar-foreground sm:text-4xl">
-            Comece o piloto grátis de 90 dias
+            Configure a solução em poucos minutos
           </h2>
           <p className="mt-3 text-base text-sidebar-foreground/80">
             Cadastre sua empresa e o primeiro administrador em poucos minutos.
@@ -426,7 +426,7 @@ function FinalCta() {
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
               <Link to="/signup">
-                Começar piloto grátis
+                Configurar a solução
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
