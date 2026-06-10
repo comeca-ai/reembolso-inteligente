@@ -161,19 +161,31 @@ export async function loadSession(): Promise<AuthUser | null> {
   };
 
   if (profile?.company_id) {
-    const { data: companyRow } = await supabase
-      .from("companies")
-      .select("id, razao_social, cnpj, politica_reembolso_arquivo, cartao_cnpj_arquivo")
-      .eq("id", profile.company_id)
-      .maybeSingle();
+    // A consulta da empresa pode falhar de forma transitória logo após o login
+    // (token ainda sendo anexado / RLS avaliando auth.uid()). Tentamos algumas
+    // vezes antes de cair no objeto padrão — caso contrário o admin seria
+    // mandado de volta ao onboarding mesmo já tendo enviado a política.
+    let companyRow: AuthCompany | null = null;
+    for (let attempt = 0; attempt < 3 && !companyRow; attempt++) {
+      const { data } = await supabase
+        .from("companies")
+        .select("id, razao_social, cnpj, politica_reembolso_arquivo, cartao_cnpj_arquivo")
+        .eq("id", profile.company_id)
+        .maybeSingle();
+      if (data) {
+        companyRow = {
+          id: data.id,
+          razao_social: data.razao_social,
+          cnpj: data.cnpj,
+          politica_reembolso_arquivo: data.politica_reembolso_arquivo ?? undefined,
+          cartao_cnpj_arquivo: data.cartao_cnpj_arquivo ?? undefined,
+        };
+      } else if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    }
     if (companyRow) {
-      company = {
-        id: companyRow.id,
-        razao_social: companyRow.razao_social,
-        cnpj: companyRow.cnpj,
-        politica_reembolso_arquivo: companyRow.politica_reembolso_arquivo ?? undefined,
-        cartao_cnpj_arquivo: companyRow.cartao_cnpj_arquivo ?? undefined,
-      };
+      company = companyRow;
     }
   }
 
