@@ -440,7 +440,10 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
-          let { base64, mimetype, caption } = findImageBase64(data?.message);
+          const media = findImageBase64(data?.message);
+          const caption = media.caption;
+          let base64 = media.base64;
+          let mimetype = media.mimetype;
 
           // Se não veio base64 utilizável (ex.: só a URL .enc criptografada),
           // pedimos ao Evolution o conteúdo já descriptografado.
