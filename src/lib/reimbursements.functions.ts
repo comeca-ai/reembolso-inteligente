@@ -140,9 +140,6 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
     if (isAdmin && companyId) {
       // webhook_token não é mais legível por usuários autenticados via Data API
       // (foi revogado por segurança). Lemos via service-role APÓS confirmar admin.
-      const { supabaseAdmin } = await import(
-        "@/integrations/supabase/client.server"
-      );
       const { data: company } = await supabaseAdmin
         .from("companies")
         .select("webhook_token, whatsapp_number, evolution_instance")
