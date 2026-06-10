@@ -47,7 +47,14 @@ function LoginPage() {
       toast.success("Bem-vindo ao reembolso.ia.br", {
         description: `Acesso liberado para ${user.nome}.`,
       });
-      navigate({ to: "/overview" });
+      // Só mandamos o admin para o setup de política quando ela está
+      // realmente ausente (empresa carregada, sem arquivo) e ele ainda não
+      // optou por pular. Caso contrário, vai direto para a área do app.
+      if (shouldRequirePolicyOnboarding(user) && !policyOnboardingSkipped()) {
+        navigate({ to: "/onboarding" });
+      } else {
+        navigate({ to: landingForRole(user.role) });
+      }
     } catch {
       toast.error("Não foi possível entrar", {
         description: "Verifique suas credenciais e tente novamente.",
