@@ -80,6 +80,7 @@ const nfeBadge: Record<NfeStatus, { label: string; className: string; Icon: type
 const DESPESAS_KEY = ["despesas-rich"] as const;
 
 const statusConfig: Record<string, string> = {
+  pendente_leitura: "bg-muted text-muted-foreground ring-1 ring-border",
   recebido: "bg-warning/15 text-warning-foreground ring-1 ring-warning/30",
   em_analise: "bg-primary/10 text-primary ring-1 ring-primary/25",
   processado: "bg-success/15 text-success ring-1 ring-success/30",
@@ -87,6 +88,7 @@ const statusConfig: Record<string, string> = {
 };
 
 const statusLabels: Record<string, string> = {
+  pendente_leitura: "Aguardando leitura",
   recebido: "Recebido",
   em_analise: "Em análise",
   processado: "Processado",
