@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { isAuthenticated, getCurrentUser } from "@/lib/auth";
-import { shouldRequirePolicyOnboarding, policyOnboardingSkipped } from "@/lib/auth-gates";
+import { isAuthenticated } from "@/lib/auth";
 
 export const Route = createFileRoute("/_app")({
   // Sessão vive no cliente (Auth + localStorage), então desligamos SSR
@@ -11,12 +10,9 @@ export const Route = createFileRoute("/_app")({
     if (!(await isAuthenticated())) {
       throw redirect({ to: "/login" });
     }
-    // Trava de onboarding (envio da política) é exclusiva do admin que está
-    // configurando a empresa. Usuários convidados (approver/member) — que não
-    // necessariamente passaram pelo pré-cadastro — entram direto na aplicação.
-    if (shouldRequirePolicyOnboarding(getCurrentUser()) && !policyOnboardingSkipped()) {
-      throw redirect({ to: "/onboarding" });
-    }
+    // Login é apenas e-mail/senha: quem entra vai direto para a aplicação.
+    // O envio da política é etapa do fluxo de setup ("Configurar a solução")
+    // e acontece lá, não como trava no acesso ao app.
   },
   component: AppLayout,
 });
