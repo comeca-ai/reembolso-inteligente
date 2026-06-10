@@ -533,7 +533,7 @@ export const Route = createFileRoute("/api/public/evolution")({
           // a IA não conseguiu extrair o valor (revisão manual no painel).
           const status = aiRead ? "recebido" : "pendente_leitura";
 
-          // 5. Grava a mensagem recebida.
+          // Grava a despesa recebida.
           const { data: inserted, error: insertError } = await supabaseAdmin
             .from("inbound_reimbursements")
             .insert({
