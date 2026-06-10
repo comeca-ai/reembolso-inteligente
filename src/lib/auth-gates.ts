@@ -18,7 +18,15 @@ export function resolveSessionRole(
 export function shouldRequirePolicyOnboarding(
   user: Pick<AuthUser, "role" | "company"> | null | undefined,
 ): boolean {
-  return user?.role === "admin" && !user.company.politica_reembolso_arquivo;
+  // Só exige onboarding quando a empresa foi efetivamente carregada
+  // (company.id presente) e ainda está sem política. Se a consulta da empresa
+  // falhou de forma transitória (corrida de sessão), o id vem vazio — nesse
+  // caso NÃO travamos o admin no onboarding indevidamente.
+  return (
+    user?.role === "admin" &&
+    !!user.company.id &&
+    !user.company.politica_reembolso_arquivo
+  );
 }
 
 const SKIP_KEY = "skipPolicyOnboarding";
