@@ -20,7 +20,7 @@ import { autoVerifyReimbursementNfe } from "@/lib/nfe-verify.server";
  * Evolution e habilite o evento `MESSAGES_UPSERT`. Recomendado também ligar
  * "Webhook Base64" para que a imagem do comprovante venha embutida.
  *
- *   URL:   POST https://reembolso-ia-br.lovable.app/api/public/evolution
+ *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution
  *   Sem token: a empresa é identificada pelo NÚMERO DE WHATSAPP da linha
  *   (a instância) que recebeu a mensagem. Cadastre esse número em
  *   `companies.whatsapp_number`. O número da linha vem no payload do Evolution
@@ -133,7 +133,7 @@ async function uploadComprovante(
     const trimmed = source.trim();
 
     if (/^https?:\/\//i.test(trimmed)) {
-      const res = await fetch(trimmed);
+      const res = await fetch(trimmed, { signal: AbortSignal.timeout(20_000) });
       if (!res.ok) return null;
       mime = res.headers.get("content-type") || mime;
       bytes = new Uint8Array(await res.arrayBuffer());
@@ -191,6 +191,7 @@ async function decryptMediaFromEvolution(
           message: { key, message },
           convertToMp4: false,
         }),
+        signal: AbortSignal.timeout(20_000),
       },
     );
     if (!res.ok) {
@@ -438,6 +439,9 @@ export const Route = createFileRoute("/api/public/evolution")({
                 const { object } = await generateObject({
                   model: provider("google/gemini-3-flash-preview"),
                   schema: ExtractionSchema,
+                  // Timeout defensivo: se a IA pendurar, abortamos a tentativa
+                  // em vez de congelar o webhook inteiro até o limite do worker.
+                  abortSignal: AbortSignal.timeout(30_000),
                   messages: [
                     {
                       role: "user",
