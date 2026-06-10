@@ -438,6 +438,9 @@ export const Route = createFileRoute("/api/public/evolution")({
                 const { object } = await generateObject({
                   model: provider("google/gemini-3-flash-preview"),
                   schema: ExtractionSchema,
+                  // Timeout defensivo: se a IA pendurar, abortamos a tentativa
+                  // em vez de congelar o webhook inteiro até o limite do worker.
+                  abortSignal: AbortSignal.timeout(30_000),
                   messages: [
                     {
                       role: "user",
