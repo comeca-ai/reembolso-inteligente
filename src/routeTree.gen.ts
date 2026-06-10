@@ -25,6 +25,7 @@ import { Route as AppPolicyRouteImport } from './routes/_app.policy'
 import { Route as AppOverviewRouteImport } from './routes/_app.overview'
 import { Route as AppNfeRouteImport } from './routes/_app.nfe'
 import { Route as AppExpensesIndexRouteImport } from './routes/_app.expenses.index'
+import { Route as ApiPublicWhapiRouteImport } from './routes/api/public/whapi'
 import { Route as ApiPublicReimbursementsRouteImport } from './routes/api/public/reimbursements'
 import { Route as ApiPublicEvolutionRouteImport } from './routes/api/public/evolution'
 import { Route as ApiPublicDespesasRouteImport } from './routes/api/public/despesas'
@@ -113,6 +114,11 @@ const AppExpensesIndexRoute = AppExpensesIndexRouteImport.update({
   path: '/expenses/',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPublicWhapiRoute = ApiPublicWhapiRouteImport.update({
+  id: '/api/public/whapi',
+  path: '/api/public/whapi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicReimbursementsRoute = ApiPublicReimbursementsRouteImport.update({
   id: '/api/public/reimbursements',
   path: '/api/public/reimbursements',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/api/public/despesas': typeof ApiPublicDespesasRoute
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
+  '/api/public/whapi': typeof ApiPublicWhapiRoute
   '/expenses/': typeof AppExpensesIndexRoute
   '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByTo {
   '/api/public/despesas': typeof ApiPublicDespesasRoute
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
+  '/api/public/whapi': typeof ApiPublicWhapiRoute
   '/expenses': typeof AppExpensesIndexRoute
   '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/api/public/despesas': typeof ApiPublicDespesasRoute
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
+  '/api/public/whapi': typeof ApiPublicWhapiRoute
   '/_app/expenses/': typeof AppExpensesIndexRoute
   '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/api/public/despesas'
     | '/api/public/evolution'
     | '/api/public/reimbursements'
+    | '/api/public/whapi'
     | '/expenses/'
     | '/api/public/hooks/health-check'
     | '/lovable/email/auth/preview'
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/api/public/despesas'
     | '/api/public/evolution'
     | '/api/public/reimbursements'
+    | '/api/public/whapi'
     | '/expenses'
     | '/api/public/hooks/health-check'
     | '/lovable/email/auth/preview'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/api/public/despesas'
     | '/api/public/evolution'
     | '/api/public/reimbursements'
+    | '/api/public/whapi'
     | '/_app/expenses/'
     | '/api/public/hooks/health-check'
     | '/lovable/email/auth/preview'
@@ -325,6 +337,7 @@ export interface RootRouteChildren {
   ApiPublicDespesasRoute: typeof ApiPublicDespesasRoute
   ApiPublicEvolutionRoute: typeof ApiPublicEvolutionRoute
   ApiPublicReimbursementsRoute: typeof ApiPublicReimbursementsRoute
+  ApiPublicWhapiRoute: typeof ApiPublicWhapiRoute
   ApiPublicHooksHealthCheckRoute: typeof ApiPublicHooksHealthCheckRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -445,6 +458,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpensesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/public/whapi': {
+      id: '/api/public/whapi'
+      path: '/api/public/whapi'
+      fullPath: '/api/public/whapi'
+      preLoaderRoute: typeof ApiPublicWhapiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/reimbursements': {
       id: '/api/public/reimbursements'
       path: '/api/public/reimbursements'
@@ -541,6 +561,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDespesasRoute: ApiPublicDespesasRoute,
   ApiPublicEvolutionRoute: ApiPublicEvolutionRoute,
   ApiPublicReimbursementsRoute: ApiPublicReimbursementsRoute,
+  ApiPublicWhapiRoute: ApiPublicWhapiRoute,
   ApiPublicHooksHealthCheckRoute: ApiPublicHooksHealthCheckRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
