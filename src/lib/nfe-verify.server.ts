@@ -111,6 +111,8 @@ export async function checkKey(bruto: string): Promise<{
       {
         method: "GET",
         headers: { Authorization: apiKey, Accept: "application/json" },
+        // Timeout defensivo: se a SEFAZ/nfe.io pendurar, não travamos o webhook.
+        signal: AbortSignal.timeout(12_000),
       },
     );
 
