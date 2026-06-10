@@ -356,8 +356,8 @@ export const Route = createFileRoute("/api/public/evolution")({
         new Response(null, { status: 204, headers: corsHeaders }),
 
       POST: async ({ request }) => {
-        // 1. Lê o corpo. A empresa é resolvida por evento (pelo número de
-        // WhatsApp da linha que recebeu a mensagem), não por token.
+        // Lê o corpo. A empresa é resolvida por evento (pelo WhatsApp do
+        // remetente), não por token.
         let raw: any;
         try {
           raw = await request.json();
