@@ -377,78 +377,28 @@ export const Route = createFileRoute("/api/public/evolution")({
           const key = data?.key ?? {};
           const ownerNumber = ownerNumberFromEvent(evt, data, key);
 
-          // [DIAGNÓSTICO] Registra TODO evento recebido para investigação.
-          const logDebug = async (
-            reason: string,
-            resolvedCompany: string | null,
-          ) => {
-            try {
-              await supabaseAdmin.from("webhook_debug").insert({
-                source: "evolution",
-                event_name: evt?.event ?? null,
-                instance: evt?.instance ?? null,
-                owner_number: ownerNumber,
-                resolved_company: resolvedCompany,
-                reason,
-                payload: {
-                  topLevelKeys: Object.keys(evt ?? {}),
-                  dataKeys: Object.keys(data ?? {}),
-                  messageKeys: Object.keys(data?.message ?? {}),
-                  fromMe: key?.fromMe ?? null,
-                  remoteJid: key?.remoteJid ?? null,
-                  pushName: data?.pushName ?? null,
-                  messageType: data?.messageType ?? null,
-                  sender: evt?.sender ?? null,
-                  owner: evt?.owner ?? data?.owner ?? null,
-                } as never,
-              });
-            } catch (e) {
-              console.error("[evolution webhook] debug log falhou:", e);
-            }
-          };
-
-          // Só nos interessam mensagens recebidas.
+          // Só nos interessam mensagens recebidas que não sejam nossas.
           if (eventName && !eventName.includes("messages.upsert")) {
-            await logDebug(`evento ${eventName}`, null);
             results.push({ status: "ignorado", reason: `evento ${eventName}` });
             continue;
           }
-
-          // Ignora mensagens enviadas por nós mesmos.
           if (key?.fromMe === true) {
-            await logDebug("fromMe", null);
             results.push({ status: "ignorado", reason: "fromMe" });
             continue;
           }
 
-          // Telefone de quem ENVIOU o comprovante (o colaborador).
+          // Telefone e nome de quem ENVIOU o comprovante (o colaborador).
           const sender = phoneFromJid(key?.remoteJid);
           const senderName: string | null = data?.pushName ?? null;
 
-          // Resolve a empresa. O número de WhatsApp do SaaS é ÚNICO/COMPARTILHADO
-          // por todas as empresas, então a empresa é determinada pelo COLABORADOR
-          // que enviou (perfil cadastrado com esse WhatsApp). Estratégia:
-          //   1) pelo TELEFONE DO REMETENTE → perfil → empresa (chave principal);
-          //   2) fallback antigo por nome da instância / número da linha
-          //      (mantido para contas com instância dedicada).
-          let companyId = await resolveCompanyBySenderWhatsapp(sender);
+          // Resolve a empresa pelo COLABORADOR que enviou (WhatsApp no perfil);
+          // fallbacks por instância dedicada ou número da linha.
+          const companyId =
+            (await resolveCompanyBySenderWhatsapp(sender)) ||
+            (await resolveCompanyByInstance(evt?.instance)) ||
+            (await resolveCompanyByWhatsappNumber(ownerNumber));
           if (!companyId) {
-            companyId = await resolveCompanyByInstance(evt?.instance);
-          }
-          if (!companyId) {
-            companyId = await resolveCompanyByWhatsappNumber(ownerNumber);
-          }
-          if (!companyId) {
-            console.warn(
-              "[evolution webhook] empresa não resolvida.",
-              "sender=",
-              sender,
-              "instance=",
-              evt?.instance ?? null,
-              "ownerNumber=",
-              ownerNumber,
-            );
-            await logDebug("empresa não resolvida", null);
+            await logUnresolved(evt, sender, ownerNumber, key?.remoteJid ?? null);
             results.push({
               status: "ignorado",
               reason: "colaborador (whatsapp) não cadastrado em nenhuma empresa",
@@ -456,15 +406,11 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
-          await logDebug("empresa resolvida", companyId);
-
-
           // ID único da mensagem do WhatsApp — usado para idempotência
           // (o Evolution às vezes reenvia o mesmo evento, gerando duplicados).
           const waMessageId: string | null =
             typeof key?.id === "string" && key.id.trim() ? key.id.trim() : null;
 
-          // Se já gravamos esta mensagem para esta empresa, ignoramos (dedupe).
           if (waMessageId) {
             const { data: existing } = await supabaseAdmin
               .from("inbound_reimbursements")
@@ -480,15 +426,13 @@ export const Route = createFileRoute("/api/public/evolution")({
 
           // Só nos interessam mensagens com MÍDIA (foto/documento do
           // comprovante). Mensagens de TEXTO puro do dia a dia ("ok",
-          // "já enviei", "bom dia"...) NÃO são despesas e poluíam o painel,
-          // dando a falsa impressão de que "os reembolsos não chegam".
+          // "já enviei", "bom dia"...) NÃO são despesas e poluíam o painel.
           const hasMedia = !!(
             data?.message?.imageMessage ||
             data?.message?.documentMessage ||
             data?.message?.documentWithCaptionMessage
           );
           if (!hasMedia) {
-            await logDebug("mensagem de texto sem comprovante", companyId);
             results.push({
               status: "ignorado",
               reason: "mensagem de texto sem comprovante",
@@ -496,8 +440,7 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
-          let { base64, mimetype } = findImageBase64(data?.message);
-          const { caption } = findImageBase64(data?.message);
+          let { base64, mimetype, caption } = findImageBase64(data?.message);
 
           // Se não veio base64 utilizável (ex.: só a URL .enc criptografada),
           // pedimos ao Evolution o conteúdo já descriptografado.
