@@ -471,12 +471,36 @@ export const Route = createFileRoute("/api/public/evolution")({
             // Imagem (data URL ou http) usada apenas em memória para a IA ler.
             const imageForAi = toDataUrl(base64, mimetype);
 
-            // Tenta ler com a IA; em caso de falha transitória, faz uma 2ª tentativa.
-            for (let attempt = 1; attempt <= 2 && !aiRead; attempt++) {
+            // Texto do prompt (igual para todos os modelos da cadeia).
+            const extractionPrompt =
+              "Você é um leitor especialista de comprovantes, recibos e notas fiscais de despesa. " +
+              "Analise a imagem com atenção e extraia os campos abaixo. " +
+              "(1) amount = o VALOR TOTAL pago, como número em reais (ex.: 45.90). " +
+              "Procure por rótulos como 'TOTAL', 'VALOR TOTAL', 'VALOR A PAGAR', 'TOTAL R$' ou o maior valor em destaque. " +
+              "Use ponto como separador decimal e NÃO inclua o símbolo R$. Se realmente não houver valor legível, use null (nunca 0). " +
+              "(2) category = uma destas opções: " +
+              CATEGORIES.join(", ") +
+              " (escolha a mais provável pelo estabelecimento/itens; use 'outros' só se não houver pista). " +
+              "(3) description = um resumo curto e útil (ex.: nome do estabelecimento). " +
+              "(4) danfe_key = a CHAVE DE ACESSO da NF-e/DANFE: exatamente 44 dígitos numéricos (geralmente sob o código de barras, às vezes em grupos de 4). " +
+              "Junte todos os dígitos sem espaços. Use null se não for nota fiscal ou se a chave não estiver legível. " +
+              "Responda sempre preenchendo todos os campos.";
+
+            // Cadeia de modelos: começa no flash (rápido/barato) e, se ele
+            // falhar ou não conseguir o valor, escala para um modelo de visão
+            // mais forte. Isso resgata notas que o primeiro modelo erra e
+            // protege contra instabilidade do modelo preview.
+            const modelChain = [
+              "google/gemini-3-flash-preview",
+              "google/gemini-2.5-pro",
+            ];
+
+            for (const modelId of modelChain) {
+              if (aiRead) break;
               try {
                 const provider = createLovableAiGatewayProvider(getLovableApiKey());
                 const { object } = await generateObject({
-                  model: provider("google/gemini-3-flash-preview"),
+                  model: provider(modelId),
                   schema: ExtractionSchema,
                   // Timeout defensivo: se a IA pendurar, abortamos a tentativa
                   // em vez de congelar o webhook inteiro até o limite do worker.
@@ -485,22 +509,7 @@ export const Route = createFileRoute("/api/public/evolution")({
                     {
                       role: "user",
                       content: [
-                        {
-                          type: "text",
-                          text:
-                            "Você é um leitor especialista de comprovantes, recibos e notas fiscais de despesa. " +
-                            "Analise a imagem com atenção e extraia os campos abaixo. " +
-                            "(1) amount = o VALOR TOTAL pago, como número em reais (ex.: 45.90). " +
-                            "Procure por rótulos como 'TOTAL', 'VALOR TOTAL', 'VALOR A PAGAR', 'TOTAL R$' ou o maior valor em destaque. " +
-                            "Use ponto como separador decimal e NÃO inclua o símbolo R$. Se realmente não houver valor legível, use null (nunca 0). " +
-                            "(2) category = uma destas opções: " +
-                            CATEGORIES.join(", ") +
-                            " (escolha a mais provável pelo estabelecimento/itens; use 'outros' só se não houver pista). " +
-                            "(3) description = um resumo curto e útil (ex.: nome do estabelecimento). " +
-                            "(4) danfe_key = a CHAVE DE ACESSO da NF-e/DANFE: exatamente 44 dígitos numéricos (geralmente sob o código de barras, às vezes em grupos de 4). " +
-                            "Junte todos os dígitos sem espaços. Use null se não for nota fiscal ou se a chave não estiver legível. " +
-                            "Responda sempre preenchendo todos os campos.",
-                        },
+                        { type: "text", text: extractionPrompt },
                         { type: "image", image: imageForAi },
                       ],
                     },
@@ -519,11 +528,12 @@ export const Route = createFileRoute("/api/public/evolution")({
                 aiRead = amount !== null; // sucesso se conseguiu o valor
               } catch (e) {
                 console.error(
-                  `[evolution webhook] IA falhou (tentativa ${attempt}):`,
+                  `[evolution webhook] IA falhou (modelo ${modelId}):`,
                   e,
                 );
               }
             }
+
 
             // Persiste o comprovante no Storage (durável) e guarda só o caminho.
             attachmentUrl = await uploadComprovante(companyId, imageForAi, mimetype);
