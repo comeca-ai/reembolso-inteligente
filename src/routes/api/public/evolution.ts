@@ -256,7 +256,12 @@ function findImageBase64(message: Record<string, any> | undefined): {
 } {
   if (!message) return { base64: null, mimetype: null, caption: null };
 
-  const img = message.imageMessage ?? message.documentMessage ?? null;
+  // Documentos enviados com legenda vêm aninhados em documentWithCaptionMessage.
+  const img =
+    message.imageMessage ??
+    message.documentMessage ??
+    message.documentWithCaptionMessage?.message?.documentMessage ??
+    null;
   const caption: string | null =
     img?.caption ?? message.conversation ?? message.extendedTextMessage?.text ?? null;
   const mimetype: string | null = img?.mimetype ?? null;
