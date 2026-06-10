@@ -570,16 +570,12 @@ export const Route = createFileRoute("/api/public/evolution")({
             continue;
           }
 
-
-          // 6. Se a IA leu uma chave de DANFE, roda a verificação da nota na
-          // SEFAZ automaticamente e grava o resultado (sem bloquear a resposta
-          // do webhook por muito tempo nem derrubar o fluxo em caso de falha).
+          // Se a IA leu uma chave de DANFE, verifica a nota na SEFAZ.
           if (danfeKey) {
             await autoVerifyReimbursementNfe(inserted.id, danfeKey);
           }
 
-          // 7. Se a IA NÃO conseguiu ler o valor do comprovante, respondemos o
-          // colaborador pedindo uma foto mais nítida (não bloqueia o webhook).
+          // Se a IA NÃO leu o valor, pede ao colaborador uma foto mais nítida.
           if (!aiRead) {
             await sendWhatsappReply(
               evt?.instance,
