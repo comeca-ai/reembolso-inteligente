@@ -421,7 +421,7 @@ function FinalCta() {
           </h2>
           <p className="mt-3 text-base text-sidebar-foreground/80">
             Cadastre sua empresa e o primeiro administrador em poucos minutos.
-            Sem cartão de crédito, com suporte na implantação e KPIs combinados.
+            Em seguida envie sua política de reembolso e já comece a operar.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="text-base">
