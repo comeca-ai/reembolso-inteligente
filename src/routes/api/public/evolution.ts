@@ -256,7 +256,12 @@ function findImageBase64(message: Record<string, any> | undefined): {
 } {
   if (!message) return { base64: null, mimetype: null, caption: null };
 
-  const img = message.imageMessage ?? message.documentMessage ?? null;
+  // Documentos enviados com legenda vêm aninhados em documentWithCaptionMessage.
+  const img =
+    message.imageMessage ??
+    message.documentMessage ??
+    message.documentWithCaptionMessage?.message?.documentMessage ??
+    null;
   const caption: string | null =
     img?.caption ?? message.conversation ?? message.extendedTextMessage?.text ?? null;
   const mimetype: string | null = img?.mimetype ?? null;
@@ -399,6 +404,24 @@ export const Route = createFileRoute("/api/public/evolution")({
               results.push({ status: "duplicado", id: existing.id });
               continue;
             }
+          }
+
+          // Só nos interessam mensagens com MÍDIA (foto/documento do
+          // comprovante). Mensagens de TEXTO puro do dia a dia ("ok",
+          // "já enviei", "bom dia"...) NÃO são despesas e poluíam o painel,
+          // dando a falsa impressão de que "os reembolsos não chegam".
+          const hasMedia = !!(
+            data?.message?.imageMessage ||
+            data?.message?.documentMessage ||
+            data?.message?.documentWithCaptionMessage
+          );
+          if (!hasMedia) {
+            await logDebug("mensagem de texto sem comprovante", companyId);
+            results.push({
+              status: "ignorado",
+              reason: "mensagem de texto sem comprovante",
+            });
+            continue;
           }
 
           let { base64, mimetype } = findImageBase64(data?.message);
