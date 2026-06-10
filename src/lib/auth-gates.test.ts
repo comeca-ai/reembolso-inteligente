@@ -33,4 +33,13 @@ describe("auth gates", () => {
       }),
     ).toBe(false);
   });
+
+  it("não trava o admin no onboarding quando a empresa não carregou (id vazio)", () => {
+    expect(
+      shouldRequirePolicyOnboarding({
+        role: "admin",
+        company: { id: "", razao_social: "Sua Empresa", cnpj: "" },
+      }),
+    ).toBe(false);
+  });
 });
