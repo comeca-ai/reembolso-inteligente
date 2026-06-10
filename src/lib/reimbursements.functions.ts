@@ -8,6 +8,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { z } from "zod";
 import { generateText } from "ai";
 import {
@@ -138,7 +139,9 @@ export const getReimbursementsConfig = createServerFn({ method: "GET" })
     let whatsappNumber: string | null = null;
     let evolutionInstance: string | null = null;
     if (isAdmin && companyId) {
-      const { data: company } = await supabase
+      // webhook_token não é mais legível por usuários autenticados via Data API
+      // (foi revogado por segurança). Lemos via service-role APÓS confirmar admin.
+      const { data: company } = await supabaseAdmin
         .from("companies")
         .select("webhook_token, whatsapp_number, evolution_instance")
         .eq("id", companyId)
