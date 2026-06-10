@@ -212,6 +212,53 @@ async function decryptMediaFromEvolution(
   }
 }
 
+/**
+ * Envia uma mensagem de texto de volta pelo WhatsApp (Evolution API).
+ * Precisa dos secrets EVOLUTION_API_URL e EVOLUTION_API_KEY e do nome da
+ * instância. Endpoint: POST /message/sendText/{instance}.
+ * Falha de forma silenciosa (apenas loga) para nunca derrubar o webhook.
+ */
+async function sendWhatsappReply(
+  instance: string | null | undefined,
+  remoteJid: string | null | undefined,
+  text: string,
+): Promise<void> {
+  const apiUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  if (!apiUrl || !apiKey || !instance || !remoteJid) {
+    if (!apiUrl || !apiKey) {
+      console.warn(
+        "[evolution webhook] resposta automática desativada: EVOLUTION_API_URL/EVOLUTION_API_KEY ausentes.",
+      );
+    }
+    return;
+  }
+  // O Evolution aceita o número (só dígitos) ou o JID completo.
+  const number = remoteJid.split("@")[0]?.split(":")[0]?.replace(/\D/g, "");
+  if (!number) return;
+  try {
+    const base = apiUrl.replace(/\/+$/, "");
+    const res = await fetch(
+      `${base}/message/sendText/${encodeURIComponent(instance)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: apiKey },
+        body: JSON.stringify({ number, text }),
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    if (!res.ok) {
+      console.error(
+        "[evolution webhook] sendText status",
+        res.status,
+        await res.text().catch(() => ""),
+      );
+    }
+  } catch (e) {
+    console.error("[evolution webhook] sendText falhou:", e);
+  }
+}
+
 /** Extrai o telefone (apenas dígitos + "+") de um remoteJid do WhatsApp. */
 function phoneFromJid(jid: string | undefined | null): string {
   if (!jid) return "desconhecido";
@@ -560,6 +607,18 @@ export const Route = createFileRoute("/api/public/evolution")({
           // do webhook por muito tempo nem derrubar o fluxo em caso de falha).
           if (danfeKey) {
             await autoVerifyReimbursementNfe(inserted.id, danfeKey);
+          }
+
+          // 7. Se a IA NÃO conseguiu ler o valor do comprovante, respondemos o
+          // colaborador pedindo uma foto mais nítida (não bloqueia o webhook).
+          if (!aiRead) {
+            await sendWhatsappReply(
+              evt?.instance,
+              key?.remoteJid,
+              "📸 Recebemos seu comprovante, mas não conseguimos ler o valor. " +
+                "Pode reenviar uma *foto mais nítida*, bem enquadrada e sem reflexo " +
+                "(de preferência o arquivo/PDF original)? Assim conseguimos registrar seu reembolso. 🙏",
+            );
           }
 
           results.push({ status: aiRead ? "ok" : "sem_leitura", id: inserted.id });
