@@ -324,6 +324,31 @@ function findImageBase64(message: Record<string, any> | undefined): {
   return { base64, mimetype, caption };
 }
 
+/**
+ * Registra no `webhook_debug` apenas o caso ACIONÁVEL: a empresa não foi
+ * resolvida (remetente sem WhatsApp cadastrado). Falha em silêncio.
+ */
+async function logUnresolved(
+  evt: Record<string, any> | undefined,
+  sender: string,
+  ownerNumber: string | null,
+  remoteJid: string | null,
+): Promise<void> {
+  try {
+    await supabaseAdmin.from("webhook_debug").insert({
+      source: "evolution",
+      event_name: evt?.event ?? null,
+      instance: evt?.instance ?? null,
+      owner_number: ownerNumber,
+      resolved_company: null,
+      reason: "empresa não resolvida",
+      payload: { sender, remoteJid } as never,
+    });
+  } catch (e) {
+    console.error("[evolution webhook] debug log falhou:", e);
+  }
+}
+
 export const Route = createFileRoute("/api/public/evolution")({
   server: {
     handlers: {
