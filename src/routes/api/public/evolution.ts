@@ -562,6 +562,18 @@ export const Route = createFileRoute("/api/public/evolution")({
             await autoVerifyReimbursementNfe(inserted.id, danfeKey);
           }
 
+          // 7. Se a IA NÃO conseguiu ler o valor do comprovante, respondemos o
+          // colaborador pedindo uma foto mais nítida (não bloqueia o webhook).
+          if (!aiRead) {
+            await sendWhatsappReply(
+              evt?.instance,
+              key?.remoteJid,
+              "📸 Recebemos seu comprovante, mas não conseguimos ler o valor. " +
+                "Pode reenviar uma *foto mais nítida*, bem enquadrada e sem reflexo " +
+                "(de preferência o arquivo/PDF original)? Assim conseguimos registrar seu reembolso. 🙏",
+            );
+          }
+
           results.push({ status: aiRead ? "ok" : "sem_leitura", id: inserted.id });
         }
 
