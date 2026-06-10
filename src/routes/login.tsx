@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { signIn, isAuthenticated, sendPasswordReset } from "@/lib/auth";
+import { landingForRole } from "@/lib/permissions";
+import { shouldRequirePolicyOnboarding, policyOnboardingSkipped } from "@/lib/auth-gates";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
