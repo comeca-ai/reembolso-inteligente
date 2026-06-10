@@ -20,7 +20,7 @@ import { autoVerifyReimbursementNfe } from "@/lib/nfe-verify.server";
  * Evolution e habilite o evento `MESSAGES_UPSERT`. Recomendado também ligar
  * "Webhook Base64" para que a imagem do comprovante venha embutida.
  *
- *   URL:   POST https://reembolso-ia-br.lovable.app/api/public/evolution
+ *   URL:   POST https://reembolso-inteligente.lovable.app/api/public/evolution
  *   Sem token: a empresa é identificada pelo NÚMERO DE WHATSAPP da linha
  *   (a instância) que recebeu a mensagem. Cadastre esse número em
  *   `companies.whatsapp_number`. O número da linha vem no payload do Evolution
