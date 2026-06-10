@@ -150,8 +150,8 @@ function SignupPage() {
       }
 
       setProgressOpen(false);
-      toast.success("Conta piloto criada!", {
-        description: `${form.razaoSocial} está pronta. Agora adicione os participantes do piloto.`,
+      toast.success("Conta criada!", {
+        description: `${form.razaoSocial} está pronta. Agora envie sua política de reembolso para concluir o setup.`,
       });
       setPhase("participants");
     } catch (err) {
@@ -183,8 +183,8 @@ function SignupPage() {
   if (phase === "participants") {
     return (
       <AuthLayout
-        eyebrow="Programa Piloto"
-        title="Participantes do piloto"
+        eyebrow="Configurar a solução"
+        title="Participantes da equipe"
         subtitle="Suba uma planilha (CSV) com quem vai participar. Cada pessoa recebe acesso e o convite por e-mail."
       >
         <ParticipantsStep onFinish={() => navigate({ to: "/overview" })} />
@@ -194,9 +194,9 @@ function SignupPage() {
 
   return (
     <AuthLayout
-      eyebrow="Programa Piloto"
-      title="Criar conta piloto"
-      subtitle="Cadastre sua empresa e o primeiro administrador para começar a testar."
+      eyebrow="Configurar a solução"
+      title="Configure a solução"
+      subtitle="Cadastre sua empresa e o primeiro administrador para começar o setup."
     >
 
       <form onSubmit={handleSubmit} className="space-y-3" noValidate>
@@ -298,7 +298,7 @@ function SignupPage() {
 
         <Button type="submit" className="w-full" size="lg" disabled={loading}>
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {loading ? "Criando conta…" : "Criar conta piloto"}
+          {loading ? "Criando conta…" : "Configurar a solução"}
         </Button>
       </form>
 
@@ -358,7 +358,7 @@ function SignupProgressDialog({
           <DialogDescription>
             {failedStep
               ? "Veja abaixo até onde o processo chegou antes de falhar."
-              : "Aguarde enquanto criamos sua conta piloto."}
+              : "Aguarde enquanto criamos sua conta."}
           </DialogDescription>
         </DialogHeader>
 

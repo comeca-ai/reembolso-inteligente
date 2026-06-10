@@ -54,7 +54,7 @@ export function AuthLayout({
 
         <div className="relative flex items-center gap-2 text-xs text-sidebar-foreground/60">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-sidebar-border/60 px-2.5 py-1 font-medium text-sidebar-foreground/80">
-            Programa Piloto
+            Configuração da solução
           </span>
           <span>· IA explicável com decisão humana</span>
         </div>

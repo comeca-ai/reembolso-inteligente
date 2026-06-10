@@ -144,7 +144,7 @@ function LoginPage() {
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Ainda não tem conta?{" "}
         <Link to="/signup" className="font-semibold text-brand hover:underline">
-          Criar conta piloto
+          Configurar a solução
         </Link>
       </p>
     </AuthLayout>
