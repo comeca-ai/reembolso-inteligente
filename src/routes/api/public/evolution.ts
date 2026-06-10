@@ -133,7 +133,7 @@ async function uploadComprovante(
     const trimmed = source.trim();
 
     if (/^https?:\/\//i.test(trimmed)) {
-      const res = await fetch(trimmed);
+      const res = await fetch(trimmed, { signal: AbortSignal.timeout(20_000) });
       if (!res.ok) return null;
       mime = res.headers.get("content-type") || mime;
       bytes = new Uint8Array(await res.arrayBuffer());
