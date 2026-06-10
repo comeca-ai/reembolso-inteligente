@@ -187,7 +187,7 @@ function SignupPage() {
         title="Participantes da equipe"
         subtitle="Suba uma planilha (CSV) com quem vai participar. Cada pessoa recebe acesso e o convite por e-mail."
       >
-        <ParticipantsStep onFinish={() => navigate({ to: "/overview" })} />
+        <ParticipantsStep onFinish={() => navigate({ to: "/onboarding" })} />
       </AuthLayout>
     );
   }
