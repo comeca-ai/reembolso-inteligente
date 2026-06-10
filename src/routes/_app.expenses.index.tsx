@@ -335,6 +335,7 @@ function ExpensesPage() {
                 className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="">Todos os status</option>
+                <option value="pendente_leitura">Aguardando leitura</option>
                 <option value="recebido">Recebido</option>
                 <option value="em_analise">Em análise</option>
                 <option value="processado">Processado</option>
