@@ -33,6 +33,7 @@ import { Route as AppExpensesIdRouteImport } from './routes/_app.expenses.$id'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicWhapiSplatRouteImport } from './routes/api/public/whapi.$'
 import { Route as ApiPublicHooksHealthCheckRouteImport } from './routes/api/public/hooks/health-check'
 
 const TesteWebhookRoute = TesteWebhookRouteImport.update({
@@ -155,6 +156,11 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWhapiSplatRoute = ApiPublicWhapiSplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => ApiPublicWhapiRoute,
+} as any)
 const ApiPublicHooksHealthCheckRoute =
   ApiPublicHooksHealthCheckRouteImport.update({
     id: '/api/public/hooks/health-check',
@@ -181,9 +187,10 @@ export interface FileRoutesByFullPath {
   '/api/public/despesas': typeof ApiPublicDespesasRoute
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
-  '/api/public/whapi': typeof ApiPublicWhapiRoute
+  '/api/public/whapi': typeof ApiPublicWhapiRouteWithChildren
   '/expenses/': typeof AppExpensesIndexRoute
   '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
+  '/api/public/whapi/$': typeof ApiPublicWhapiSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -207,9 +214,10 @@ export interface FileRoutesByTo {
   '/api/public/despesas': typeof ApiPublicDespesasRoute
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
-  '/api/public/whapi': typeof ApiPublicWhapiRoute
+  '/api/public/whapi': typeof ApiPublicWhapiRouteWithChildren
   '/expenses': typeof AppExpensesIndexRoute
   '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
+  '/api/public/whapi/$': typeof ApiPublicWhapiSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -235,9 +243,10 @@ export interface FileRoutesById {
   '/api/public/despesas': typeof ApiPublicDespesasRoute
   '/api/public/evolution': typeof ApiPublicEvolutionRoute
   '/api/public/reimbursements': typeof ApiPublicReimbursementsRoute
-  '/api/public/whapi': typeof ApiPublicWhapiRoute
+  '/api/public/whapi': typeof ApiPublicWhapiRouteWithChildren
   '/_app/expenses/': typeof AppExpensesIndexRoute
   '/api/public/hooks/health-check': typeof ApiPublicHooksHealthCheckRoute
+  '/api/public/whapi/$': typeof ApiPublicWhapiSplatRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/api/public/whapi'
     | '/expenses/'
     | '/api/public/hooks/health-check'
+    | '/api/public/whapi/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/api/public/whapi'
     | '/expenses'
     | '/api/public/hooks/health-check'
+    | '/api/public/whapi/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -319,6 +330,7 @@ export interface FileRouteTypes {
     | '/api/public/whapi'
     | '/_app/expenses/'
     | '/api/public/hooks/health-check'
+    | '/api/public/whapi/$'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -337,7 +349,7 @@ export interface RootRouteChildren {
   ApiPublicDespesasRoute: typeof ApiPublicDespesasRoute
   ApiPublicEvolutionRoute: typeof ApiPublicEvolutionRoute
   ApiPublicReimbursementsRoute: typeof ApiPublicReimbursementsRoute
-  ApiPublicWhapiRoute: typeof ApiPublicWhapiRoute
+  ApiPublicWhapiRoute: typeof ApiPublicWhapiRouteWithChildren
   ApiPublicHooksHealthCheckRoute: typeof ApiPublicHooksHealthCheckRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -514,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whapi/$': {
+      id: '/api/public/whapi/$'
+      path: '/$'
+      fullPath: '/api/public/whapi/$'
+      preLoaderRoute: typeof ApiPublicWhapiSplatRouteImport
+      parentRoute: typeof ApiPublicWhapiRoute
+    }
     '/api/public/hooks/health-check': {
       id: '/api/public/hooks/health-check'
       path: '/api/public/hooks/health-check'
@@ -548,6 +567,18 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiPublicWhapiRouteChildren {
+  ApiPublicWhapiSplatRoute: typeof ApiPublicWhapiSplatRoute
+}
+
+const ApiPublicWhapiRouteChildren: ApiPublicWhapiRouteChildren = {
+  ApiPublicWhapiSplatRoute: ApiPublicWhapiSplatRoute,
+}
+
+const ApiPublicWhapiRouteWithChildren = ApiPublicWhapiRoute._addFileChildren(
+  ApiPublicWhapiRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -561,7 +592,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicDespesasRoute: ApiPublicDespesasRoute,
   ApiPublicEvolutionRoute: ApiPublicEvolutionRoute,
   ApiPublicReimbursementsRoute: ApiPublicReimbursementsRoute,
-  ApiPublicWhapiRoute: ApiPublicWhapiRoute,
+  ApiPublicWhapiRoute: ApiPublicWhapiRouteWithChildren,
   ApiPublicHooksHealthCheckRoute: ApiPublicHooksHealthCheckRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
@@ -570,13 +601,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
