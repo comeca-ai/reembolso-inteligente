@@ -50,8 +50,11 @@ Veja `src/lib/README.md` para o detalhamento da camada de lógica e
   `current_company_id()`.
 - **Papéis** ficam em `user_roles` e são verificados via `has_role()`
   (security definer) — nunca confiar em papel vindo do cliente.
-- **Webhooks** (`/api/public/*`) exigem `webhook_token` da empresa; o
-  `company_id` é resolvido no servidor, nunca aceito do corpo da requisição.
+- **Webhooks** (`/api/public/*`): o `company_id` é sempre resolvido no
+  servidor, nunca aceito do corpo da requisição. O webhook Evolution
+  (WhatsApp) identifica a empresa pelo número do remetente
+  (`resolve_company_by_sender_whatsapp`); os demais webhooks usam o
+  `webhook_token` da empresa (`resolveCompanyByWebhookToken`).
 - **Storage**: buckets privados (`policies`, `comprovantes`, `cartoes-cnpj`)
   com políticas restritas à pasta da própria empresa.
 
@@ -69,5 +72,8 @@ bun run build    # build de produção
 
 Os testes vivem ao lado do código (`*.test.ts`) e cobrem regras críticas:
 permissões/papéis (`permissions.test.ts`, `auth-gates.test.ts`), correspondência
-de telefone (`phone-match.test.ts`), parsing de IA e utilitários de servidor
-(`server-utils.test.ts`) e fluxo de sessão (`auth.test.ts`).
+de telefone e WhatsApp (`phone-match.test.ts`, `whatsapp-key.test.ts`), parsing
+de IA e utilitários de servidor (`server-utils.test.ts`), validação estrutural
+de chave de NF-e (`nfe-chave.test.ts`), importação de participantes
+(`participants-csv.test.ts`) e fluxo de sessão/pré-cadastro (`auth.test.ts`).
+São 54 testes em 8 arquivos — rode `bun run test` antes de publicar.
