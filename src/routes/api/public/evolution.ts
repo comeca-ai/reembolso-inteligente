@@ -191,6 +191,7 @@ async function decryptMediaFromEvolution(
           message: { key, message },
           convertToMp4: false,
         }),
+        signal: AbortSignal.timeout(20_000),
       },
     );
     if (!res.ok) {
